@@ -5,7 +5,7 @@
 | Phase | Deliverable | Status |
 |-------|------------|--------|
 | 0 | Project scaffold + interface stubs | done |
-| 1 | Data layer (Tushare sync, Parquet store, query) | pending |
+| 1 | Data layer (Tushare sync, Parquet store, query) | done |
 | 2 | Factor layer + Standardization layer | pending |
 | 3 | Backtest engine | pending |
 | 4 | Strategy layer | pending |

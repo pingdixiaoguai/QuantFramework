@@ -1,14 +1,9 @@
-"""Data layer interface — see docs/DESIGN.md §2.1."""
+"""Data layer interface — see docs/DESIGN.md §2.1.
 
-from datetime import date
+This module re-exports the public API so that callers can do:
+    from data.interfaces import query
+"""
 
-import pandas as pd
+from data.store import query
 
-
-def query(asset_code: str, start: date, end: date) -> pd.DataFrame:
-    """Return OHLCV DataFrame for a single asset over [start, end].
-
-    Columns: [date, open, high, low, close, volume].
-    See docs/DESIGN.md §2.1 for the full interface contract.
-    """
-    raise NotImplementedError
+__all__ = ["query"]
