@@ -71,9 +71,9 @@ description:    一句话描述
 - 未注册的因子文件不会被执行
 
 **输出校验**（由系统自动执行，因子作者无需关心）：
-- Series 长度 = 输入 DataFrame 行数 - (min_history - 1)
+- Series 长度 = 输入 DataFrame 行数
 - 索引与输入 DataFrame 的日期索引对齐
-- NaN 处理：允许前 min_history 行为 NaN，之后不允许
+- NaN 处理：允许前 min_history - 1 行为 NaN，之后不允许
 - 校验失败 → 拒绝加载，报告具体违反项
 
 **隔离性保证**：

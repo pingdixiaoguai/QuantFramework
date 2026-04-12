@@ -1,0 +1,3 @@
+factors:
+  - module: factors.momentum
+  - module: factors.volatility

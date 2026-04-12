@@ -1,15 +1,9 @@
-"""Standardization layer interface — see docs/DESIGN.md §2.3."""
+"""Standardization layer interface — see docs/DESIGN.md §2.3.
 
-import pandas as pd
+This module re-exports the public API so that callers can do:
+    from standardization.interfaces import standardize
+"""
 
+from standardization.methods import standardize
 
-def standardize(
-    raw: dict[str, pd.Series],
-    method: str = "cross_sectional_rank",
-) -> dict[str, pd.Series]:
-    """Map raw factor values to a comparable space.
-
-    Methods: cross_sectional_rank, z_score, percentile.
-    See docs/DESIGN.md §2.3 for the full interface contract.
-    """
-    raise NotImplementedError
+__all__ = ["standardize"]

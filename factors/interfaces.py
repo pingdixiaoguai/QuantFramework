@@ -1,13 +1,10 @@
-"""Factor layer interface — see docs/DESIGN.md §2.2."""
+"""Factor layer interface — see docs/DESIGN.md §2.2.
 
-import pandas as pd
+This module re-exports the public API so that callers can do:
+    from factors.interfaces import load_registered_factors, validate
+"""
 
+from factors.registry import load_registered_factors
+from factors.validator import validate
 
-def compute(df: pd.DataFrame, params: dict | None = None) -> pd.Series:
-    """Compute a single factor from standardized OHLCV data.
-
-    Input:  df with columns [date, open, high, low, close, volume]
-    Output: pd.Series with date index and float values.
-    See docs/DESIGN.md §2.2 for the full interface contract.
-    """
-    raise NotImplementedError
+__all__ = ["load_registered_factors", "validate"]

@@ -6,7 +6,7 @@
 |-------|------------|--------|
 | 0 | Project scaffold + interface stubs | done |
 | 1 | Data layer (Tushare sync, Parquet store, query) | done |
-| 2 | Factor layer + Standardization layer | pending |
+| 2 | Factor layer + Standardization layer | done |
 | 3 | Backtest engine | pending |
 | 4 | Strategy layer | pending |
 | 5 | Execution layer | pending |
@@ -33,4 +33,6 @@
 
 ## Deviations
 
-(None yet — record any deviations from DESIGN.md here as phases are completed.)
+- `standardization.cross_sectional_rank` is a `NotImplementedError` placeholder in Phase 2 — requires multi-asset input, will be implemented in Phase 4.
+- `factors/momentum.py` uses `min_history=21` (not 20 as in the spec) because `pct_change(20)` produces 20 NaN rows, requiring 21 data points for the first valid output.
+- DESIGN.md §2.2 output validation corrected: Series length = input DataFrame rows (not minus min_history-1), and NaN allowed for first min_history-1 rows (not min_history).
