@@ -1,0 +1,23 @@
+[project]
+name = "quantframework"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.4.4",
+    "pandas>=3.0.2",
+    "pyarrow>=23.0.1",
+    "python-dotenv>=1.2.2",
+    "pyyaml>=6.0.3",
+    "tushare>=1.4.29",
+]
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
