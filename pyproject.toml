@@ -10,6 +10,7 @@ dependencies = [
     "pyarrow>=23.0.1",
     "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
+    "quantstats>=0.0.81",
     "tushare>=1.4.29",
 ]
 

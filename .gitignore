@@ -13,5 +13,6 @@ wheels/
 .env
 data/db/
 experiments/*.yaml
+experiments/*.html
 state/*.json
 .pytest_cache/
