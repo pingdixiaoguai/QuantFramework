@@ -1,3 +1,4 @@
 factors:
   - module: factors.momentum
   - module: factors.volatility
+  - module: factors.quality_momentum

@@ -1,0 +1,15 @@
+strategy_name: quality_momentum_top1
+strategy_class: strategy.top1.Top1
+asset_pool:
+  - 510300.SH   # 沪深300 ETF
+  - 159915.SZ   # 创业板 ETF
+  - 513100.SH   # 纳斯达克 ETF
+  - 518880.SH   # 黄金 ETF
+start: "2016-01-01"
+end: "2026-04-13"
+factors:
+  - name: quality_momentum
+    weight: 1.0
+    params: {window: 20}
+train_ratio: 0.7
+rebalance_rule: daily
