@@ -12,6 +12,7 @@ import pandas as pd
 from data.store import query
 from factors.registry import load_registered_factors
 from factors.validator import validate
+from strategy.loader import load_strategy
 
 
 @dataclass
@@ -49,7 +50,8 @@ def run(config: dict | None = None) -> BacktestResult:
     factor_configs = config["factors"]
     train_ratio = config.get("train_ratio", 0.7)
 
-    # Load all factor modules
+    # Load strategy and factor modules
+    strategy = load_strategy(config)
     all_factors = load_registered_factors()
 
     # Load data for all assets
@@ -125,8 +127,8 @@ def run(config: dict | None = None) -> BacktestResult:
             if len(factor_vals) == len(factor_configs):
                 asset_factor_values[asset] = factor_vals
 
-        # Compute weighted rank -> target weights
-        weights = _compute_weights(asset_factor_values, factor_configs)
+        # Delegate to strategy for target weights
+        weights = strategy.generate_weights(asset_factor_values)
 
         if weights:
             positions_records.append({"date": t, **weights})
@@ -181,45 +183,6 @@ def run(config: dict | None = None) -> BacktestResult:
     _check_overfit(result)
 
     return result
-
-
-def _compute_weights(
-    asset_factor_values: dict[str, dict[str, float]],
-    factor_configs: list[dict],
-) -> dict[str, float]:
-    """Compute portfolio weights from factor values via weighted ranking."""
-    if not asset_factor_values:
-        return {}
-
-    assets = list(asset_factor_values.keys())
-    if len(assets) == 1:
-        return {assets[0]: 1.0}
-
-    # For each factor, rank assets
-    total_scores: dict[str, float] = {a: 0.0 for a in assets}
-
-    for fc in factor_configs:
-        fname = fc["name"]
-        weight = fc["weight"]
-        flip = fc.get("direction_flip", False)
-
-        values = [(a, asset_factor_values[a][fname]) for a in assets]
-        # Sort by factor value ascending -> rank 1 = lowest
-        values.sort(key=lambda x: x[1])
-        n = len(values)
-
-        for rank_idx, (asset, _) in enumerate(values):
-            rank = rank_idx + 1  # 1-based
-            if flip:
-                rank = n - rank + 1  # reverse: highest original = lowest rank
-            total_scores[asset] += weight * rank
-
-    # Normalize to weights (higher score = higher weight)
-    total = sum(total_scores.values())
-    if total == 0:
-        return {a: 1.0 / len(assets) for a in assets}
-
-    return {a: score / total for a, score in total_scores.items()}
 
 
 def _check_overfit(result: BacktestResult) -> None:

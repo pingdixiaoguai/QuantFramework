@@ -1,0 +1,19 @@
+strategy_name: momentum_rotation
+strategy_class: strategy.momentum_rotation.MomentumRotation
+asset_pool:
+  - 510300.SH
+  - 159915.SZ
+  - 513100.SH
+  - 518880.SH
+start: "2016-01-01"
+end: "2026-04-13"
+factors:
+  - name: momentum
+    weight: 0.7
+    params: {window: 20}
+  - name: volatility
+    weight: 0.3
+    direction_flip: true
+    params: {window: 20}
+train_ratio: 0.7
+rebalance_rule: daily
