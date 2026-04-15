@@ -59,9 +59,10 @@ class DingTalkNotifier(Notifier):
         payload = json.dumps({
             "msgtype": "markdown",
             "markdown": {
-                "title": "调仓通知",
+                "title": "调仓信号",
                 "text": message,
             },
+            "at": {"isAtAll": True},
         }).encode("utf-8")
 
         req = urllib.request.Request(

@@ -65,6 +65,7 @@ class TestDingTalkSend:
         assert captured["data"]["msgtype"] == "markdown"
         assert captured["data"]["markdown"]["text"] == "hello world"
         assert captured["headers"]["Content-type"] == "application/json"
+        assert captured["data"]["at"]["isAtAll"] is True
 
     def test_send_raises_on_api_error(self, monkeypatch):
         class FakeResponse:
