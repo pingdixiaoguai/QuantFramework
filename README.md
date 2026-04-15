@@ -50,16 +50,16 @@ DINGTALK_SECRET=SEC...                    # 钉钉机器人加签密钥（可选
 首次运行会拉取 2016 年至今的全量历史数据，后续只增量同步：
 
 ```bash
-# 同步单个标的
-uv run python -m data.sync 510300.SH
+# 按策略配置批量同步（推荐，从 asset_pool 读取标的列表）
+uv run python -m data --config strategy/configs/momentum_rotation.yaml
 
-# 同步多个标的
-for code in 510300.SH 159915.SZ 513100.SH 518880.SH; do
-    uv run python -m data.sync $code
-done
+# 或同步单个标的
+uv run python -m data 510300.SH
 ```
 
 数据存储在 `data/db/` 下，每个标的一个 Parquet 文件。
+
+> **注意：** `run_daily.py` 运行时会自动同步数据并检查新鲜度，无需手动执行此步骤。首次使用时仍需手动同步以拉取全量历史。
 
 ### 4. 运行回测
 
@@ -115,9 +115,7 @@ cp .env.example .env
 **第二步：同步 4 只 ETF 的历史数据**
 
 ```bash
-for code in 510300.SH 159915.SZ 513100.SH 518880.SH; do
-    uv run python -m data.sync $code
-done
+uv run python -m data --config strategy/configs/momentum_rotation.yaml
 ```
 
 **第三步：编写策略配置**

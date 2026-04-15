@@ -38,3 +38,9 @@
 - DESIGN.md §2.2 output validation corrected: Series length = input DataFrame rows (not minus min_history-1), and NaN allowed for first min_history-1 rows (not min_history).
 - Strategy layer input differs from DESIGN.md §2.4: actual input is `dict[str, dict[str, float]]` (asset → factor → value, a cross-sectional snapshot) instead of `dict[str, pd.Series]` (standardized factor series). This aligns with how the backtest engine already feeds data to the strategy — one snapshot per trading day.
 - The strategy layer performs its own cross-sectional ranking internally (in MomentumRotation), rather than consuming pre-ranked values from the standardization layer. This is a deliberate choice: ranking logic is part of the strategy, and different strategies may rank differently.
+
+## Writing Plans 规则
+当使用 superpowers:writing-plans 生成实施计划时：
+1. 先输出计划的骨架结构（仅标题、任务编号、一句话摘要）
+2. 确认骨架无误后，再逐个任务段落填充详细内容
+3. 严禁一次性输出完整的长篇计划文档
