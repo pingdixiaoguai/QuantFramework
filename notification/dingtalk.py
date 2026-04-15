@@ -53,18 +53,9 @@ class DingTalkNotifier(Notifier):
         sign = urllib.parse.quote_plus(base64.b64encode(hmac_code).decode())
         return f"{self.webhook_url}&timestamp={timestamp}&sign={sign}"
 
-    def send(self, message: str) -> None:
-        """Send a markdown message to DingTalk."""
+    def _post(self, payload: bytes) -> None:
+        """POST a JSON payload to the signed webhook URL."""
         url = self._sign_url()
-        payload = json.dumps({
-            "msgtype": "markdown",
-            "markdown": {
-                "title": "调仓信号",
-                "text": message,
-            },
-            "at": {"isAtAll": True},
-        }).encode("utf-8")
-
         req = urllib.request.Request(
             url,
             data=payload,
@@ -76,3 +67,22 @@ class DingTalkNotifier(Notifier):
                 raise RuntimeError(
                     f"DingTalk API error: {result.get('errmsg', 'unknown')}"
                 )
+
+    def send(self, message: str) -> None:
+        """Send a markdown card followed by a separate @所有人 text message."""
+        # 1. Send the markdown card (no @mention inside)
+        self._post(json.dumps({
+            "msgtype": "markdown",
+            "markdown": {
+                "title": "调仓信号",
+                "text": message,
+            },
+        }).encode("utf-8"))
+
+        # 2. Send a plain text message to trigger @所有人 notification
+        #    DingTalk only reliably fires the group-wide alert for text type.
+        self._post(json.dumps({
+            "msgtype": "text",
+            "text": {"content": "请查看今日调仓信号，及时操作！"},
+            "at": {"isAtAll": True},
+        }).encode("utf-8"))
