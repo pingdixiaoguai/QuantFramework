@@ -19,7 +19,7 @@ def load_registered_factors() -> dict[str, dict]:
 
     Returns dict mapping factor name to {"METADATA": dict, "compute": callable}.
     """
-    with open(_REGISTRY_PATH) as f:
+    with open(_REGISTRY_PATH, encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     factors: dict[str, dict] = {}

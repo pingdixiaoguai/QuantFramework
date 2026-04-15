@@ -18,7 +18,7 @@ from backtest.runner import run
 
 
 def _load_config_from_yaml(path: Path) -> dict:
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         raw = yaml.safe_load(f)
 
     # Normalize dates
@@ -29,7 +29,7 @@ def _load_config_from_yaml(path: Path) -> dict:
 
 
 def _load_config_from_log(path: Path) -> dict:
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         log = yaml.safe_load(f)
 
     exp = log["experiment"]

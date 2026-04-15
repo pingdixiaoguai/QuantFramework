@@ -100,7 +100,7 @@ def save(result: BacktestResult, output_dir: Path | None = None) -> Path:
     }
 
     path = output_dir / f"{exp_id}.yaml"
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         yaml.dump(log, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
     return path
