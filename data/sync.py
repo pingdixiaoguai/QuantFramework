@@ -66,13 +66,12 @@ def sync(asset_code: str) -> int:
     return row_count
 
 
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) != 2:
-        print("Usage: python -m data.sync <asset_code>")
-        sys.exit(1)
-
-    asset_code = sys.argv[1]
-    n = sync(asset_code)
-    print(f"synced {n} rows for {asset_code}")
+def sync_all(asset_codes: list[str]) -> dict[str, int]:
+    """Sync multiple assets. Returns {asset_code: rows_added}."""
+    results = {}
+    for code in asset_codes:
+        print(f"syncing {code} ... ", end="", flush=True)
+        n = sync(code)
+        print(f"{n} new rows")
+        results[code] = n
+    return results
