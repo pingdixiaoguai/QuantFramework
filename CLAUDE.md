@@ -31,13 +31,15 @@
 - **Testing**: `uv run pytest` from project root
 - **Python version**: 3.12 (locked in `.python-version`)
 
-## Deviations
+## Subdirectory CLAUDE.md
 
-- `standardization.cross_sectional_rank` is a `NotImplementedError` placeholder in Phase 2 — requires multi-asset input, will be implemented in Phase 4.
-- `factors/momentum.py` uses `min_history=21` (not 20 as in the spec) because `pct_change(20)` produces 20 NaN rows, requiring 21 data points for the first valid output.
-- DESIGN.md §2.2 output validation corrected: Series length = input DataFrame rows (not minus min_history-1), and NaN allowed for first min_history-1 rows (not min_history).
-- Strategy layer input differs from DESIGN.md §2.4: actual input is `dict[str, dict[str, float]]` (asset → factor → value, a cross-sectional snapshot) instead of `dict[str, pd.Series]` (standardized factor series). This aligns with how the backtest engine already feeds data to the strategy — one snapshot per trading day.
-- The strategy layer performs its own cross-sectional ranking internally (in MomentumRotation), rather than consuming pre-ranked values from the standardization layer. This is a deliberate choice: ranking logic is part of the strategy, and different strategies may rank differently.
+Each module directory (`data/`, `factors/`, `standardization/`, `strategy/`, `execution/`, `notification/`, `backtest/`) has its own `CLAUDE.md` containing that module's contract, implementation notes, known deviations, and pitfalls. **These are the authoritative source for module-level context — do not look for deviation notes in this root file.**
+
+**IMPORTANT**: When modifying a module's code, always check if the same directory's `CLAUDE.md` needs updating. Specifically:
+- Interface change (input/output format) → update Contract section
+- Behavior differs from DESIGN.md → update Known deviations
+- Discovered a new gotcha → add to Pitfalls section
+If unsure whether an update is needed, read the subdirectory `CLAUDE.md` and verify each statement still holds against the code you just changed.
 
 ## Writing Plans 规则
 当使用 superpowers:writing-plans 生成实施计划时：
