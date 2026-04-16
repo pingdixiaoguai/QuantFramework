@@ -144,7 +144,11 @@ def _compute_position_return(
     entry_prices: dict[str, float] | None,
     today: date,
 ) -> float | None:
-    """Weighted sum of (close_today / open_entry - 1) for each held asset."""
+    """Weighted sum of (close_latest / open_entry - 1) for each held asset.
+
+    Uses the latest available close price up to *today* (handles the case
+    where today's data is not yet available).
+    """
     if entry_prices is None or not weights:
         return None
     total = 0.0
@@ -152,10 +156,17 @@ def _compute_position_return(
         open_entry = entry_prices.get(asset)
         if open_entry is None:
             return None
+        # Try today first; fall back to latest available close
         df = query(asset, today, today)
         if len(df) == 0:
-            return None
-        close_today = float(df.iloc[0]["close"])
+            df = read_local(asset)
+            if df is None or len(df) == 0:
+                return None
+            df = df[df["date"] <= pd.Timestamp(today)]
+            if len(df) == 0:
+                return None
+            df = df.tail(1)
+        close_today = float(df.iloc[-1]["close"])
         total += weight * (close_today / open_entry - 1)
     return total
 
@@ -177,8 +188,14 @@ def _compute_benchmark_returns(
         open_entry = float(df_entry.iloc[0]["open"])
         df_today = query(asset, today, today)
         if len(df_today) == 0:
-            continue
-        close_today = float(df_today.iloc[0]["close"])
+            # Fall back to latest available close
+            df_local = read_local(asset)
+            if df_local is None or len(df_local) == 0:
+                continue
+            df_today = df_local[df_local["date"] <= pd.Timestamp(today)].tail(1)
+            if len(df_today) == 0:
+                continue
+        close_today = float(df_today.iloc[-1]["close"])
         returns[asset] = close_today / open_entry - 1
     return returns
 

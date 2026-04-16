@@ -64,7 +64,7 @@ def _build_position_section(ctx: NotificationContext) -> str:
         lines.append(
             f"• {label}　{weight_str}　|　已持有 {days_str} 交易日　|　收益 **{ret_str}**"
         )
-    return "\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def _build_rebalance_section(ctx: NotificationContext) -> str:
@@ -80,11 +80,11 @@ def _build_rebalance_section(ctx: NotificationContext) -> str:
         lines.append(
             f"• {action_cn}：{label}　{current:.0%} → {target:.0%}"
         )
-    return "\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def _build_alpha_section(ctx: NotificationContext) -> str:
-    """Build the 调仓超额 block showing factor scores and benchmark returns for all candidates."""
+    """Build the 调仓超额 block showing factor scores, benchmark returns, and alpha for all candidates."""
     if not ctx.asset_factor_values and not ctx.benchmark_returns:
         return ""
 
@@ -108,6 +108,18 @@ def _build_alpha_section(ctx: NotificationContext) -> str:
 
     FACTOR_DISPLAY = {"momentum": "动量", "volatility": "波动率"}
 
+    # Compute weighted return of selected targets for alpha calculation
+    target_return: float | None = None
+    if ctx.benchmark_returns:
+        total_w = 0.0
+        weighted_ret = 0.0
+        for asset, w in ctx.target_weights.items():
+            if w > 0 and asset in ctx.benchmark_returns:
+                weighted_ret += w * ctx.benchmark_returns[asset]
+                total_w += w
+        if total_w > 0:
+            target_return = weighted_ret / total_w
+
     for asset in all_assets:
         label = _asset_label(asset, ctx.asset_names)
         target_w = ctx.target_weights.get(asset)
@@ -124,16 +136,20 @@ def _build_alpha_section(ctx: NotificationContext) -> str:
                     display_name = FACTOR_DISPLAY.get(fname, fname)
                     parts.append(f"{display_name} {_fmt_pct(val)}")
 
-        # Same-period benchmark return
+        # Same-period benchmark return + alpha vs target
         if asset in ctx.benchmark_returns:
-            parts.append(f"同期 {_fmt_pct(ctx.benchmark_returns[asset])}")
+            ret = ctx.benchmark_returns[asset]
+            parts.append(f"同期 {_fmt_pct(ret)}")
+            if target_return is not None and not is_target:
+                alpha = ret - target_return
+                parts.append(f"超额 {_fmt_pct(alpha)}")
 
         lines.append("• " + "　|　".join(parts))
 
     lines.append("")
-    lines.append("★ = 调仓目标")
+    lines.append("★ = 调仓目标　|　超额 = 该标的同期收益 − 目标同期收益")
 
-    return "\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def _build_benchmark_section(ctx: NotificationContext) -> str:
@@ -166,7 +182,7 @@ def _build_benchmark_section(ctx: NotificationContext) -> str:
             diff_str = f"落后持仓 {_fmt_pct(diff)} ↓"
         lines.append(f"• {label}　{bench_str}　|　{diff_str}")
 
-    return "\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def _build_ytd_line(ctx: NotificationContext) -> str:

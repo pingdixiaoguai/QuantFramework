@@ -16,3 +16,12 @@ experiments/*.yaml
 experiments/*.html
 state/*.json
 .pytest_cache/
+
+# IDE
+.idea/
+
+# AI tooling / automation agents
+.claude/
+.codebuddy/
+.workbuddy/
+docs/superpowers/
