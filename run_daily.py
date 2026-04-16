@@ -335,10 +335,14 @@ def run(config: dict) -> None:
     except ValueError as exc:
         print(f"\nDingTalk skipped: {exc}")
 
-    # 9. Persist new position (exit_prices backfilled on next run)
-    next_entry_date = _next_entry_date(today, asset_pool)
-    save_position(target_weights, next_entry_date, entry_prices=None)
-    print(f"Position saved: {target_weights}, next_entry_date={next_entry_date}")
+    # 9. Persist new position only on rebalance (exit_prices backfilled on next run)
+    is_rebalance = any(o.action in ("buy", "sell") for o in orders)
+    if is_rebalance:
+        next_entry_date = _next_entry_date(today, asset_pool)
+        save_position(target_weights, next_entry_date, entry_prices=None)
+        print(f"Position saved: {target_weights}, next_entry_date={next_entry_date}")
+    else:
+        print(f"Hold signal — position unchanged: {current_weights}")
 
 
 def main() -> None:
