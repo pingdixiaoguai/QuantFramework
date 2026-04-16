@@ -305,6 +305,7 @@ def run(config: dict) -> None:
         benchmark_returns=benchmark_returns,
         ytd_return=ytd_return,
         asset_names=ASSET_NAMES,
+        asset_factor_values=asset_factor_values,
     )
 
     message = format_notification(ctx)

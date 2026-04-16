@@ -28,6 +28,7 @@ class NotificationContext:
     benchmark_returns: dict[str, float]  # asset → same-period return
     ytd_return: float | None          # YTD cumulative return
     asset_names: dict[str, str]       # asset → Chinese name
+    asset_factor_values: dict[str, dict[str, float]] | None = None  # asset → factor → value
 
 
 def _asset_label(asset: str, asset_names: dict[str, str]) -> str:
@@ -79,6 +80,59 @@ def _build_rebalance_section(ctx: NotificationContext) -> str:
         lines.append(
             f"• {action_cn}：{label}　{current:.0%} → {target:.0%}"
         )
+    return "\n".join(lines)
+
+
+def _build_alpha_section(ctx: NotificationContext) -> str:
+    """Build the 调仓超额 block showing factor scores and benchmark returns for all candidates."""
+    if not ctx.asset_factor_values and not ctx.benchmark_returns:
+        return ""
+
+    lines = ["**调仓依据（标的对比）**"]
+
+    # Collect all assets from factor values or benchmark returns
+    all_assets = list(
+        dict.fromkeys(
+            list(ctx.asset_factor_values or {})
+            + list(ctx.benchmark_returns or {})
+        )
+    )
+    if not all_assets:
+        return ""
+
+    # Determine factor names from the first asset
+    factor_names: list[str] = []
+    if ctx.asset_factor_values:
+        first = next(iter(ctx.asset_factor_values.values()))
+        factor_names = list(first.keys())
+
+    FACTOR_DISPLAY = {"momentum": "动量", "volatility": "波动率"}
+
+    for asset in all_assets:
+        label = _asset_label(asset, ctx.asset_names)
+        target_w = ctx.target_weights.get(asset)
+        is_target = target_w is not None and target_w > 0
+        marker = "★" if is_target else "　"
+
+        parts = [f"{marker} {label}"]
+
+        # Factor values
+        if ctx.asset_factor_values and asset in ctx.asset_factor_values:
+            for fname in factor_names:
+                val = ctx.asset_factor_values[asset].get(fname)
+                if val is not None:
+                    display_name = FACTOR_DISPLAY.get(fname, fname)
+                    parts.append(f"{display_name} {_fmt_pct(val)}")
+
+        # Same-period benchmark return
+        if asset in ctx.benchmark_returns:
+            parts.append(f"同期 {_fmt_pct(ctx.benchmark_returns[asset])}")
+
+        lines.append("• " + "　|　".join(parts))
+
+    lines.append("")
+    lines.append("★ = 调仓目标")
+
     return "\n".join(lines)
 
 
@@ -140,9 +194,12 @@ def format_notification(ctx: NotificationContext) -> str:
         middle = _build_position_section(ctx)
 
     benchmark = _build_benchmark_section(ctx)
+    alpha = _build_alpha_section(ctx) if is_rebalance else ""
     ytd = _build_ytd_line(ctx)
 
     parts = [header, "---", middle]
+    if alpha:
+        parts += ["---", alpha]
     if benchmark:
         parts += ["---", benchmark]
     parts += ["---", ytd]
