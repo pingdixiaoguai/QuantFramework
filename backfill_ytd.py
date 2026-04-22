@@ -49,6 +49,7 @@ def backfill(config: dict) -> None:
     year_start = date(today.year, 1, 1)
     asset_pool = config["asset_pool"]
     factor_configs = config["factors"]
+    strategy_name = config["strategy_name"]
 
     strategy = load_strategy(config)
     all_factors = load_registered_factors()
@@ -182,7 +183,7 @@ def backfill(config: dict) -> None:
         ytd_history=ytd_history,
     )
 
-    write_position(state)
+    write_position(state, strategy_name)
 
     print(f"\nBackfill complete!")
     print(f"  Closed periods: {len(ytd_history)}")
