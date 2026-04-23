@@ -1,4 +1,4 @@
-"""Current position persistence — state/current_position.json."""
+"""Per-strategy position persistence — state/{strategy_name}_position.json."""
 
 from __future__ import annotations
 
@@ -7,7 +7,11 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-STATE_FILE = Path(__file__).resolve().parent.parent / "state" / "current_position.json"
+_STATE_DIR = Path(__file__).resolve().parent.parent / "state"
+
+
+def _state_file(strategy_name: str) -> Path:
+    return _STATE_DIR / f"{strategy_name}_position.json"
 
 
 @dataclass
@@ -59,15 +63,16 @@ def _state_to_dict(state: PositionState) -> dict:
     }
 
 
-def read_position() -> PositionState:
+def read_position(strategy_name: str) -> PositionState:
     """Load position state from disk. Auto-migrates old flat-dict format.
 
     Returns empty PositionState if the file is missing.
     """
-    if not STATE_FILE.exists():
+    path = _state_file(strategy_name)
+    if not path.exists():
         return PositionState()
 
-    with open(STATE_FILE) as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
     # Old format: flat dict of {asset: weight} with no "weights" key
@@ -87,23 +92,25 @@ def read_position() -> PositionState:
     )
 
 
-def write_position(state: PositionState) -> None:
+def write_position(state: PositionState, strategy_name: str) -> None:
     """Persist a PositionState directly to disk (used for backfill updates)."""
-    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(STATE_FILE, "w") as f:
+    path = _state_file(strategy_name)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(_state_to_dict(state), f, indent=2)
 
 
 def save_position(
     target_weights: dict[str, float],
     entry_date: date,
+    strategy_name: str,
     entry_prices: dict[str, float] | None = None,
 ) -> None:
     """Persist new target weights, archiving the outgoing position to ytd_history.
 
     The archived period has exit_prices=None; these are backfilled on the next run.
     """
-    current = read_position()
+    current = read_position(strategy_name)
 
     new_history = list(current.ytd_history)
     if current.weights:
@@ -123,4 +130,4 @@ def save_position(
         entry_prices=entry_prices,
         ytd_history=new_history,
     )
-    write_position(new_state)
+    write_position(new_state, strategy_name)

@@ -8,10 +8,43 @@ from datetime import date
 from execution.interfaces import Order
 
 ASSET_NAMES: dict[str, str] = {
+    # quality_momentum_top1 pool
     "510300.SH": "沪深300",
     "159915.SZ": "创业板",
     "513100.SH": "纳指ETF",
     "518880.SH": "黄金ETF",
+    # industry_quality_momentum_top5 pool — Financials / Real Estate
+    "512880.SH": "证券",
+    "512800.SH": "银行",
+    "512200.SH": "房地产",
+    # Consumer / Home Appliance
+    "512690.SH": "酒",
+    "159928.SZ": "消费",
+    "159996.SZ": "家电",
+    # Healthcare
+    "512010.SH": "医药",
+    "512170.SH": "医疗",
+    # TMT
+    "512480.SH": "半导体",
+    "515880.SH": "通信",
+    "512720.SH": "计算机",
+    "159939.SZ": "信息技术",
+    "512980.SH": "传媒",
+    # Advanced Manufacturing
+    "512660.SH": "军工",
+    "515030.SH": "新能源车",
+    "516110.SH": "汽车",
+    "515790.SH": "光伏",
+    "562800.SH": "风电",
+    # Cyclicals
+    "515220.SH": "煤炭",
+    "512400.SH": "有色金属",
+    "515210.SH": "钢铁",
+    "159870.SZ": "化工",
+    # Utilities / Agri / Infra
+    "159611.SZ": "电力",
+    "159825.SZ": "农业",
+    "516970.SH": "基建",
 }
 
 

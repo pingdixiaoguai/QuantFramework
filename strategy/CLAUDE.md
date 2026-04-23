@@ -8,6 +8,7 @@ Output: `dict[str, float]` (asset → weight, sum = 1.0; empty dict if no input)
 - Base class: `base.py` defines `BaseStrategy.generate_weights()` interface; `__init__(config: dict)` stores `self.config`
 - `momentum_rotation.py` (`MomentumRotation`): rank-weighted combiner. For each factor config, sorts assets by that factor's value and awards rank (1..n), flipping if `direction_flip: true`. Weights = `factor_weight * rank` summed across factors, then normalized.
 - `top1.py` (`Top1`): all-in on the single asset with the highest score on `factors[0]` (or lowest if `direction_flip: true`). Ignores factors beyond index 0.
+- `topn.py` (`TopN`): equal-weight on the top `top_n` assets by `factors[0]` (lowest `top_n` if `direction_flip: true`). Reads `top_n` from config (default 5). When `top_n > len(scored)` falls back to equal-weight on all candidates rather than emitting an empty position.
 - `loader.py` (`load_strategy(config)`): imports class from `config["strategy_class"]` dotted path, defaults to `strategy.momentum_rotation.MomentumRotation`
 - Configs live in `strategy/configs/*.yaml` — factor weights, asset pool, rebalance rule are config, not code
 

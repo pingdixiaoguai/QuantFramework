@@ -77,6 +77,7 @@ def _sync_and_check(asset_pool: list[str], today: date) -> None:
 def _backfill_open_prices(
     state: PositionState,
     today: date,
+    strategy_name: str,
 ) -> PositionState:
     """If entry_prices is null, read open prices for entry_date and write back.
 
@@ -122,7 +123,7 @@ def _backfill_open_prices(
         entry_prices=entry_prices,
         ytd_history=new_history,
     )
-    write_position(updated)
+    write_position(updated, strategy_name)
     print(f"Backfilled entry prices for {state.entry_date}: {entry_prices}")
     return updated
 
@@ -244,16 +245,17 @@ def run(config: dict) -> None:
     today = date.today()
     asset_pool = config["asset_pool"]
     factor_configs = config["factors"]
-    strategy_name = config.get("strategy_name", "Strategy")
+    strategy_name = config["strategy_name"]
+    enable_dingtalk = config.get("enable_dingtalk", True)
 
     # 1. Sync data and verify freshness
     _sync_and_check(asset_pool, today)
 
     # 2. Read state (auto-migrates old format)
-    current_state = read_position()
+    current_state = read_position(strategy_name)
 
     # 3. Backfill open prices if entry_prices is null
-    current_state = _backfill_open_prices(current_state, today)
+    current_state = _backfill_open_prices(current_state, today, strategy_name)
 
     strategy = load_strategy(config)
     all_factors = load_registered_factors()
@@ -328,18 +330,21 @@ def run(config: dict) -> None:
     message = format_notification(ctx)
     print(message)
 
-    try:
-        notifier = DingTalkNotifier()
-        notifier.send(message)
-        print("\nDingTalk notification sent.")
-    except ValueError as exc:
-        print(f"\nDingTalk skipped: {exc}")
+    if enable_dingtalk:
+        try:
+            notifier = DingTalkNotifier()
+            notifier.send(message)
+            print("\nDingTalk notification sent.")
+        except ValueError as exc:
+            print(f"\nDingTalk skipped: {exc}")
+    else:
+        print("\nDingTalk disabled by config (enable_dingtalk: false).")
 
     # 9. Persist new position only on rebalance (exit_prices backfilled on next run)
     is_rebalance = any(o.action in ("buy", "sell") for o in orders)
     if is_rebalance:
         next_entry_date = _next_entry_date(today, asset_pool)
-        save_position(target_weights, next_entry_date, entry_prices=None)
+        save_position(target_weights, next_entry_date, strategy_name, entry_prices=None)
         print(f"Position saved: {target_weights}, next_entry_date={next_entry_date}")
     else:
         print(f"Hold signal — position unchanged: {current_weights}")
