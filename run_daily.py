@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import argparse
 import warnings
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
+import tushare as ts
 import yaml
 
+from data.config import get_tushare_token
 from data.store import query, read_local
 from data.sync import sync_all
 from execution.interfaces import diff
@@ -45,11 +47,30 @@ def _load_config(path: Path) -> dict:
     return raw
 
 
-_STALE_DAYS = 5  # Max calendar days before data is considered stale
+# Max trading days a local file may lag behind today before being considered
+# stale. 1 tolerates "ran before today's bar was published" while still catching
+# real pipeline breakage (>=2 missed trading days).
+_STALE_TRADING_DAYS = 1
+
+
+def _count_trading_days_behind(latest: date, today: date) -> int:
+    """Number of SSE trading days strictly after `latest` and up to `today`."""
+    if latest >= today:
+        return 0
+    pro = ts.pro_api(get_tushare_token())
+    df = pro.trade_cal(
+        exchange="SSE",
+        start_date=(latest + timedelta(days=1)).strftime("%Y%m%d"),
+        end_date=today.strftime("%Y%m%d"),
+        is_open="1",
+    )
+    if df is None or df.empty:
+        return 0
+    return len(df)
 
 
 def _sync_and_check(asset_pool: list[str], today: date) -> None:
-    """Sync all assets and verify data freshness."""
+    """Sync all assets and verify data freshness in trading-day terms."""
     print("=== Syncing data ===")
     sync_all(asset_pool)
     print()
@@ -61,9 +82,9 @@ def _sync_and_check(asset_pool: list[str], today: date) -> None:
             stale.append((asset, "no local data"))
             continue
         latest = df["date"].max().date()
-        gap = (today - latest).days
-        if gap > _STALE_DAYS:
-            stale.append((asset, f"latest={latest}, {gap} days behind"))
+        gap = _count_trading_days_behind(latest, today)
+        if gap > _STALE_TRADING_DAYS:
+            stale.append((asset, f"latest={latest}, {gap} trading days behind"))
 
     if stale:
         msg = "Data freshness check FAILED:\n"
