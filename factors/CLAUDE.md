@@ -10,7 +10,7 @@ Output: `pd.Series` (date index, float) — raw factor values
 - `registry.py` enforces required METADATA fields (`name, author, version, params, min_history, direction, description`) and validates `direction ∈ {higher_better, lower_better}`; violations raise `RuntimeError` at load time
 - Output validation (`validator.py`): Series length == input rows, index == `df["date"]`, dtype is float, no NaN from position `min_history - 1` onward
 - Factor receives `df.copy()` — must not mutate input
-- Template: `_template.py`. Currently registered: `momentum`, `volatility`, `quality_momentum`
+- Template: `_template.py`. Currently registered: `momentum`, `volatility`, `quality_momentum`, `risk_adjusted_quality_momentum`
 
 ### Known deviations from DESIGN.md
 - `momentum.py` uses `min_history=21` (not 20): `pct_change(20)` produces 20 NaN rows, need 21 points for first valid output
@@ -21,3 +21,4 @@ Output: `pd.Series` (date index, float) — raw factor values
 - `params` override: `compute()` merges caller params over METADATA defaults — test both paths
 - `direction` field ("higher_better"/"lower_better") is consumed by strategy layer, not factor layer — don't apply direction logic inside factor
 - Setting `series.index = df["date"]` is mandatory for `validator.validate()` to pass — by default `pct_change` keeps the RangeIndex
+- Return convention is per-factor, not uniform: `momentum`, `volatility`, `quality_momentum` use simple returns (`pct_change`); `risk_adjusted_quality_momentum` uses log returns throughout (numerator R, vol denominator, Kaufman path) for cross-asset comparability. When refactoring shared helpers, don't assume one convention.
