@@ -33,6 +33,7 @@ _WINSOR_LIMIT = 3.0
 def compute(df: pd.DataFrame, params: dict | None = None) -> pd.Series:
     p = {**METADATA["params"], **(params or {})}
     n = p["window"]
+    vol_floor_annual = p["vol_floor_annual"]
     close = df["close"].astype(float)
 
     log_ret = np.log(close).diff()
@@ -40,10 +41,11 @@ def compute(df: pd.DataFrame, params: dict | None = None) -> pd.Series:
     path = log_ret.abs().rolling(window=n).sum()
     vol = log_ret.rolling(window=n).std(ddof=1) * np.sqrt(n)
 
-    # Kaufman efficiency ratio in [0, 1]
-    er = R.abs() / path.replace(0, np.nan)
+    floor_n = vol_floor_annual * np.sqrt(n / 252.0)
+    adj_vol = np.maximum(vol, floor_n)
 
-    ram = R / vol
+    er = R.abs() / path.replace(0, np.nan)
+    ram = R / adj_vol
     score = ram * er
 
     series = score.astype(float)
