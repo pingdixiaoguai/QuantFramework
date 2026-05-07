@@ -236,3 +236,46 @@ class TestWinsorize:
         assert -3.0 < raw < 3.0
         expected = raw * (abs(R) / path)
         assert abs(result - expected) < 1e-9
+
+
+class TestCrossAssetComparability:
+    """The point of the factor: low-vol clean trend should beat high-vol bigger-but-noisier trend."""
+
+    def _series_with(self, *, mu: float, sigma: float, n_days: int, seed: int) -> list[float]:
+        """Geometric Brownian path with given daily log-return mean/std."""
+        rng = np.random.default_rng(seed=seed)
+        log_rets = rng.normal(loc=mu, scale=sigma, size=n_days - 1)
+        log_close = np.concatenate([[np.log(100.0)],
+                                    np.log(100.0) + np.cumsum(log_rets)])
+        return list(np.exp(log_close))
+
+    def test_low_vol_clean_trend_beats_high_vol_big_move(self):
+        n_days = 61
+        # High-vol asset: ~+12% over 60d, daily sigma ~1.57% (annualized ~25%)
+        prices_high = self._series_with(mu=0.00189, sigma=0.0157, n_days=n_days, seed=3)
+        # Low-vol asset: ~+5% over 60d, daily sigma ~0.5% (annualized ~8%)
+        prices_low = self._series_with(mu=0.000813, sigma=0.005, n_days=n_days, seed=2)
+
+        score_high = compute(_make_df(prices_high)).iloc[-1]
+        score_low = compute(_make_df(prices_low)).iloc[-1]
+
+        # The low-vol clean trend must score higher
+        assert score_low > score_high, (
+            f"Expected low-vol clean trend to win; got "
+            f"score_low={score_low:.4f} vs score_high={score_high:.4f}"
+        )
+
+    def test_raw_momentum_would_have_ranked_them_oppositely(self):
+        """Sanity check: under the OLD raw-return logic, high-vol asset wins.
+        Demonstrates the new factor genuinely fixes the bias."""
+        n_days = 61
+        prices_high = self._series_with(mu=0.00189, sigma=0.0157, n_days=n_days, seed=3)
+        prices_low = self._series_with(mu=0.000813, sigma=0.005, n_days=n_days, seed=2)
+
+        n = METADATA["params"]["window"]
+        raw_mom_high = prices_high[-1] / prices_high[-1 - n] - 1
+        raw_mom_low = prices_low[-1] / prices_low[-1 - n] - 1
+        assert raw_mom_high > raw_mom_low, (
+            "Test setup invalid: raw momentum should favor the high-vol asset "
+            "for this comparison to be meaningful."
+        )
