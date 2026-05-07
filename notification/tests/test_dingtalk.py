@@ -40,8 +40,8 @@ class TestDingTalkSign:
 
 class TestDingTalkSend:
     def test_send_posts_correct_payload(self, monkeypatch):
-        """Verify send() builds the right JSON payload."""
-        captured = {}
+        """Verify send() posts the markdown card followed by the @所有人 text ping."""
+        captured = []
 
         class FakeResponse:
             def read(self):
@@ -52,9 +52,11 @@ class TestDingTalkSend:
                 pass
 
         def fake_urlopen(req):
-            captured["url"] = req.full_url
-            captured["data"] = json.loads(req.data.decode())
-            captured["headers"] = dict(req.headers)
+            captured.append({
+                "url": req.full_url,
+                "data": json.loads(req.data.decode()),
+                "headers": dict(req.headers),
+            })
             return FakeResponse()
 
         monkeypatch.setattr("notification.dingtalk.urllib.request.urlopen", fake_urlopen)
@@ -62,10 +64,16 @@ class TestDingTalkSend:
         n = DingTalkNotifier(webhook_url="https://example.com/webhook")
         n.send("hello world")
 
-        assert captured["data"]["msgtype"] == "markdown"
-        assert captured["data"]["markdown"]["text"] == "hello world"
-        assert captured["headers"]["Content-type"] == "application/json"
-        assert captured["data"]["at"]["isAtAll"] is True
+        assert len(captured) == 2
+
+        markdown_call = captured[0]
+        assert markdown_call["data"]["msgtype"] == "markdown"
+        assert markdown_call["data"]["markdown"]["text"] == "hello world"
+        assert markdown_call["headers"]["Content-type"] == "application/json"
+
+        at_all_call = captured[1]
+        assert at_all_call["data"]["msgtype"] == "text"
+        assert at_all_call["data"]["at"]["isAtAll"] is True
 
     def test_send_raises_on_api_error(self, monkeypatch):
         class FakeResponse:
