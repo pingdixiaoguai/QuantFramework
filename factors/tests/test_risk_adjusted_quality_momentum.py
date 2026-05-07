@@ -71,7 +71,9 @@ class TestEfficiencyRatio:
         vol = np.std(log_ret[-n:], ddof=1) * np.sqrt(n)
         floor_n = vol_floor_annual * np.sqrt(n / 252.0)
         adj_vol = max(vol, floor_n)
-        expected_score = R / adj_vol  # ER = 1, no winsor at this scale
+        raw_ram = R / adj_vol
+        # Clip may engage on this low-vol linear fixture (raw ~10.46 > 3.0)
+        expected_score = min(raw_ram, 3.0)  # ER = 1, so score = clipped ram * 1
 
         assert abs(result.iloc[-1] - expected_score) < 1e-9
 
@@ -179,4 +181,58 @@ class TestVolFloor:
         floor_n = custom_floor_annual * np.sqrt(n / 252.0)
         R = daily_log * n
         expected = (R / floor_n) * 1.0
+        assert abs(result - expected) < 1e-9
+
+
+class TestWinsorize:
+    def test_positive_extreme_is_clipped_to_3(self):
+        """High constant log return + bound floor => raw R/adj_vol > 3 => clipped."""
+        # 0.5% per day compounding => R_60 = 0.30; vol = 0; floor binds at ~0.039
+        daily_log = 0.005
+        prices = [100.0 * np.exp(daily_log * i) for i in range(80)]
+        df = _make_df(prices)
+        result = compute(df).iloc[-1]
+
+        n = METADATA["params"]["window"]
+        floor_n = METADATA["params"]["vol_floor_annual"] * np.sqrt(n / 252.0)
+        R = daily_log * n
+        # Sanity-check the clip engages
+        assert R / floor_n > 3.0
+        # ER == 1 on a strictly monotonic positive series; expected score = 3 * 1
+        assert abs(result - 3.0) < 1e-9
+
+    def test_negative_extreme_is_clipped_to_minus_3(self):
+        """Symmetric: -0.5% per day => raw R/adj_vol < -3 => clipped."""
+        daily_log = -0.005
+        prices = [100.0 * np.exp(daily_log * i) for i in range(80)]
+        df = _make_df(prices)
+        result = compute(df).iloc[-1]
+
+        n = METADATA["params"]["window"]
+        floor_n = METADATA["params"]["vol_floor_annual"] * np.sqrt(n / 252.0)
+        R = daily_log * n
+        assert R / floor_n < -3.0
+        # ER on a strictly monotonic negative series is also 1 (|R| == path)
+        assert abs(result - (-3.0)) < 1e-9
+
+    def test_in_range_is_not_clipped(self):
+        """Within ±3: score must equal (R/adj_vol)*ER exactly, no clipping."""
+        rng = np.random.default_rng(seed=7)
+        log_rets = rng.normal(loc=0.0005, scale=0.01, size=79)
+        log_close = np.concatenate([[np.log(100.0)], np.log(100.0) + np.cumsum(log_rets)])
+        prices = list(np.exp(log_close))
+        df = _make_df(prices)
+        result = compute(df).iloc[-1]
+
+        n = METADATA["params"]["window"]
+        log_ret = np.diff(log_close)
+        R = log_close[-1] - log_close[-1 - n]
+        path = np.sum(np.abs(log_ret[-n:]))
+        vol = np.std(log_ret[-n:], ddof=1) * np.sqrt(n)
+        floor_n = METADATA["params"]["vol_floor_annual"] * np.sqrt(n / 252.0)
+        adj_vol = max(vol, floor_n)
+        raw = R / adj_vol
+        # Confirm we're inside the winsor band so this test is actually testing "no clip"
+        assert -3.0 < raw < 3.0
+        expected = raw * (abs(R) / path)
         assert abs(result - expected) < 1e-9

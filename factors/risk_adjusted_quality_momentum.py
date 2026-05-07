@@ -45,7 +45,7 @@ def compute(df: pd.DataFrame, params: dict | None = None) -> pd.Series:
     adj_vol = np.maximum(vol, floor_n)
 
     er = R.abs() / path.replace(0, np.nan)
-    ram = R / adj_vol
+    ram = (R / adj_vol).clip(lower=-_WINSOR_LIMIT, upper=_WINSOR_LIMIT)
     score = ram * er
 
     series = score.astype(float)
