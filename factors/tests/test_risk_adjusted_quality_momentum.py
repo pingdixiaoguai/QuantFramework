@@ -279,3 +279,34 @@ class TestCrossAssetComparability:
             "Test setup invalid: raw momentum should favor the high-vol asset "
             "for this comparison to be meaningful."
         )
+
+
+class TestMetadata:
+    def test_required_fields(self):
+        for field in ("name", "author", "version", "params", "min_history", "direction", "description"):
+            assert field in METADATA
+
+    def test_direction(self):
+        assert METADATA["direction"] == "higher_better"
+
+    def test_min_history(self):
+        # min_history must be window + 1: pct_change/diff(window) leaves window NaN rows,
+        # so we need window+1 prices to produce the first valid output.
+        assert METADATA["min_history"] == METADATA["params"]["window"] + 1
+
+
+class TestParamOverride:
+    def test_window_override_changes_min_history_for_output(self):
+        """params={'window': N} must shrink the NaN prefix to N rows."""
+        n = 30
+        # Need at least n+1 prices for any valid output
+        prices = [100.0 + i for i in range(n + 20)]
+        df = _make_df(prices)
+        result = compute(df, params={"window": n})
+
+        # First n rows are NaN (need n+1 prices to compute n-period log return)
+        assert result.iloc[:n].isna().all()
+        # From row n onward, values must be finite
+        tail = result.iloc[n:]
+        assert tail.notna().all()
+        assert np.isfinite(tail).all()
