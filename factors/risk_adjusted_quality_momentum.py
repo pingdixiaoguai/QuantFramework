@@ -35,21 +35,17 @@ def compute(df: pd.DataFrame, params: dict | None = None) -> pd.Series:
     n = p["window"]
     close = df["close"].astype(float)
 
-    # Daily log return r_t = ln(close_t / close_{t-1})
     log_ret = np.log(close).diff()
-
-    # N-period log return R_N = ln(close_t / close_{t-N})
     R = np.log(close).diff(n)
-
-    # Path length: rolling sum of |r_t| over last N
     path = log_ret.abs().rolling(window=n).sum()
-
-    # N-period log vol = std(r_t, N) * sqrt(N), ddof=1 (sample std)
     vol = log_ret.rolling(window=n).std(ddof=1) * np.sqrt(n)
 
-    # Naive risk-adjusted momentum (floor + winsor land in later tasks)
-    ram = R / vol
+    # Kaufman efficiency ratio in [0, 1]
+    er = R.abs() / path.replace(0, np.nan)
 
-    series = ram.astype(float)
+    ram = R / vol
+    score = ram * er
+
+    series = score.astype(float)
     series.index = df["date"]
     return series
