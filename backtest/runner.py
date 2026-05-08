@@ -99,6 +99,29 @@ def run(config: dict | None = None) -> BacktestResult:
     last_rebalance_idx: int | None = None
 
     for day_idx, t in enumerate(trading_days):
+        # T+1 timing: first compute today's return using YESTERDAY's
+        # weights (`prev_weights`), THEN let the strategy look at today's
+        # close to set tomorrow's weights. Updating `prev_weights` before
+        # the return calc would let today's weights earn today's return —
+        # i.e. lookahead bias.
+        if prev_weights and day_idx > 0:
+            strat_ret = 0.0
+            bench_assets = []
+
+            for asset in asset_pool:
+                if asset not in close_prices:
+                    continue
+                cp = close_prices[asset]
+                if t in cp.index and trading_days[day_idx - 1] in cp.index:
+                    asset_ret = cp[t] / cp[trading_days[day_idx - 1]] - 1
+                    bench_assets.append(asset_ret)
+                    if asset in prev_weights:
+                        strat_ret += prev_weights[asset] * asset_ret
+
+            if bench_assets:
+                strategy_returns.append((t, strat_ret))
+                benchmark_returns.append((t, float(np.mean(bench_assets))))
+
         # Decide whether today is a rebalance day. First eligible rebalance
         # is whenever `prev_weights` is still None (i.e. we have not yet
         # opened a position); after that, only every `rebalance_days` days.
@@ -140,7 +163,8 @@ def run(config: dict | None = None) -> BacktestResult:
                 if len(factor_vals) == len(factor_configs):
                     asset_factor_values[asset] = factor_vals
 
-            # Delegate to strategy for target weights
+            # Delegate to strategy for target weights — these become next
+            # day's `prev_weights` and earn the close[t+1]/close[t] return.
             new_weights = strategy.generate_weights(asset_factor_values)
 
             if new_weights:
@@ -149,25 +173,6 @@ def run(config: dict | None = None) -> BacktestResult:
                 last_rebalance_idx = day_idx
             # else: no rebalance happened (insufficient data); keep
             # `prev_weights` as-is and re-attempt on the next trading day.
-
-        # Compute returns (weights determined at t-1, return realized at t)
-        if prev_weights and day_idx > 0:
-            strat_ret = 0.0
-            bench_assets = []
-
-            for asset in asset_pool:
-                if asset not in close_prices:
-                    continue
-                cp = close_prices[asset]
-                if t in cp.index and trading_days[day_idx - 1] in cp.index:
-                    asset_ret = cp[t] / cp[trading_days[day_idx - 1]] - 1
-                    bench_assets.append(asset_ret)
-                    if asset in prev_weights:
-                        strat_ret += prev_weights[asset] * asset_ret
-
-            if bench_assets:
-                strategy_returns.append((t, strat_ret))
-                benchmark_returns.append((t, float(np.mean(bench_assets))))
 
     # Build result series
     if strategy_returns:

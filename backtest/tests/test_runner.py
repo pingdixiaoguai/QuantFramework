@@ -193,6 +193,69 @@ class TestBenchmarkEqualWeight:
             assert abs(result.benchmark_returns[t]) < 1.0  # not crazy
 
 
+class TestNoLookaheadBias:
+    """Today's chosen weights MUST NOT earn today's return.
+
+    Regression for the bug where the engine, after computing new_weights
+    using close[t], applied them to the close[t]/close[t-1] return of
+    the SAME day — i.e. perfect foresight, producing absurd returns.
+    """
+
+    def test_returns_use_yesterdays_weights(self, monkeypatch):
+        # A: down then up (close 100 → 90 → 121)
+        # B: up then down (close 100 → 110 → 95)
+        # Top1 picks the asset with the higher current close.
+        #   day 0 (100/100): tie → A
+        #   day 1 (90/110):  B
+        #   day 2 (121/95):  A
+        prices_a = [100.0, 90.0, 121.0]
+        prices_b = [100.0, 110.0, 95.0]
+        df_a = _make_asset_data("A.SH", prices_a)
+        df_b = _make_asset_data("B.SH", prices_b)
+
+        monkeypatch.setattr(
+            "backtest.runner.query",
+            lambda asset, start, end: {"A.SH": df_a, "B.SH": df_b}[asset],
+        )
+
+        def mock_compute(df, params=None):
+            return pd.Series(df["close"].values, index=df["date"], dtype=float)
+
+        mock_meta = {
+            "name": "price",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 1,
+            "direction": "higher_better",
+            "description": "price",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {"price": {"METADATA": mock_meta, "compute": mock_compute}},
+        )
+
+        config = {
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH", "B.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "price", "weight": 1.0, "params": {}}],
+            "train_ratio": 0.5,
+            "rebalance_days": 1,
+        }
+
+        result = run(config)
+
+        # Day 1 return: yesterday's pick was A → should be 90/100 - 1 = -0.10
+        # Day 2 return: yesterday's pick was B → should be 95/110 - 1 ≈ -0.1364
+        # Under the lookahead bug, day 1 would be +0.10 and day 2 ≈ +0.344.
+        assert len(result.daily_returns) == 2
+        assert result.daily_returns.iloc[0] == pytest.approx(-0.10, abs=1e-9)
+        assert result.daily_returns.iloc[1] == pytest.approx(95.0 / 110.0 - 1, abs=1e-9)
+
+
 class TestRebalanceEveryNDays:
     def test_strategy_called_only_every_n_days(self, monkeypatch):
         """With rebalance_days=5, strategy.generate_weights is called on the
