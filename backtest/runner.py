@@ -49,6 +49,9 @@ def run(config: dict | None = None) -> BacktestResult:
     end = config["end"]
     factor_configs = config["factors"]
     train_ratio = config.get("train_ratio", 0.7)
+    rebalance_days = int(config.get("rebalance_days", 1))
+    if rebalance_days < 1:
+        raise ValueError(f"rebalance_days must be >= 1, got {rebalance_days}")
 
     # Load strategy and factor modules
     strategy = load_strategy(config)
@@ -93,47 +96,61 @@ def run(config: dict | None = None) -> BacktestResult:
     benchmark_returns: list[tuple[pd.Timestamp, float]] = []
 
     prev_weights: dict[str, float] | None = None
+    last_rebalance_idx: int | None = None
 
     for day_idx, t in enumerate(trading_days):
-        # Compute factor values for each asset at time t
-        asset_factor_values: dict[str, dict[str, float]] = {}
+        # Decide whether today is a rebalance day. First eligible rebalance
+        # is whenever `prev_weights` is still None (i.e. we have not yet
+        # opened a position); after that, only every `rebalance_days` days.
+        is_rebalance_day = (
+            last_rebalance_idx is None
+            or (day_idx - last_rebalance_idx) >= rebalance_days
+        )
 
-        for asset, df in asset_data.items():
-            # Future info truncation: only data up to t
-            mask = df["date"] <= t
-            truncated = df.loc[mask]
+        if is_rebalance_day:
+            # Compute factor values for each asset at time t
+            asset_factor_values: dict[str, dict[str, float]] = {}
 
-            if len(truncated) < max_min_history:
-                continue
+            for asset, df in asset_data.items():
+                # Future info truncation: only data up to t
+                mask = df["date"] <= t
+                truncated = df.loc[mask]
 
-            factor_vals: dict[str, float] = {}
-            for fc in factor_configs:
-                fname = fc["name"]
-                fmod = all_factors[fname]
-                params = fc.get("params")
-                try:
-                    series = fmod["compute"](truncated.copy(), params)
-                    validate(series, truncated, fmod["METADATA"])
-                    # Take the latest value (at time t)
-                    last_val = series.iloc[-1]
-                    if pd.notna(last_val):
-                        factor_vals[fname] = float(last_val)
-                except (ValueError, Exception) as exc:
-                    warnings.warn(
-                        f"factor '{fname}' failed for {asset} on {t}: {exc}",
-                        stacklevel=2,
-                    )
+                if len(truncated) < max_min_history:
+                    continue
 
-            if len(factor_vals) == len(factor_configs):
-                asset_factor_values[asset] = factor_vals
+                factor_vals: dict[str, float] = {}
+                for fc in factor_configs:
+                    fname = fc["name"]
+                    fmod = all_factors[fname]
+                    params = fc.get("params")
+                    try:
+                        series = fmod["compute"](truncated.copy(), params)
+                        validate(series, truncated, fmod["METADATA"])
+                        # Take the latest value (at time t)
+                        last_val = series.iloc[-1]
+                        if pd.notna(last_val):
+                            factor_vals[fname] = float(last_val)
+                    except (ValueError, Exception) as exc:
+                        warnings.warn(
+                            f"factor '{fname}' failed for {asset} on {t}: {exc}",
+                            stacklevel=2,
+                        )
 
-        # Delegate to strategy for target weights
-        weights = strategy.generate_weights(asset_factor_values)
+                if len(factor_vals) == len(factor_configs):
+                    asset_factor_values[asset] = factor_vals
 
-        if weights:
-            positions_records.append({"date": t, **weights})
+            # Delegate to strategy for target weights
+            new_weights = strategy.generate_weights(asset_factor_values)
 
-        # Compute returns (weights determined at t, return realized at t+1)
+            if new_weights:
+                positions_records.append({"date": t, **new_weights})
+                prev_weights = new_weights
+                last_rebalance_idx = day_idx
+            # else: no rebalance happened (insufficient data); keep
+            # `prev_weights` as-is and re-attempt on the next trading day.
+
+        # Compute returns (weights determined at t-1, return realized at t)
         if prev_weights and day_idx > 0:
             strat_ret = 0.0
             bench_assets = []
@@ -151,8 +168,6 @@ def run(config: dict | None = None) -> BacktestResult:
             if bench_assets:
                 strategy_returns.append((t, strat_ret))
                 benchmark_returns.append((t, float(np.mean(bench_assets))))
-
-        prev_weights = weights if weights else prev_weights
 
     # Build result series
     if strategy_returns:

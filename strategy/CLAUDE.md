@@ -11,6 +11,7 @@ Output: `dict[str, float]` (asset → weight, sum = 1.0; empty dict if no input)
 - `topn.py` (`TopN`): equal-weight on the top `top_n` assets by `factors[0]` (lowest `top_n` if `direction_flip: true`). Reads `top_n` from config (default 5). When `top_n > len(scored)` falls back to equal-weight on all candidates rather than emitting an empty position.
 - `loader.py` (`load_strategy(config)`): imports class from `config["strategy_class"]` dotted path, defaults to `strategy.momentum_rotation.MomentumRotation`
 - Configs live in `strategy/configs/*.yaml` — factor weights, asset pool, rebalance rule are config, not code
+- **Rebalance frequency** is set at config level via `rebalance_days: N` (int, default 1). Both the backtest engine and `run_daily.py` honor it: backtest skips `generate_weights()` on non-rebalance days; live runner suppresses the signal (`target_weights = current_weights`) when `holding_days < N`. The legacy `rebalance_rule: daily` field is ignored — kept in old configs for back-compat only.
 
 ### Known deviations from DESIGN.md
 - Input format: actual is `dict[str, dict[str, float]]` (snapshot at time t), not `dict[str, pd.Series]` (full series). Aligns with how the backtest engine feeds per-day data.

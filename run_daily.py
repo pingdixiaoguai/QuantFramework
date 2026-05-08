@@ -248,6 +248,30 @@ def _compute_ytd_return(
     return product - 1 if has_data else None
 
 
+def _should_hold(
+    current_weights: dict[str, float],
+    holding_days: int | None,
+    rebalance_days: int,
+) -> bool:
+    """Decide whether to override today's signal and keep the current position.
+
+    Rules:
+    - rebalance_days <= 1 → never hold (daily rebalancing).
+    - No current position → never hold (must allow first entry).
+    - holding_days is None with a position → just bought, today's bar not yet
+      reflected; hold to avoid same-day churn.
+    - holding_days < rebalance_days → inside the hold window; hold.
+    - holding_days >= rebalance_days → window elapsed; allow rebalance.
+    """
+    if rebalance_days <= 1:
+        return False
+    if not current_weights:
+        return False
+    if holding_days is None:
+        return True
+    return holding_days < rebalance_days
+
+
 def _next_entry_date(today: date, asset_pool: list[str]) -> date:
     """Return the next trading date after today available in the data store."""
     for asset in asset_pool:
@@ -268,6 +292,9 @@ def run(config: dict) -> None:
     factor_configs = config["factors"]
     strategy_name = config["strategy_name"]
     enable_dingtalk = config.get("enable_dingtalk", True)
+    rebalance_days = int(config.get("rebalance_days", 1))
+    if rebalance_days < 1:
+        raise ValueError(f"rebalance_days must be >= 1, got {rebalance_days}")
 
     # 1. Sync data and verify freshness
     _sync_and_check(asset_pool, today)
@@ -309,15 +336,27 @@ def run(config: dict) -> None:
         if len(factor_vals) == len(factor_configs):
             asset_factor_values[asset] = factor_vals
 
-    # 5. Strategy → target weights
-    target_weights = strategy.generate_weights(asset_factor_values)
+    # 5. Strategy → today's signal weights (raw output before hold filter)
+    signal_weights = strategy.generate_weights(asset_factor_values)
+    current_weights = current_state.weights
+
+    # 5b. Hold-window filter: if we're inside a rebalance_days window,
+    # override the signal with the current position so the diff produces
+    # no orders. This is what reduces friction cost.
+    holding_days = _count_holding_days(current_state.entry_date, today, asset_pool)
+    if _should_hold(current_weights, holding_days, rebalance_days):
+        target_weights = current_weights
+        print(
+            f"Hold window active: holding_days={holding_days}/{rebalance_days} "
+            f"— signal {signal_weights} suppressed."
+        )
+    else:
+        target_weights = signal_weights
 
     # 6. Execution → diff against current position
-    current_weights = current_state.weights
     orders = diff(target_weights, current_weights)
 
     # 7. Compute metrics for notification
-    holding_days = _count_holding_days(current_state.entry_date, today, asset_pool)
     position_return = _compute_position_return(
         current_weights, current_state.entry_prices, today
     )
