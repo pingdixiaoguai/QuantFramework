@@ -13,6 +13,7 @@
   - Returns calculation: weights decided at `t` are applied to the `close[t] / close[t-1] - 1` per-asset return realized at `t+1` (`strat_ret = Σ prev_weights[a] * asset_ret[a]`)
   - Benchmark is equal-weight across `asset_pool` (not `1/len(asset_pool)` weighted by availability — it's `np.mean` of the per-asset returns on that day)
   - Train/test split by day index at `train_ratio` (default 0.7); overfit warning fires when `train_sharpe > 2 × test_sharpe` and both windows have ≥ 20 days
+  - **Rebalance frequency** (`config["rebalance_days"]`, int, default 1): on non-rebalance days the engine skips factor compute *and* `strategy.generate_weights()`, carrying forward `prev_weights` for the return calc. The first eligible day after warm-up is always a rebalance; subsequent rebalances fire when `day_idx - last_rebalance_idx >= rebalance_days`. If a rebalance day produces empty weights (no asset has enough history), the counter is *not* reset — we re-attempt every following day until we succeed.
 - `report.py` — lazy-imports `quantstats` and calls `qs.reports.html(...)`
 - `experiment_log.py` — generates ID `YYYYMMDD-NNN` (sequence = count of existing logs today + 1), serializes config (ISO-formatting `start`/`end` dates), and writes metrics for train/test/full/benchmark slices
 
@@ -24,7 +25,7 @@
 ## Pitfalls
 - `max_min_history` is taken across **all** registered factors (in `factor_configs`), so adding a factor with a large `min_history` pushes back the first usable day for every asset
 - `strategy_returns` are NOT saved on days where `prev_weights` is `None` (the first valid weighted day) — the daily_returns series is shorter than the trading calendar by the warm-up + first rebalance day
-- `positions_df` rows are only appended when the strategy returns non-empty weights; a day with insufficient history produces no row (not a zero row)
+- `positions_df` rows are only appended on rebalance days when the strategy returns non-empty weights. With `rebalance_days > 1`, intermediate days have no row even though the position is still held (use `prev_weights` carried in the engine, or forward-fill the DataFrame downstream)
 - `experiment_log._next_id` is not atomic — concurrent runs can collide on the same ID
 - `config["start"]` / `config["end"]` must be `datetime.date` for the ISO serialization path; passing strings bypasses the `isoformat()` branch and is written as-is
 - Changing `factors/registry.yaml` between a run and its replay breaks `--from-log` reproducibility; the experiment YAML records `params` but not the registry version

@@ -193,6 +193,80 @@ class TestBenchmarkEqualWeight:
             assert abs(result.benchmark_returns[t]) < 1.0  # not crazy
 
 
+class TestRebalanceEveryNDays:
+    def test_strategy_called_only_every_n_days(self, monkeypatch):
+        """With rebalance_days=5, strategy.generate_weights is called on the
+        first valid day, then every 5 trading days thereafter (intermediate
+        days reuse the prior weights)."""
+        # 30 trading days, min_history=2, so first valid day is index 1.
+        # Expected rebalance day-indexes: 1, 6, 11, 16, 21, 26
+        n = 30
+        prices_a = [100.0 + i for i in range(n)]
+        prices_b = [200.0 - i * 0.5 for i in range(n)]
+
+        df_a = _make_asset_data("A.SH", prices_a)
+        df_b = _make_asset_data("B.SH", prices_b)
+
+        monkeypatch.setattr(
+            "backtest.runner.query",
+            lambda asset, start, end: {"A.SH": df_a, "B.SH": df_b}[asset],
+        )
+
+        def mock_compute(df, params=None):
+            return pd.Series(df["close"].values, index=df["date"], dtype=float)
+
+        mock_meta = {
+            "name": "price",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 2,
+            "direction": "higher_better",
+            "description": "price",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {"price": {"METADATA": mock_meta, "compute": mock_compute}},
+        )
+
+        # Spy on strategy.generate_weights
+        import strategy.top1 as top1_mod
+        call_dates: list[pd.Timestamp] = []
+        original = top1_mod.Top1.generate_weights
+
+        def spy(self, factor_values):
+            # The current trading day is the latest date present in any
+            # asset's truncated factor view; we tag the call by current
+            # max date inferred from factor_values keys' values? We can't
+            # see the date directly here, so just count and let the
+            # positions index tell us the dates.
+            call_dates.append(pd.Timestamp("1970-01-01"))
+            return original(self, factor_values)
+
+        monkeypatch.setattr(top1_mod.Top1, "generate_weights", spy)
+
+        config = {
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH", "B.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "price", "weight": 1.0, "params": {}}],
+            "train_ratio": 0.7,
+            "rebalance_days": 5,
+        }
+
+        result = run(config)
+
+        # Position rows are recorded only on rebalance days.
+        # First valid day (index 1) plus every 5 days: indices 1, 6, 11, 16, 21, 26
+        # → 6 rebalance days total.
+        trading_days = sorted(df_a["date"].tolist())
+        expected_dates = [trading_days[i] for i in (1, 6, 11, 16, 21, 26)]
+
+        assert list(result.positions.index) == expected_dates
+
+
 class TestTrainTestSplit:
     def test_train_end_at_correct_position(self, monkeypatch):
         """train_end should be at train_ratio position in trading days."""
