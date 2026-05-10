@@ -150,7 +150,12 @@ def main() -> None:
 
     print(_fmt(train_ret, "Train"))
     print(_fmt(test_ret, "Test "))
-    print(_fmt(result.benchmark_returns, "Bench"))
+    bench_label = (
+        f"Bench ({result.baseline_strategy_name})"
+        if result.baseline_strategy_name
+        else "Bench"
+    )
+    print(_fmt(result.benchmark_returns, bench_label))
 
     # Save experiment log
     log_path = save(result)
