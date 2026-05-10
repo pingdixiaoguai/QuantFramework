@@ -2,7 +2,7 @@
 
 ## Contract
 `run(config: dict | None) -> BacktestResult` where `BacktestResult = {daily_returns, benchmark_returns, positions, train_end, config, baseline_strategy_name?}`
-`report.generate(result, output_path)` → HTML via quantstats
+`report.generate(result, output_path, benchmark_title=None)` → HTML via quantstats; `benchmark_title` labels the benchmark series when set
 `experiment_log.save(result, output_dir)` → YAML snapshot under `experiments/`
 
 ## Implementation Notes

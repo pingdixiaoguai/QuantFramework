@@ -16,6 +16,10 @@ def generate(
 ) -> Path:
     """Generate an HTML report using quantstats.
 
+    When `benchmark_title` is set, it labels the benchmark series in the rendered
+    HTML; when None, quantstats falls back to its default ("Benchmark" or
+    benchmark.name).
+
     Returns the output path on success.
     """
     import quantstats as qs
