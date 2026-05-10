@@ -226,7 +226,12 @@ def _compute_ytd_return(
     ytd_history: list[PositionPeriod],
     current_return: float | None,
 ) -> float | None:
-    """Chain-multiply closed periods plus current period return."""
+    """Chain the live open-execution ledger for DingTalk YTD.
+
+    Closed periods are entry-open -> exit-open returns. The current period is
+    entry-open -> latest-close, so a rebalance day preserves the outgoing
+    holding's overnight PnL and the incoming holding's intraday PnL.
+    """
     product = 1.0
     has_data = False
 

@@ -9,13 +9,19 @@ import pytest
 from backtest.runner import BacktestResult, run
 
 
-def _make_asset_data(asset_code: str, prices: list[float], start: str = "2024-01-01"):
+def _make_asset_data(
+    asset_code: str,
+    prices: list[float],
+    start: str = "2024-01-01",
+    opens: list[float] | None = None,
+):
     """Create synthetic data in data/store format."""
     n = len(prices)
     dates = pd.bdate_range(start, periods=n)
+    open_prices = opens if opens is not None else prices
     return pd.DataFrame({
         "date": dates,
-        "open": prices,
+        "open": open_prices,
         "high": [p * 1.01 for p in prices],
         "low": [p * 0.99 for p in prices],
         "close": prices,
@@ -194,7 +200,7 @@ class TestBenchmarkEqualWeight:
 
 
 class TestNoLookaheadBias:
-    """Today's chosen weights MUST NOT earn today's return.
+    """Today's close signal must not earn the pre-open gap on its entry day.
 
     Regression for the bug where the engine, after computing new_weights
     using close[t], applied them to the close[t]/close[t-1] return of
@@ -204,14 +210,18 @@ class TestNoLookaheadBias:
     def test_returns_use_yesterdays_weights(self, monkeypatch):
         # A: down then up (close 100 → 90 → 121)
         # B: up then down (close 100 → 110 → 95)
+        # Opens equal the previous close after day 0, so this test isolates
+        # timing without adding unrelated overnight gaps.
         # Top1 picks the asset with the higher current close.
         #   day 0 (100/100): tie → A
         #   day 1 (90/110):  B
         #   day 2 (121/95):  A
         prices_a = [100.0, 90.0, 121.0]
         prices_b = [100.0, 110.0, 95.0]
-        df_a = _make_asset_data("A.SH", prices_a)
-        df_b = _make_asset_data("B.SH", prices_b)
+        opens_a = [100.0, 100.0, 90.0]
+        opens_b = [100.0, 100.0, 110.0]
+        df_a = _make_asset_data("A.SH", prices_a, opens=opens_a)
+        df_b = _make_asset_data("B.SH", prices_b, opens=opens_b)
 
         monkeypatch.setattr(
             "backtest.runner.query",
@@ -248,12 +258,63 @@ class TestNoLookaheadBias:
 
         result = run(config)
 
-        # Day 1 return: yesterday's pick was A → should be 90/100 - 1 = -0.10
-        # Day 2 return: yesterday's pick was B → should be 95/110 - 1 ≈ -0.1364
-        # Under the lookahead bug, day 1 would be +0.10 and day 2 ≈ +0.344.
+        # Day 1: day-0 signal enters A at day-1 open, earns A open->close.
+        # Day 2: old A earns no gap (90->90), then B enters at open 110
+        # and earns B open->close.
+        # Under the lookahead bug, day 1 would be +0.10 and day 2 +34.4%.
         assert len(result.daily_returns) == 2
         assert result.daily_returns.iloc[0] == pytest.approx(-0.10, abs=1e-9)
         assert result.daily_returns.iloc[1] == pytest.approx(95.0 / 110.0 - 1, abs=1e-9)
+
+    def test_rebalance_day_splits_old_overnight_and_new_intraday(self, monkeypatch):
+        # Day 0 close chooses A, entered day 1 open.
+        # Day 1 close chooses B, entered day 2 open.
+        # Day 2 return should be old A's overnight gap (90 -> 99 = +10%)
+        # chained with new B's intraday move (50 -> 55 = +10%): +21%.
+        prices_a = [100.0, 90.0, 120.0]
+        prices_b = [100.0, 110.0, 55.0]
+        opens_a = [100.0, 100.0, 99.0]
+        opens_b = [100.0, 100.0, 50.0]
+        df_a = _make_asset_data("A.SH", prices_a, opens=opens_a)
+        df_b = _make_asset_data("B.SH", prices_b, opens=opens_b)
+
+        monkeypatch.setattr(
+            "backtest.runner.query",
+            lambda asset, start, end: {"A.SH": df_a, "B.SH": df_b}[asset],
+        )
+
+        def mock_compute(df, params=None):
+            return pd.Series(df["close"].values, index=df["date"], dtype=float)
+
+        mock_meta = {
+            "name": "price",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 1,
+            "direction": "higher_better",
+            "description": "price",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {"price": {"METADATA": mock_meta, "compute": mock_compute}},
+        )
+
+        config = {
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH", "B.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "price", "weight": 1.0, "params": {}}],
+            "train_ratio": 0.5,
+            "rebalance_days": 1,
+        }
+
+        result = run(config)
+
+        assert len(result.daily_returns) == 2
+        assert result.daily_returns.iloc[1] == pytest.approx(1.10 * 1.10 - 1)
 
 
 class TestRebalanceEveryNDays:
@@ -261,11 +322,43 @@ class TestRebalanceEveryNDays:
         """With rebalance_days=5, strategy.generate_weights is called on the
         first valid day, then every 5 trading days thereafter (intermediate
         days reuse the prior weights)."""
-        # 30 trading days, min_history=2, so first valid day is index 1.
-        # Expected rebalance day-indexes: 1, 6, 11, 16, 21, 26
-        n = 30
-        prices_a = [100.0 + i for i in range(n)]
-        prices_b = [200.0 - i * 0.5 for i in range(n)]
+        # 15 trading days, min_history=2, so first valid signal day is index 1.
+        # Signals at index 1, 6, 11 lead to entries at index 2, 7, 12.
+        n = 15
+        prices_a = [
+            100.0,
+            200.0,
+            200.0,
+            200.0,
+            200.0,
+            200.0,
+            80.0,
+            80.0,
+            80.0,
+            80.0,
+            80.0,
+            210.0,
+            210.0,
+            210.0,
+            210.0,
+        ]
+        prices_b = [
+            100.0,
+            100.0,
+            100.0,
+            100.0,
+            100.0,
+            100.0,
+            220.0,
+            220.0,
+            220.0,
+            220.0,
+            220.0,
+            90.0,
+            90.0,
+            90.0,
+            90.0,
+        ]
 
         df_a = _make_asset_data("A.SH", prices_a)
         df_b = _make_asset_data("B.SH", prices_b)
@@ -321,11 +414,11 @@ class TestRebalanceEveryNDays:
 
         result = run(config)
 
-        # Position rows are recorded only on rebalance days.
-        # First valid day (index 1) plus every 5 days: indices 1, 6, 11, 16, 21, 26
-        # → 6 rebalance days total.
+        # Position rows are recorded on actual open execution days.
+        # First valid signal day is index 1, so entries are indices
+        # 2, 7, 12.
         trading_days = sorted(df_a["date"].tolist())
-        expected_dates = [trading_days[i] for i in (1, 6, 11, 16, 21, 26)]
+        expected_dates = [trading_days[i] for i in (2, 7, 12)]
 
         assert list(result.positions.index) == expected_dates
 

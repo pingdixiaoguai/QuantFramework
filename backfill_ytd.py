@@ -10,7 +10,9 @@ the same live semantics as run_daily.py:
 
 1. signal on day T uses data through T close;
 2. the trade is booked at the next trading day's open;
-3. config["rebalance_days"] is honored.
+3. the outgoing holding keeps close[T] -> open[T+1] overnight PnL;
+4. the incoming holding earns open[T+1] -> close[T+1] intraday PnL;
+5. config["rebalance_days"] is honored.
 """
 
 from __future__ import annotations
