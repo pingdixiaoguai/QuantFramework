@@ -102,6 +102,26 @@ uv run python run_daily.py --config strategy/configs/momentum_rotation.yaml
 
 当前持仓保存在 `state/current_position.json`。
 
+### 6. 补全年初至今持仓状态
+
+如果这台机器没有每天自动运行 `run_daily.py`，但某个策略从年初至今的配置没有变化，可以用补账脚本重放今年信号，重建
+`state/{strategy_name}_position.json`，让钉钉通知里的“年初至今”继续按实盘持仓账本口径计算。
+
+先预览，不写状态文件：
+
+```bash
+uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml --dry-run
+```
+
+确认分段、当前持仓和 YTD 收益无误后再写入：
+
+```bash
+uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml
+```
+
+脚本会在覆盖前自动备份旧状态文件。补账逻辑与 `run_daily.py` 保持一致：信号日使用当日收盘后的数据，下一交易日按开盘价入场/出场，并遵守
+`rebalance_days`。如果年内换过策略或手动调过仓，不要用单个策略配置直接从年初覆盖状态，应先保留已有实盘账本，再只补缺失区间或手工校正。
+
 ## 完整范例：从零到第一次回测
 
 以下演示从安装到拿到回测报告的完整流程。
