@@ -1,7 +1,7 @@
 # Backtest Engine
 
 ## Contract
-`run(config: dict | None) -> BacktestResult` where `BacktestResult = {daily_returns, benchmark_returns, positions, train_end, config}`
+`run(config: dict | None) -> BacktestResult` where `BacktestResult = {daily_returns, benchmark_returns, positions, train_end, config, baseline_strategy_name?}`
 `report.generate(result, output_path)` → HTML via quantstats
 `experiment_log.save(result, output_dir)` → YAML snapshot under `experiments/`
 
