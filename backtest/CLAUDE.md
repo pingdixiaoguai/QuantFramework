@@ -15,7 +15,7 @@
   - Train/test split by day index at `train_ratio` (default 0.7); overfit warning fires when `train_sharpe > 2 × test_sharpe` and both windows have ≥ 20 days
   - **Rebalance frequency** (`config["rebalance_days"]`, int, default 1): on non-rebalance days the engine skips factor compute *and* `strategy.generate_weights()`, carrying forward `prev_weights` for the return calc. The first eligible day after warm-up is always a rebalance; subsequent rebalances fire when `day_idx - last_rebalance_idx >= rebalance_days`. If a rebalance day produces empty weights (no asset has enough history), the counter is *not* reset — we re-attempt every following day until we succeed.
 - `report.py` — lazy-imports `quantstats` and calls `qs.reports.html(...)`
-- `experiment_log.py` — generates ID `YYYYMMDD-NNN` (sequence = count of existing logs today + 1), serializes config (ISO-formatting `start`/`end` dates), and writes metrics for train/test/full/benchmark slices
+- `experiment_log.py` — generates ID `YYYYMMDD-NNN` (sequence = count of existing logs today + 1), serializes config (ISO-formatting `start`/`end` dates), and writes metrics for train/test/full/benchmark slices. When `result.baseline_strategy_name` is set, an optional `baseline_config: <strategy_name>` field is appended at the end of the `experiment` block; absent otherwise to keep historical YAMLs unchanged.
 
 ### Known deviations from DESIGN.md
 - The engine bypasses the standardization layer. `strategy.generate_weights()` receives raw factor values; cross-sectional ranking is done inside the strategy (see `strategy/CLAUDE.md`). DESIGN.md §2.3 implies standardization is a pipeline step.
