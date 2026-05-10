@@ -2,6 +2,7 @@
 
 Usage:
     uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml
+    uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml --from-date 2026-04-13
 
 This is a maintenance tool for the case where run_daily.py was not executed
 every trading day. It assumes the strategy/config was unchanged over the
@@ -10,7 +11,9 @@ the same live semantics as run_daily.py:
 
 1. signal on day T uses data through T close;
 2. the trade is booked at the next trading day's open;
-3. config["rebalance_days"] is honored.
+3. the outgoing holding keeps close[T] -> open[T+1] overnight PnL;
+4. the incoming holding earns open[T+1] -> close[T+1] intraday PnL;
+5. config["rebalance_days"] is honored.
 """
 
 from __future__ import annotations
@@ -28,7 +31,12 @@ import yaml
 
 from data.store import query
 from execution import position as position_store
-from execution.position import PositionPeriod, PositionState, write_position
+from execution.position import (
+    PositionPeriod,
+    PositionState,
+    read_position,
+    write_position,
+)
 from factors.registry import load_registered_factors
 from factors.validator import validate
 from notification.formatter import ASSET_NAMES
@@ -121,6 +129,10 @@ def _weighted_return(
     return total if has_price else None
 
 
+def _period_return(period: PositionPeriod) -> float | None:
+    return _weighted_return(period.weights, period.entry_prices, period.exit_prices)
+
+
 def _compute_ytd_return(result: ReplayResult) -> float | None:
     product = 1.0
     has_data = False
@@ -133,7 +145,10 @@ def _compute_ytd_return(result: ReplayResult) -> float | None:
 
     current = result.state
     if current.weights:
-        close_prices = _get_close_prices(list(current.weights), result.latest_trading_day)
+        close_prices = _get_close_prices(
+            list(current.weights),
+            result.latest_trading_day,
+        )
         current_return = _weighted_return(
             current.weights,
             current.entry_prices,
@@ -151,6 +166,47 @@ def _asset_label(weights: dict[str, float]) -> str:
         return "-"
     asset = max(weights, key=weights.get)
     return ASSET_NAMES.get(asset, asset)
+
+
+def _state_as_of(state: PositionState, as_of: date) -> PositionState:
+    """Slice a state file down to the account state after `as_of` open.
+
+    Closed periods whose exit open is on/before `as_of` are preserved. If a
+    later closed period spans `as_of`, it becomes the current open position so
+    replay can replace everything after that date.
+    """
+    preserved: list[PositionPeriod] = []
+    active: PositionPeriod | None = None
+
+    for period in state.ytd_history:
+        entry_date = date.fromisoformat(period.entry_date)
+        exit_date = date.fromisoformat(period.exit_date)
+
+        if exit_date <= as_of:
+            preserved.append(period)
+        elif entry_date <= as_of < exit_date:
+            if active is None or entry_date >= date.fromisoformat(active.entry_date):
+                active = period
+
+    if active is not None:
+        return PositionState(
+            weights=active.weights,
+            entry_date=active.entry_date,
+            entry_prices=active.entry_prices,
+            ytd_history=preserved,
+        )
+
+    if state.entry_date is not None:
+        entry_date = date.fromisoformat(state.entry_date)
+        if entry_date <= as_of:
+            return PositionState(
+                weights=state.weights,
+                entry_date=state.entry_date,
+                entry_prices=state.entry_prices,
+                ytd_history=preserved,
+            )
+
+    return PositionState(ytd_history=preserved)
 
 
 def _compute_signal_weights(
@@ -196,19 +252,27 @@ def _replay_signals_to_state(
     trading_days: list[date],
     price_lookup: PriceLookup,
     rebalance_days: int,
+    initial_state: PositionState | None = None,
+    holding_calendar: list[date] | None = None,
 ) -> ReplayResult:
     """Replay precomputed daily signals into a PositionState ledger."""
     if not trading_days:
         raise RuntimeError("no trading days found for this year")
 
-    current_weights: dict[str, float] = {}
-    current_entry_date: date | None = None
-    current_entry_prices: dict[str, float] | None = None
-    ytd_history: list[PositionPeriod] = []
-    closed_returns: list[tuple[PositionPeriod, float | None]] = []
+    initial_state = initial_state or PositionState()
+    current_weights: dict[str, float] = dict(initial_state.weights)
+    current_entry_date = (
+        date.fromisoformat(initial_state.entry_date)
+        if initial_state.entry_date
+        else None
+    )
+    current_entry_prices = initial_state.entry_prices
+    ytd_history = list(initial_state.ytd_history)
+    closed_returns = [(period, _period_return(period)) for period in ytd_history]
     pending_weights: dict[str, float] | None = None
     pending_entry_date: date | None = None
     unpriced_target_weights: dict[str, float] | None = None
+    holding_calendar = holding_calendar or trading_days
 
     for signal_date, signal_weights in signal_weights_by_date:
         if pending_entry_date == signal_date and pending_weights is not None:
@@ -245,7 +309,7 @@ def _replay_signals_to_state(
         holding_days = _count_holding_days(
             current_entry_date,
             signal_date,
-            trading_days,
+            holding_calendar,
         )
         target_weights = (
             current_weights
@@ -276,12 +340,34 @@ def _replay_signals_to_state(
     )
 
 
-def _replay_strategy(config: dict, as_of: date) -> ReplayResult:
+def _replay_strategy(
+    config: dict,
+    as_of: date,
+    from_date: date | None = None,
+    initial_state: PositionState | None = None,
+) -> ReplayResult:
     asset_pool = config["asset_pool"]
     year_start = date(as_of.year, 1, 1)
-    trading_days = _trading_days(asset_pool, year_start, as_of)
+    replay_start = from_date or year_start
+    if replay_start > as_of:
+        raise ValueError(f"from_date must be <= as_of, got {replay_start} > {as_of}")
+    if replay_start.year != as_of.year:
+        raise ValueError(
+            f"from_date and as_of must be in the same YTD year, got "
+            f"{replay_start} and {as_of}"
+        )
+
+    calendar_start = year_start
+    if initial_state and initial_state.entry_date:
+        calendar_start = min(
+            calendar_start,
+            date.fromisoformat(initial_state.entry_date),
+        )
+
+    holding_calendar = _trading_days(asset_pool, calendar_start, as_of)
+    trading_days = [td for td in holding_calendar if replay_start <= td <= as_of]
     if not trading_days:
-        raise RuntimeError("no trading days found for this year")
+        raise RuntimeError("no trading days found for the requested backfill range")
 
     strategy = load_strategy(config)
     all_factors = load_registered_factors()
@@ -301,6 +387,8 @@ def _replay_strategy(config: dict, as_of: date) -> ReplayResult:
         trading_days,
         _get_open_prices,
         rebalance_days,
+        initial_state=initial_state,
+        holding_calendar=holding_calendar,
     )
 
 
@@ -354,13 +442,22 @@ def _print_result(result: ReplayResult) -> None:
 def backfill(
     config: dict,
     as_of: date | None = None,
+    from_date: date | None = None,
     dry_run: bool = False,
     backup: bool = True,
 ) -> ReplayResult:
     as_of = as_of or date.today()
     strategy_name = config["strategy_name"]
+    initial_state = None
+    if from_date is not None:
+        initial_state = _state_as_of(read_position(strategy_name), from_date)
 
-    result = _replay_strategy(config, as_of)
+    result = _replay_strategy(
+        config,
+        as_of,
+        from_date=from_date,
+        initial_state=initial_state,
+    )
     _print_result(result)
 
     if dry_run:
@@ -384,6 +481,15 @@ def main() -> None:
         default=Path("strategy/configs/quality_momentum_top1.yaml"),
     )
     parser.add_argument(
+        "--from-date",
+        type=date.fromisoformat,
+        default=None,
+        help=(
+            "Replay from this date (YYYY-MM-DD), preserving existing state "
+            "before that date."
+        ),
+    )
+    parser.add_argument(
         "--as-of",
         type=date.fromisoformat,
         default=None,
@@ -405,6 +511,7 @@ def main() -> None:
     backfill(
         config,
         as_of=args.as_of,
+        from_date=args.from_date,
         dry_run=args.dry_run,
         backup=not args.no_backup,
     )

@@ -119,7 +119,13 @@ uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.ya
 uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml
 ```
 
-脚本会在覆盖前自动备份旧状态文件。补账逻辑与 `run_daily.py` 保持一致：信号日使用当日收盘后的数据，下一交易日按开盘价入场/出场，并遵守
+如果只需要从某一天开始补，先保留现有 state 文件中该日期之前的账本，再指定起始日期：
+
+```bash
+uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml --from-date 2026-04-13 --dry-run
+```
+
+脚本会在覆盖前自动备份旧状态文件。补账逻辑与 `run_daily.py` 和回测引擎保持一致：信号日使用当日收盘后的数据，下一交易日按开盘价调仓；调仓日先让旧仓吃到“昨收 → 今开”的隔夜收益，再让新仓吃到“今开 → 今收”的日内收益，并遵守
 `rebalance_days`。如果年内换过策略或手动调过仓，不要用单个策略配置直接从年初覆盖状态，应先保留已有实盘账本，再只补缺失区间或手工校正。
 
 ## 完整范例：从零到第一次回测
