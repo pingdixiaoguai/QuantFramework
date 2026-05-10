@@ -1,9 +1,10 @@
 """Backtest run entry point.
 
 Usage:
-    uv run python run_backtest.py                           # default config
-    uv run python run_backtest.py --config path/to/cfg.yaml # custom config
-    uv run python run_backtest.py --from-log path/to/exp.yaml  # reproduce
+    uv run python run_backtest.py                                              # default config
+    uv run python run_backtest.py --config path/to/cfg.yaml                    # custom config
+    uv run python run_backtest.py --from-log path/to/exp.yaml                  # reproduce
+    uv run python run_backtest.py --config foo.yaml --baseline-config bar.yaml # use bar as benchmark
 """
 
 import argparse
@@ -117,6 +118,11 @@ def main() -> None:
     if args.baseline_config:
         baseline_config = _load_config_from_yaml(args.baseline_config)
         baseline_name = baseline_config.get("strategy_name")
+        if not baseline_name:
+            raise RuntimeError(
+                f"Baseline config {args.baseline_config} is missing 'strategy_name'; "
+                "cannot label the benchmark in HTML/log without it."
+            )
         print(f"Running baseline: {baseline_name}...")
         baseline_result = run(baseline_config)
 
