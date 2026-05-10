@@ -1,0 +1,64 @@
+"""Tests for run_backtest.py orchestration helpers."""
+
+from datetime import date
+
+import pandas as pd
+import pytest
+
+from backtest.runner import BacktestResult
+from run_backtest import _apply_baseline
+
+
+def _make_result(start: str, periods: int) -> BacktestResult:
+    dates = pd.bdate_range(start, periods=periods)
+    return BacktestResult(
+        daily_returns=pd.Series([0.001] * periods, index=dates),
+        benchmark_returns=pd.Series([0.0005] * periods, index=dates),
+        positions=pd.DataFrame({"A.SH": [0.5] * periods}, index=dates),
+        train_end=dates[periods // 2].date(),
+        config={"strategy_name": "foo"},
+    )
+
+
+class TestApplyBaseline:
+    def test_replaces_benchmark_with_aligned_baseline_returns(self):
+        # foo: 2024-01-01 + 100 bdays; bar: 2024-01-15 + 80 bdays — overlap is the
+        # later 86-ish days of foo. We just check the returned benchmark equals
+        # bar restricted to foo's index, not foo's own benchmark.
+        foo = _make_result("2024-01-01", 100)
+        bar = _make_result("2024-01-15", 80)
+        # Make bar's daily_returns identifiable
+        bar.daily_returns.iloc[:] = 0.002
+
+        out = _apply_baseline(foo, bar, baseline_strategy_name="bar")
+
+        # daily_returns untouched (foo's full series)
+        assert len(out.daily_returns) == 100
+        assert (out.daily_returns == 0.001).all()
+
+        # benchmark_returns now reflects bar, restricted to foo's index
+        assert (out.benchmark_returns == 0.002).all()
+        # length = size of intersection between foo and bar indices
+        expected_len = len(foo.daily_returns.index.intersection(bar.daily_returns.index))
+        assert len(out.benchmark_returns) == expected_len
+
+        # baseline_strategy_name set
+        assert out.baseline_strategy_name == "bar"
+
+    def test_raises_on_empty_overlap(self):
+        foo = _make_result("2024-01-01", 30)
+        bar = _make_result("2025-06-01", 30)  # no overlap with foo
+
+        with pytest.raises(RuntimeError, match="No overlapping trading days"):
+            _apply_baseline(foo, bar, baseline_strategy_name="bar")
+
+    def test_does_not_mutate_original_foo_result(self):
+        foo = _make_result("2024-01-01", 50)
+        bar = _make_result("2024-01-01", 50)
+        original_bench = foo.benchmark_returns.copy()
+
+        _apply_baseline(foo, bar, baseline_strategy_name="bar")
+
+        # foo's benchmark_returns must be unchanged (we used dataclasses.replace, not in-place)
+        pd.testing.assert_series_equal(foo.benchmark_returns, original_bench)
+        assert foo.baseline_strategy_name is None

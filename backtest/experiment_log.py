@@ -99,6 +99,9 @@ def save(result: BacktestResult, output_dir: Path | None = None) -> Path:
         }
     }
 
+    if result.baseline_strategy_name is not None:
+        log["experiment"]["baseline_config"] = result.baseline_strategy_name
+
     path = output_dir / f"{exp_id}.yaml"
     with open(path, "w", encoding="utf-8") as f:
         yaml.dump(log, f, default_flow_style=False, allow_unicode=True, sort_keys=False)

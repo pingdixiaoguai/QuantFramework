@@ -22,6 +22,7 @@ class BacktestResult:
     positions: pd.DataFrame        # daily position weights (date × asset)
     train_end: date                # train set end date
     config: dict                   # original config snapshot
+    baseline_strategy_name: str | None = None  # populated by callers when comparing against a baseline run
 
 
 def _default_config() -> dict:

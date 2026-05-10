@@ -72,6 +72,9 @@ uv run python run_backtest.py --config strategy/configs/momentum_rotation.yaml
 
 # 从实验日志复现
 uv run python run_backtest.py --from-log experiments/20260413-001.yaml
+
+# 用另一个策略当 benchmark（替代默认池子均值）
+uv run python run_backtest.py --config strategy/configs/foo.yaml --baseline-config strategy/configs/bar.yaml
 ```
 
 输出示例：
