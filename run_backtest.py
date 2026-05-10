@@ -7,6 +7,7 @@ Usage:
 """
 
 import argparse
+import dataclasses
 import sys
 from datetime import date
 from pathlib import Path
@@ -14,7 +15,7 @@ from pathlib import Path
 import yaml
 
 from backtest.experiment_log import save
-from backtest.runner import run
+from backtest.runner import BacktestResult, run
 
 
 def _load_config_from_yaml(path: Path) -> dict:
@@ -59,10 +60,47 @@ def _load_config_from_log(path: Path) -> dict:
     }
 
 
+def _apply_baseline(
+    strategy_result: BacktestResult,
+    baseline_result: BacktestResult,
+    baseline_strategy_name: str | None,
+) -> BacktestResult:
+    """Replace strategy_result.benchmark_returns with baseline_result.daily_returns
+    restricted to strategy_result's trading days.
+
+    Raises RuntimeError if there is no overlap between the two series' indices.
+    Returns a new BacktestResult; the input is not mutated.
+    """
+    overlap = strategy_result.daily_returns.index.intersection(
+        baseline_result.daily_returns.index
+    )
+    if len(overlap) == 0:
+        s_idx = strategy_result.daily_returns.index
+        b_idx = baseline_result.daily_returns.index
+        raise RuntimeError(
+            f"No overlapping trading days between strategy and baseline. "
+            f"strategy={s_idx.min()}~{s_idx.max()}, "
+            f"baseline={b_idx.min()}~{b_idx.max()}"
+        )
+    aligned_bench = baseline_result.daily_returns.loc[overlap]
+
+    return dataclasses.replace(
+        strategy_result,
+        benchmark_returns=aligned_bench,
+        baseline_strategy_name=baseline_strategy_name,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run backtest")
     parser.add_argument("--config", type=Path, help="Path to config YAML")
     parser.add_argument("--from-log", type=Path, help="Reproduce from experiment log")
+    parser.add_argument(
+        "--baseline-config",
+        type=Path,
+        help="Path to a YAML config whose strategy returns will replace the default "
+             "pool-mean benchmark in the HTML report.",
+    )
     args = parser.parse_args()
 
     if args.from_log:
@@ -73,8 +111,22 @@ def main() -> None:
     else:
         config = None  # use default
 
+    # Run baseline first if requested
+    baseline_result = None
+    baseline_name = None
+    if args.baseline_config:
+        baseline_config = _load_config_from_yaml(args.baseline_config)
+        baseline_name = baseline_config.get("strategy_name")
+        print(f"Running baseline: {baseline_name}...")
+        baseline_result = run(baseline_config)
+
     print("Running backtest...")
     result = run(config)
+
+    if baseline_result is not None:
+        result = _apply_baseline(result, baseline_result, baseline_name)
+        print(f"Using baseline '{baseline_name}' "
+              f"({len(result.benchmark_returns)} overlapping days)")
 
     # Print summary
     print(f"\nBacktest complete: {len(result.daily_returns)} trading days")
@@ -108,7 +160,7 @@ def main() -> None:
     try:
         from backtest.report import generate
         report_path = log_path.with_suffix(".html")
-        generate(result, report_path)
+        generate(result, report_path, benchmark_title=result.baseline_strategy_name)
         print(f"HTML report: {report_path}")
     except Exception as exc:
         print(f"HTML report skipped: {exc}")
