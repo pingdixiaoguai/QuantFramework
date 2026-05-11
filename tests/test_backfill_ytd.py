@@ -4,7 +4,15 @@ from __future__ import annotations
 
 from datetime import date
 
-from backfill_ytd import _replay_signals_to_state, _state_as_of
+import pytest
+
+from backfill_ytd import (
+    ReplayResult,
+    _clip_result_to_ytd,
+    _load_config,
+    _replay_signals_to_state,
+    _state_as_of,
+)
 from execution.position import PositionPeriod, PositionState
 
 
@@ -13,6 +21,29 @@ def _price_lookup(prices: dict[tuple[str, date], float]):
         return {asset: prices[(asset, d)] for asset in assets if (asset, d) in prices}
 
     return lookup
+
+
+def test_load_config_accepts_dynamic_today_end(tmp_path, monkeypatch):
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return cls(2026, 5, 11)
+
+    monkeypatch.setattr("backfill_ytd.date", FixedDate)
+    path = tmp_path / "cfg.yaml"
+    path.write_text(
+        "strategy_name: test\n"
+        "asset_pool: []\n"
+        "start: '2016-01-01'\n"
+        "end: 'today'\n"
+        "factors: []\n",
+        encoding="utf-8",
+    )
+
+    config = _load_config(path)
+
+    assert config["start"] == date(2016, 1, 1)
+    assert config["end"] == date(2026, 5, 11)
 
 
 def test_replay_books_trades_on_next_trading_day_open():
@@ -173,3 +204,61 @@ def test_replay_from_initial_state_keeps_existing_history():
     assert replayed.exit_prices == {"B.SH": 22.0}
     assert result.state.weights == {"C.SH": 1.0}
     assert result.state.entry_date == "2026-01-12"
+
+
+def test_clip_result_to_ytd_rebases_cross_year_period_and_current_position():
+    before_year = PositionPeriod(
+        weights={"A.SH": 1.0},
+        entry_date="2025-12-26",
+        exit_date="2026-01-02",
+        entry_prices={"A.SH": 10.0},
+        exit_prices={"A.SH": 11.0},
+    )
+    spanning = PositionPeriod(
+        weights={"B.SH": 1.0},
+        entry_date="2025-12-30",
+        exit_date="2026-01-07",
+        entry_prices={"B.SH": 20.0},
+        exit_prices={"B.SH": 24.0},
+    )
+    same_year = PositionPeriod(
+        weights={"C.SH": 1.0},
+        entry_date="2026-01-07",
+        exit_date="2026-01-09",
+        entry_prices={"C.SH": 30.0},
+        exit_prices={"C.SH": 33.0},
+    )
+    result = ReplayResult(
+        state=PositionState(
+            weights={"D.SH": 1.0},
+            entry_date="2025-12-31",
+            entry_prices={"D.SH": 40.0},
+            ytd_history=[before_year, spanning, same_year],
+        ),
+        closed_returns=[],
+        latest_trading_day=date(2026, 1, 12),
+    )
+    prices = {
+        ("B.SH", date(2026, 1, 5)): 21.0,
+        ("D.SH", date(2026, 1, 5)): 41.0,
+    }
+
+    clipped = _clip_result_to_ytd(
+        result,
+        date(2026, 1, 5),
+        _price_lookup(prices),
+    )
+
+    assert len(clipped.state.ytd_history) == 2
+    rebased = clipped.state.ytd_history[0]
+    assert rebased.weights == {"B.SH": 1.0}
+    assert rebased.entry_date == "2026-01-05"
+    assert rebased.entry_prices == {"B.SH": 21.0}
+    assert rebased.exit_date == "2026-01-07"
+    assert clipped.closed_returns[0][1] == pytest.approx(24.0 / 21.0 - 1)
+
+    assert clipped.state.ytd_history[1] == same_year
+    assert clipped.state.entry_date == "2025-12-31"
+    assert clipped.state.entry_prices == {"D.SH": 40.0}
+    assert clipped.state.ytd_entry_date == "2026-01-05"
+    assert clipped.state.ytd_entry_prices == {"D.SH": 41.0}

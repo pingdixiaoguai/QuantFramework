@@ -33,6 +33,8 @@ class PositionState:
     entry_date: str | None = None
     entry_prices: dict[str, float] | None = None
     ytd_history: list[PositionPeriod] = field(default_factory=list)
+    ytd_entry_date: str | None = None
+    ytd_entry_prices: dict[str, float] | None = None
 
 
 def _parse_period(d: dict) -> PositionPeriod:
@@ -46,7 +48,7 @@ def _parse_period(d: dict) -> PositionPeriod:
 
 
 def _state_to_dict(state: PositionState) -> dict:
-    return {
+    data = {
         "weights": state.weights,
         "entry_date": state.entry_date,
         "entry_prices": state.entry_prices,
@@ -61,6 +63,10 @@ def _state_to_dict(state: PositionState) -> dict:
             for p in state.ytd_history
         ],
     }
+    if state.ytd_entry_date is not None or state.ytd_entry_prices is not None:
+        data["ytd_entry_date"] = state.ytd_entry_date
+        data["ytd_entry_prices"] = state.ytd_entry_prices
+    return data
 
 
 def read_position(strategy_name: str) -> PositionState:
@@ -88,6 +94,8 @@ def read_position(strategy_name: str) -> PositionState:
         weights=data["weights"],
         entry_date=data.get("entry_date"),
         entry_prices=data.get("entry_prices"),
+        ytd_entry_date=data.get("ytd_entry_date"),
+        ytd_entry_prices=data.get("ytd_entry_prices"),
         ytd_history=[_parse_period(p) for p in data.get("ytd_history", [])],
     )
 
@@ -117,9 +125,13 @@ def save_position(
         new_history.append(
             PositionPeriod(
                 weights=current.weights,
-                entry_date=current.entry_date or "",
+                entry_date=current.ytd_entry_date or current.entry_date or "",
                 exit_date=entry_date.isoformat(),
-                entry_prices=current.entry_prices,
+                entry_prices=(
+                    current.ytd_entry_prices
+                    if current.ytd_entry_date is not None
+                    else current.entry_prices
+                ),
                 exit_prices=None,
             )
         )

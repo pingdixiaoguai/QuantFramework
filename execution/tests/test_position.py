@@ -64,6 +64,22 @@ class TestReadPosition:
         assert result.entry_date is None
         assert result.entry_prices is None
 
+    def test_reads_ytd_entry_basis(self, tmp_state):
+        data = {
+            "weights": {"159915.SZ": 1.0},
+            "entry_date": "2025-12-30",
+            "entry_prices": {"159915.SZ": 3.0},
+            "ytd_entry_date": "2026-01-05",
+            "ytd_entry_prices": {"159915.SZ": 3.2},
+            "ytd_history": [],
+        }
+        tmp_state.write_text(json.dumps(data))
+        result = read_position(_STRAT)
+        assert result.entry_date == "2025-12-30"
+        assert result.entry_prices == {"159915.SZ": 3.0}
+        assert result.ytd_entry_date == "2026-01-05"
+        assert result.ytd_entry_prices == {"159915.SZ": 3.2}
+
     def test_reads_ytd_history(self, tmp_state):
         data = {
             "weights": {"513100.SH": 1.0},
@@ -185,6 +201,24 @@ class TestSavePosition:
         assert len(result.ytd_history) == 2
         assert result.ytd_history[0].weights == {"518880.SH": 1.0}
         assert result.ytd_history[1].weights == {"159915.SZ": 1.0}
+
+    def test_archives_ytd_basis_for_cross_year_current_position(self, tmp_state):
+        existing = {
+            "weights": {"159915.SZ": 1.0},
+            "entry_date": "2025-12-30",
+            "entry_prices": {"159915.SZ": 3.0},
+            "ytd_entry_date": "2026-01-05",
+            "ytd_entry_prices": {"159915.SZ": 3.2},
+            "ytd_history": [],
+        }
+        tmp_state.write_text(json.dumps(existing))
+
+        save_position({"513100.SH": 1.0}, date(2026, 1, 9), _STRAT)
+
+        result = read_position(_STRAT)
+        archived = result.ytd_history[0]
+        assert archived.entry_date == "2026-01-05"
+        assert archived.entry_prices == {"159915.SZ": 3.2}
 
     def test_overwrites_previous(self, tmp_state):
         save_position({"A.SH": 1.0}, date(2026, 1, 2), _STRAT)

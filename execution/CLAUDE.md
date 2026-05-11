@@ -9,7 +9,7 @@ Output: `list[Order]` where `Order = {asset: str, action: "buy"|"sell"|"hold", w
 - `diff()` iterates the union of target and current assets in sorted order; one `Order` per asset (including `hold` when `delta == 0`)
 - Sign convention: `weight_delta = target - current` — positive means buy, negative means sell. Assets only in `current` produce a sell with `weight_delta = -current_weight`
 - `position.py` — per-strategy position state persistence at `state/{strategy_name}_position.json` (outside DESIGN.md §2.5 scope; added for live runs)
-  - `PositionState` tracks `weights`, `entry_date`, `entry_prices`, and a `ytd_history` list of closed `PositionPeriod`s
+  - `PositionState` tracks `weights`, `entry_date`, `entry_prices`, optional `ytd_entry_date` / `ytd_entry_prices` for cross-year carry-in YTD basis, and a `ytd_history` list of closed `PositionPeriod`s
   - `read_position(strategy_name)` / `write_position(state, strategy_name)` / `save_position(target, entry_date, strategy_name, entry_prices)` — all callers MUST pass `strategy_name` (no module-level default; no backward-compat shim)
   - `save_position(...)` archives the outgoing position into `ytd_history` with `exit_prices=None` (backfilled by the next run)
   - `read_position(strategy_name)` auto-migrates the legacy flat `{asset: weight}` format to the current schema
@@ -17,6 +17,7 @@ Output: `list[Order]` where `Order = {asset: str, action: "buy"|"sell"|"hold", w
 ### Known deviations from DESIGN.md
 - DESIGN.md §2.5 states "execution layer only does diff; it does not know why we're rebalancing." That still holds for `diff()`, but the module **also** owns position-state persistence (`position.py`), which is not in the design doc. Notification/daily-run code depends on it.
 - `ytd_history` entries carry `exit_prices=None` until the next daily run backfills them — consumers must tolerate the null.
+- When a position was opened before the current year, `ytd_entry_date` / `ytd_entry_prices` may differ from `entry_date` / `entry_prices`; use the YTD fields for 年初至今 return chaining, but keep the actual entry fields for holding days and current-position return.
 
 ## Pitfalls
 - `hold` orders are emitted with `weight_delta=0` and are included in the list — filter them out if you only want actionable instructions (see `notification/formatter.py`)

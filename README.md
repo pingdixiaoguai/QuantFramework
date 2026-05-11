@@ -125,6 +125,12 @@ uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.ya
 uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml --from-date 2026-04-13 --dry-run
 ```
 
+如果年初已有上一年延续下来的持仓，普通年初重放会等到今年第一次信号的下一交易日才建仓，从而漏掉年初那几天。此时可以把 `--from-date` 放到上一年足够早的日期，让脚本先重放出跨年持仓；写入 state 时仍只保留今年的 YTD 账本，并把跨年持仓的 YTD 收益基准重置到今年第一个交易日开盘价：
+
+```bash
+uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml --from-date 2025-12-15 --dry-run
+```
+
 脚本会在覆盖前自动备份旧状态文件。补账逻辑与 `run_daily.py` 和回测引擎保持一致：信号日使用当日收盘后的数据，下一交易日按开盘价调仓；调仓日先让旧仓吃到“昨收 → 今开”的隔夜收益，再让新仓吃到“今开 → 今收”的日内收益，并遵守
 `rebalance_days`。如果年内换过策略或手动调过仓，不要用单个策略配置直接从年初覆盖状态，应先保留已有实盘账本，再只补缺失区间或手工校正。
 

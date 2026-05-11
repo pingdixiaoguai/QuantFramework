@@ -145,6 +145,8 @@ def _backfill_open_prices(
         weights=state.weights,
         entry_date=state.entry_date,
         entry_prices=entry_prices,
+        ytd_entry_date=state.ytd_entry_date,
+        ytd_entry_prices=state.ytd_entry_prices,
         ytd_history=new_history,
     )
     write_position(updated, strategy_name)
@@ -368,10 +370,20 @@ def run(config: dict) -> None:
     position_return = _compute_position_return(
         current_weights, current_state.entry_prices, today
     )
+    current_ytd_entry_prices = (
+        current_state.ytd_entry_prices
+        if current_state.ytd_entry_date is not None
+        else current_state.entry_prices
+    )
+    current_ytd_return = _compute_position_return(
+        current_weights,
+        current_ytd_entry_prices,
+        today,
+    )
     benchmark_returns = _compute_benchmark_returns(
         asset_pool, current_state.entry_date, today
     )
-    ytd_return = _compute_ytd_return(current_state.ytd_history, position_return)
+    ytd_return = _compute_ytd_return(current_state.ytd_history, current_ytd_return)
 
     entry_date_obj = (
         date.fromisoformat(current_state.entry_date)

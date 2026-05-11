@@ -1,12 +1,13 @@
-"""Backfill YTD position state by replaying the strategy from year start.
+"""Backfill YTD position state by replaying strategy signals.
 
 Usage:
     uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml
     uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml --from-date 2026-04-13
+    uv run python backfill_ytd.py --config strategy/configs/quality_momentum_top1.yaml --from-date 2025-12-15
 
 This is a maintenance tool for the case where run_daily.py was not executed
 every trading day. It assumes the strategy/config was unchanged over the
-backfilled period, then reconstructs state/{strategy_name}_position.json using
+replayed period, then reconstructs state/{strategy_name}_position.json using
 the same live semantics as run_daily.py:
 
 1. signal on day T uses data through T close;
@@ -14,6 +15,11 @@ the same live semantics as run_daily.py:
 3. the outgoing holding keeps close[T] -> open[T+1] overnight PnL;
 4. the incoming holding earns open[T+1] -> close[T+1] intraday PnL;
 5. config["rebalance_days"] is honored.
+
+When --from-date is before Jan 1, the replay may use prior-year signals to
+discover the position carried into the year, but the persisted ytd_history is
+rebased to the first trading day's open so DingTalk's YTD return remains a
+current-year metric.
 """
 
 from __future__ import annotations
@@ -60,7 +66,10 @@ def _load_config(path: Path) -> dict:
         raw = yaml.safe_load(f)
     for key in ("start", "end"):
         if key in raw and isinstance(raw[key], str):
-            raw[key] = date.fromisoformat(raw[key])
+            if raw[key].lower() == "today":
+                raw[key] = date.today()
+            else:
+                raw[key] = date.fromisoformat(raw[key])
     return raw
 
 
@@ -133,6 +142,70 @@ def _period_return(period: PositionPeriod) -> float | None:
     return _weighted_return(period.weights, period.entry_prices, period.exit_prices)
 
 
+def _clip_result_to_ytd(
+    result: ReplayResult,
+    ytd_start: date,
+    price_lookup: PriceLookup,
+) -> ReplayResult:
+    """Keep only the current year's return ledger after a wider replay.
+
+    A replay may begin before Jan 1 to discover the position carried into the
+    year. The persisted ledger still needs to represent YTD returns only, so
+    periods that span the first trading day are rebased to that day's open.
+    """
+    clipped_history: list[PositionPeriod] = []
+
+    for period in result.state.ytd_history:
+        entry_date = (
+            date.fromisoformat(period.entry_date)
+            if period.entry_date
+            else None
+        )
+        exit_date = date.fromisoformat(period.exit_date)
+
+        if exit_date <= ytd_start:
+            continue
+
+        if entry_date is not None and entry_date >= ytd_start:
+            clipped = period
+        else:
+            ytd_entry_prices = price_lookup(list(period.weights), ytd_start)
+            clipped = PositionPeriod(
+                weights=period.weights,
+                entry_date=ytd_start.isoformat(),
+                exit_date=period.exit_date,
+                entry_prices=ytd_entry_prices if ytd_entry_prices else None,
+                exit_prices=period.exit_prices,
+            )
+        clipped_history.append(clipped)
+
+    state = result.state
+    ytd_entry_date = state.ytd_entry_date
+    ytd_entry_prices = state.ytd_entry_prices
+    if state.weights and state.entry_date is not None:
+        current_entry_date = date.fromisoformat(state.entry_date)
+        if current_entry_date < ytd_start:
+            prices = price_lookup(list(state.weights), ytd_start)
+            ytd_entry_date = ytd_start.isoformat()
+            ytd_entry_prices = prices if prices else None
+
+    clipped_state = PositionState(
+        weights=state.weights,
+        entry_date=state.entry_date,
+        entry_prices=state.entry_prices,
+        ytd_entry_date=ytd_entry_date,
+        ytd_entry_prices=ytd_entry_prices,
+        ytd_history=clipped_history,
+    )
+
+    return ReplayResult(
+        state=clipped_state,
+        closed_returns=[(period, _period_return(period)) for period in clipped_history],
+        latest_trading_day=result.latest_trading_day,
+        unpriced_target_weights=result.unpriced_target_weights,
+    )
+
+
 def _compute_ytd_return(result: ReplayResult) -> float | None:
     product = 1.0
     has_data = False
@@ -145,13 +218,18 @@ def _compute_ytd_return(result: ReplayResult) -> float | None:
 
     current = result.state
     if current.weights:
+        entry_prices = (
+            current.ytd_entry_prices
+            if current.ytd_entry_date is not None
+            else current.entry_prices
+        )
         close_prices = _get_close_prices(
             list(current.weights),
             result.latest_trading_day,
         )
         current_return = _weighted_return(
             current.weights,
-            current.entry_prices,
+            entry_prices,
             close_prices if close_prices else None,
         )
         if current_return is not None:
@@ -203,6 +281,8 @@ def _state_as_of(state: PositionState, as_of: date) -> PositionState:
                 weights=state.weights,
                 entry_date=state.entry_date,
                 entry_prices=state.entry_prices,
+                ytd_entry_date=state.ytd_entry_date,
+                ytd_entry_prices=state.ytd_entry_prices,
                 ytd_history=preserved,
             )
 
@@ -267,6 +347,12 @@ def _replay_signals_to_state(
         else None
     )
     current_entry_prices = initial_state.entry_prices
+    current_ytd_entry_date = (
+        date.fromisoformat(initial_state.ytd_entry_date)
+        if initial_state.ytd_entry_date
+        else None
+    )
+    current_ytd_entry_prices = initial_state.ytd_entry_prices
     ytd_history = list(initial_state.ytd_history)
     closed_returns = [(period, _period_return(period)) for period in ytd_history]
     pending_weights: dict[str, float] | None = None
@@ -278,13 +364,19 @@ def _replay_signals_to_state(
         if pending_entry_date == signal_date and pending_weights is not None:
             if current_weights:
                 exit_prices = price_lookup(list(current_weights), signal_date)
+                period_entry_date = current_ytd_entry_date or current_entry_date
+                period_entry_prices = (
+                    current_ytd_entry_prices
+                    if current_ytd_entry_date is not None
+                    else current_entry_prices
+                )
                 period = PositionPeriod(
                     weights=current_weights,
-                    entry_date=current_entry_date.isoformat()
-                    if current_entry_date
+                    entry_date=period_entry_date.isoformat()
+                    if period_entry_date
                     else "",
                     exit_date=signal_date.isoformat(),
-                    entry_prices=current_entry_prices,
+                    entry_prices=period_entry_prices,
                     exit_prices=exit_prices if exit_prices else None,
                 )
                 ytd_history.append(period)
@@ -293,7 +385,7 @@ def _replay_signals_to_state(
                         period,
                         _weighted_return(
                             current_weights,
-                            current_entry_prices,
+                            period_entry_prices,
                             exit_prices if exit_prices else None,
                         ),
                     )
@@ -303,6 +395,8 @@ def _replay_signals_to_state(
             current_entry_date = signal_date
             entry_prices = price_lookup(list(current_weights), signal_date)
             current_entry_prices = entry_prices if entry_prices else None
+            current_ytd_entry_date = None
+            current_ytd_entry_prices = None
             pending_weights = None
             pending_entry_date = None
 
@@ -329,6 +423,10 @@ def _replay_signals_to_state(
         weights=current_weights,
         entry_date=current_entry_date.isoformat() if current_entry_date else None,
         entry_prices=current_entry_prices,
+        ytd_entry_date=current_ytd_entry_date.isoformat()
+        if current_ytd_entry_date
+        else None,
+        ytd_entry_prices=current_ytd_entry_prices,
         ytd_history=ytd_history,
     )
 
@@ -351,13 +449,8 @@ def _replay_strategy(
     replay_start = from_date or year_start
     if replay_start > as_of:
         raise ValueError(f"from_date must be <= as_of, got {replay_start} > {as_of}")
-    if replay_start.year != as_of.year:
-        raise ValueError(
-            f"from_date and as_of must be in the same YTD year, got "
-            f"{replay_start} and {as_of}"
-        )
 
-    calendar_start = year_start
+    calendar_start = min(year_start, replay_start)
     if initial_state and initial_state.entry_date:
         calendar_start = min(
             calendar_start,
@@ -368,6 +461,9 @@ def _replay_strategy(
     trading_days = [td for td in holding_calendar if replay_start <= td <= as_of]
     if not trading_days:
         raise RuntimeError("no trading days found for the requested backfill range")
+    ytd_days = [td for td in holding_calendar if year_start <= td <= as_of]
+    if not ytd_days:
+        raise RuntimeError("no trading days found for this year")
 
     strategy = load_strategy(config)
     all_factors = load_registered_factors()
@@ -382,7 +478,7 @@ def _replay_strategy(
         )
         for signal_date in trading_days
     ]
-    return _replay_signals_to_state(
+    result = _replay_signals_to_state(
         signal_weights_by_date,
         trading_days,
         _get_open_prices,
@@ -390,6 +486,7 @@ def _replay_strategy(
         initial_state=initial_state,
         holding_calendar=holding_calendar,
     )
+    return _clip_result_to_ytd(result, ytd_days[0], _get_open_prices)
 
 
 def _backup_state_file(strategy_name: str) -> Path | None:
@@ -425,6 +522,9 @@ def _print_result(result: ReplayResult) -> None:
     print(f"  Current position: {state.weights}")
     print(f"  Entry date: {state.entry_date}")
     print(f"  Entry prices: {state.entry_prices or 'pending'}")
+    if state.ytd_entry_date or state.ytd_entry_prices:
+        print(f"  YTD basis date: {state.ytd_entry_date}")
+        print(f"  YTD basis prices: {state.ytd_entry_prices or 'pending'}")
     print(f"  Latest priced trading day: {result.latest_trading_day}")
     ytd_return = _compute_ytd_return(result)
     if ytd_return is None:
@@ -486,7 +586,8 @@ def main() -> None:
         default=None,
         help=(
             "Replay from this date (YYYY-MM-DD), preserving existing state "
-            "before that date."
+            "before that date. Dates before Jan 1 are allowed to recover "
+            "a carried-in position; only current-year YTD history is written."
         ),
     )
     parser.add_argument(
