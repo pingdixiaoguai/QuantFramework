@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from backtest.runner import BacktestResult
-from run_backtest import _apply_baseline
+from run_backtest import _apply_baseline, _load_config_from_yaml
 
 
 def _make_result(start: str, periods: int) -> BacktestResult:
@@ -62,3 +62,68 @@ class TestApplyBaseline:
         # foo's benchmark_returns must be unchanged (we used dataclasses.replace, not in-place)
         pd.testing.assert_series_equal(foo.benchmark_returns, original_bench)
         assert foo.baseline_strategy_name is None
+
+
+class TestLoadConfigFromYaml:
+    def test_dynamic_end_today_uses_current_date(self, tmp_path, monkeypatch):
+        class FixedDate(date):
+            @classmethod
+            def today(cls):
+                return cls(2026, 5, 11)
+
+        monkeypatch.setattr("run_backtest.date", FixedDate)
+        path = tmp_path / "cfg.yaml"
+        path.write_text(
+            "strategy_name: test\n"
+            "asset_pool: []\n"
+            "start: '2016-01-01'\n"
+            "end: 'today'\n"
+            "factors: []\n",
+            encoding="utf-8",
+        )
+
+        config = _load_config_from_yaml(path)
+
+        assert config["start"] == date(2016, 1, 1)
+        assert config["end"] == date(2026, 5, 11)
+
+    def test_missing_end_defaults_to_current_date(self, tmp_path, monkeypatch):
+        class FixedDate(date):
+            @classmethod
+            def today(cls):
+                return cls(2026, 5, 11)
+
+        monkeypatch.setattr("run_backtest.date", FixedDate)
+        path = tmp_path / "cfg.yaml"
+        path.write_text(
+            "strategy_name: test\n"
+            "asset_pool: []\n"
+            "start: '2016-01-01'\n"
+            "factors: []\n",
+            encoding="utf-8",
+        )
+
+        config = _load_config_from_yaml(path)
+
+        assert config["end"] == date(2026, 5, 11)
+
+    def test_explicit_end_stays_reproducible(self, tmp_path, monkeypatch):
+        class FixedDate(date):
+            @classmethod
+            def today(cls):
+                return cls(2026, 5, 11)
+
+        monkeypatch.setattr("run_backtest.date", FixedDate)
+        path = tmp_path / "cfg.yaml"
+        path.write_text(
+            "strategy_name: test\n"
+            "asset_pool: []\n"
+            "start: '2016-01-01'\n"
+            "end: '2026-04-13'\n"
+            "factors: []\n",
+            encoding="utf-8",
+        )
+
+        config = _load_config_from_yaml(path)
+
+        assert config["end"] == date(2026, 4, 13)

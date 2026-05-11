@@ -43,7 +43,10 @@ def _load_config(path: Path) -> dict:
         raw = yaml.safe_load(f)
     for key in ("start", "end"):
         if key in raw and isinstance(raw[key], str):
-            raw[key] = date.fromisoformat(raw[key])
+            if raw[key].lower() == "today":
+                raw[key] = date.today()
+            else:
+                raw[key] = date.fromisoformat(raw[key])
     return raw
 
 

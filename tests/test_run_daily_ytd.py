@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from execution.position import PositionPeriod
-from run_daily import _compute_ytd_return
+from run_daily import _compute_ytd_return, _load_config
 
 
 def test_ytd_chains_closed_open_to_open_and_current_open_to_close_returns():
@@ -24,3 +26,26 @@ def test_ytd_chains_closed_open_to_open_and_current_open_to_close_returns():
     )
 
     assert _compute_ytd_return([closed], current_return=0.10) == pytest.approx(0.21)
+
+
+def test_load_config_accepts_dynamic_today_end(tmp_path, monkeypatch):
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return cls(2026, 5, 11)
+
+    monkeypatch.setattr("run_daily.date", FixedDate)
+    path = tmp_path / "cfg.yaml"
+    path.write_text(
+        "strategy_name: test\n"
+        "asset_pool: []\n"
+        "start: '2016-01-01'\n"
+        "end: 'today'\n"
+        "factors: []\n",
+        encoding="utf-8",
+    )
+
+    config = _load_config(path)
+
+    assert config["start"] == date(2016, 1, 1)
+    assert config["end"] == date(2026, 5, 11)
