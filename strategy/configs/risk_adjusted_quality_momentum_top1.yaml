@@ -8,7 +8,7 @@ asset_pool:
   - 512890.SH   # 红利低波 ETF (华泰柏瑞中证红利低波动)
   - 511360.SH   # 短融 ETF (海富通中证短融50)
 start: "2016-01-01"
-end: "2026-05-07"
+end: "today"
 factors:
   - name: risk_adjusted_quality_momentum
     weight: 1.0

@@ -6,7 +6,7 @@ asset_pool:
   - 513100.SH
   - 518880.SH
 start: "2016-01-01"
-end: "2026-04-13"
+end: "today"
 factors:
   - name: momentum
     weight: 0.7

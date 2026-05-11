@@ -19,14 +19,32 @@ from backtest.experiment_log import save
 from backtest.runner import BacktestResult, run
 
 
+_DYNAMIC_END_ALIASES = {"today", "now", "latest", "current", "current_date", "至今"}
+
+
+def _normalize_config_date(key: str, value) -> date:
+    if value is None and key == "end":
+        return date.today()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if key == "end" and normalized in _DYNAMIC_END_ALIASES:
+            return date.today()
+        return date.fromisoformat(value)
+    raise TypeError(f"config['{key}'] must be an ISO date string or 'today', got {value!r}")
+
+
 def _load_config_from_yaml(path: Path) -> dict:
     with open(path, encoding="utf-8") as f:
         raw = yaml.safe_load(f)
 
     # Normalize dates
     for key in ("start", "end"):
-        if key in raw and isinstance(raw[key], str):
-            raw[key] = date.fromisoformat(raw[key])
+        if key in raw:
+            raw[key] = _normalize_config_date(key, raw[key])
+        elif key == "end":
+            raw[key] = date.today()
     return raw
 
 

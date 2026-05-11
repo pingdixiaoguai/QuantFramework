@@ -27,5 +27,5 @@
 - `strategy_returns` are NOT saved before the first position has actually opened. The first saved return is the entry day's open-to-close return.
 - `positions_df` rows are appended on actual open execution days, not signal days. With `rebalance_days > 1`, intermediate days have no row even though the position is still held (forward-fill the DataFrame downstream if daily position rows are needed).
 - `experiment_log._next_id` is not atomic — concurrent runs can collide on the same ID
-- `config["start"]` / `config["end"]` must be `datetime.date` for the ISO serialization path; passing strings bypasses the `isoformat()` branch and is written as-is
+- `backtest.runner.run()` expects `config["start"]` / `config["end"]` as `datetime.date`. `run_backtest.py` normalizes YAML strings first, including dynamic `end: "today"` / omitted `end`; direct callers must do their own normalization.
 - Changing `factors/registry.yaml` between a run and its replay breaks `--from-log` reproducibility; the experiment YAML records `params` but not the registry version

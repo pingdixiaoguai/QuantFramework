@@ -36,7 +36,7 @@ asset_pool:
   - 159825.SZ   # 农业
   - 516970.SH   # 基建       (verify in Phase 4)
 start: "2020-01-01"
-end: "2026-04-22"
+end: "today"
 factors:
   - name: quality_momentum
     weight: 1.0
