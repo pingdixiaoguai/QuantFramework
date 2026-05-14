@@ -98,6 +98,58 @@ def _sync_and_check(asset_pool: list[str], today: date) -> None:
     print("Data freshness check passed.\n")
 
 
+def _latest_common_data_date(asset_pool: list[str], today: date) -> date:
+    """Return the latest date for which every pool asset has local data."""
+    latest_dates: list[date] = []
+    missing: list[str] = []
+
+    for asset in asset_pool:
+        df = read_local(asset)
+        if df is None or len(df) == 0:
+            missing.append(asset)
+            continue
+        priced = df[df["date"] <= pd.Timestamp(today)]
+        if len(priced) == 0:
+            missing.append(asset)
+            continue
+        latest_dates.append(priced["date"].max().date())
+
+    if missing:
+        raise RuntimeError(
+            "No local data available through today for: " + ", ".join(missing)
+        )
+
+    return min(latest_dates)
+
+
+def _priced_state_as_of(state: PositionState, priced_date: date) -> PositionState:
+    """Return the position that is actually priced as of `priced_date`.
+
+    `save_position()` records the next open's target immediately after a signal.
+    If a morning run happens before that entry date is priced, the current state
+    is still a pending target from the data's point of view. In that case, value
+    the last archived holding through the latest priced close instead of
+    dropping the open-to-pending segment from YTD.
+    """
+    if state.entry_date is None:
+        return state
+
+    entry_date = date.fromisoformat(state.entry_date)
+    if entry_date <= priced_date:
+        return state
+
+    if not state.ytd_history:
+        return PositionState()
+
+    active = state.ytd_history[-1]
+    return PositionState(
+        weights=active.weights,
+        entry_date=active.entry_date or None,
+        entry_prices=active.entry_prices,
+        ytd_history=list(state.ytd_history[:-1]),
+    )
+
+
 def _backfill_open_prices(
     state: PositionState,
     today: date,
@@ -308,6 +360,9 @@ def run(config: dict) -> None:
 
     # 1. Sync data and verify freshness
     _sync_and_check(asset_pool, today)
+    signal_date = _latest_common_data_date(asset_pool, today)
+    if signal_date != today:
+        print(f"Using latest common priced date as signal date: {signal_date}\n")
 
     # 2. Read state (auto-migrates old format)
     current_state = read_position(strategy_name)
@@ -322,7 +377,7 @@ def run(config: dict) -> None:
     asset_factor_values: dict[str, dict[str, float]] = {}
 
     for asset in asset_pool:
-        df = query(asset, config.get("start", date(2016, 1, 1)), today)
+        df = query(asset, config.get("start", date(2016, 1, 1)), signal_date)
         if len(df) == 0:
             continue
 
@@ -353,7 +408,7 @@ def run(config: dict) -> None:
     # 5b. Hold-window filter: if we're inside a rebalance_days window,
     # override the signal with the current position so the diff produces
     # no orders. This is what reduces friction cost.
-    holding_days = _count_holding_days(current_state.entry_date, today, asset_pool)
+    holding_days = _count_holding_days(current_state.entry_date, signal_date, asset_pool)
     if _should_hold(current_weights, holding_days, rebalance_days):
         target_weights = current_weights
         print(
@@ -367,39 +422,49 @@ def run(config: dict) -> None:
     orders = diff(target_weights, current_weights)
 
     # 7. Compute metrics for notification
+    priced_state = _priced_state_as_of(current_state, signal_date)
+    priced_holding_days = _count_holding_days(
+        priced_state.entry_date,
+        signal_date,
+        asset_pool,
+    )
     position_return = _compute_position_return(
-        current_weights, current_state.entry_prices, today
+        priced_state.weights,
+        priced_state.entry_prices,
+        signal_date,
     )
     current_ytd_entry_prices = (
-        current_state.ytd_entry_prices
-        if current_state.ytd_entry_date is not None
-        else current_state.entry_prices
+        priced_state.ytd_entry_prices
+        if priced_state.ytd_entry_date is not None
+        else priced_state.entry_prices
     )
     current_ytd_return = _compute_position_return(
-        current_weights,
+        priced_state.weights,
         current_ytd_entry_prices,
-        today,
+        signal_date,
     )
     benchmark_returns = _compute_benchmark_returns(
-        asset_pool, current_state.entry_date, today
+        asset_pool,
+        priced_state.entry_date,
+        signal_date,
     )
-    ytd_return = _compute_ytd_return(current_state.ytd_history, current_ytd_return)
+    ytd_return = _compute_ytd_return(priced_state.ytd_history, current_ytd_return)
 
     entry_date_obj = (
-        date.fromisoformat(current_state.entry_date)
-        if current_state.entry_date
+        date.fromisoformat(priced_state.entry_date)
+        if priced_state.entry_date
         else None
     )
 
     # 8. Assemble NotificationContext and send
     ctx = NotificationContext(
         strategy_name=strategy_name,
-        signal_date=today,
+        signal_date=signal_date,
         orders=orders,
         target_weights=target_weights,
-        current_weights=current_weights,
+        current_weights=priced_state.weights,
         entry_date=entry_date_obj,
-        holding_days=holding_days,
+        holding_days=priced_holding_days,
         position_return=position_return,
         benchmark_returns=benchmark_returns,
         ytd_return=ytd_return,
@@ -423,7 +488,7 @@ def run(config: dict) -> None:
     # 9. Persist new position only on rebalance (exit_prices backfilled on next run)
     is_rebalance = any(o.action in ("buy", "sell") for o in orders)
     if is_rebalance:
-        next_entry_date = _next_entry_date(today, asset_pool)
+        next_entry_date = _next_entry_date(signal_date, asset_pool)
         save_position(target_weights, next_entry_date, strategy_name, entry_prices=None)
         print(f"Position saved: {target_weights}, next_entry_date={next_entry_date}")
     else:
