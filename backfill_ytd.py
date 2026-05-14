@@ -17,9 +17,11 @@ the same live semantics as run_daily.py:
 5. config["rebalance_days"] is honored.
 
 When --from-date is before Jan 1, the replay may use prior-year signals to
-discover the position carried into the year, but the persisted ytd_history is
-rebased to the first trading day's open so DingTalk's YTD return remains a
-current-year metric.
+discover the position carried into the year. Periods that span the year
+boundary are rebased to use the **close of the last prior-year trading day**
+as their YTD basis (entry_prices). This way the live YTD chain includes the
+close[prev]->open[ytd_start] overnight return and matches the backtest's
+close-to-close daily chain across the year boundary.
 """
 
 from __future__ import annotations
@@ -146,13 +148,27 @@ def _clip_result_to_ytd(
     result: ReplayResult,
     ytd_start: date,
     price_lookup: PriceLookup,
+    *,
+    carry_in_basis_date: date | None = None,
+    carry_in_basis_lookup: PriceLookup | None = None,
 ) -> ReplayResult:
     """Keep only the current year's return ledger after a wider replay.
 
     A replay may begin before Jan 1 to discover the position carried into the
     year. The persisted ledger still needs to represent YTD returns only, so
-    periods that span the first trading day are rebased to that day's open.
+    periods that span the first trading day are rebased.
+
+    When `carry_in_basis_date` and `carry_in_basis_lookup` are supplied (e.g.
+    the previous trading day and its close-price lookup), the rebased period
+    uses those prices as its `entry_prices`. This makes the live YTD chain
+    include the close[last prior-year day] → open[first current-year day]
+    overnight return, matching the backtest's close-to-close daily chain
+    across the year boundary. Without them, the basis defaults to `ytd_start`
+    open prices (the older, "first-trading-day open" convention).
     """
+    basis_date = carry_in_basis_date if carry_in_basis_date is not None else ytd_start
+    basis_lookup = carry_in_basis_lookup or price_lookup
+
     clipped_history: list[PositionPeriod] = []
 
     for period in result.state.ytd_history:
@@ -169,7 +185,7 @@ def _clip_result_to_ytd(
         if entry_date is not None and entry_date >= ytd_start:
             clipped = period
         else:
-            ytd_entry_prices = price_lookup(list(period.weights), ytd_start)
+            ytd_entry_prices = basis_lookup(list(period.weights), basis_date)
             clipped = PositionPeriod(
                 weights=period.weights,
                 entry_date=ytd_start.isoformat(),
@@ -185,7 +201,7 @@ def _clip_result_to_ytd(
     if state.weights and state.entry_date is not None:
         current_entry_date = date.fromisoformat(state.entry_date)
         if current_entry_date < ytd_start:
-            prices = price_lookup(list(state.weights), ytd_start)
+            prices = basis_lookup(list(state.weights), basis_date)
             ytd_entry_date = ytd_start.isoformat()
             ytd_entry_prices = prices if prices else None
 
@@ -486,7 +502,18 @@ def _replay_strategy(
         initial_state=initial_state,
         holding_calendar=holding_calendar,
     )
-    return _clip_result_to_ytd(result, ytd_days[0], _get_open_prices)
+    # If the wider calendar reaches before YTD, rebase any carried period to
+    # close[last prior-year trading day] so the chained YTD return matches the
+    # backtest's close-to-close traversal across the year boundary.
+    pre_ytd_days = [td for td in holding_calendar if td < ytd_days[0]]
+    carry_in_basis_date = pre_ytd_days[-1] if pre_ytd_days else None
+    return _clip_result_to_ytd(
+        result,
+        ytd_days[0],
+        _get_open_prices,
+        carry_in_basis_date=carry_in_basis_date,
+        carry_in_basis_lookup=_get_close_prices if carry_in_basis_date else None,
+    )
 
 
 def _backup_state_file(strategy_name: str) -> Path | None:
