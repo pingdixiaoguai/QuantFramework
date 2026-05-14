@@ -262,3 +262,49 @@ def test_clip_result_to_ytd_rebases_cross_year_period_and_current_position():
     assert clipped.state.entry_prices == {"D.SH": 40.0}
     assert clipped.state.ytd_entry_date == "2026-01-05"
     assert clipped.state.ytd_entry_prices == {"D.SH": 41.0}
+
+
+def test_clip_result_uses_prior_day_close_when_carry_in_basis_supplied():
+    """When the wider replay knows the prev-year last trading day, the YTD
+    basis should be that day's close. This makes the chained YTD include the
+    close[prev] -> open[ytd_start] overnight gap that the backtest captures
+    via its close-to-close daily return on the first day of the year."""
+    spanning = PositionPeriod(
+        weights={"B.SH": 1.0},
+        entry_date="2025-12-30",
+        exit_date="2026-01-07",
+        entry_prices={"B.SH": 20.0},
+        exit_prices={"B.SH": 24.0},
+    )
+    result = ReplayResult(
+        state=PositionState(
+            weights={"D.SH": 1.0},
+            entry_date="2025-12-31",
+            entry_prices={"D.SH": 40.0},
+            ytd_history=[spanning],
+        ),
+        closed_returns=[],
+        latest_trading_day=date(2026, 1, 12),
+    )
+    open_prices = {
+        ("B.SH", date(2026, 1, 5)): 21.0,
+        ("D.SH", date(2026, 1, 5)): 41.0,
+    }
+    close_prices = {
+        ("B.SH", date(2025, 12, 31)): 20.5,
+        ("D.SH", date(2025, 12, 31)): 40.5,
+    }
+
+    clipped = _clip_result_to_ytd(
+        result,
+        date(2026, 1, 5),
+        _price_lookup(open_prices),
+        carry_in_basis_date=date(2025, 12, 31),
+        carry_in_basis_lookup=_price_lookup(close_prices),
+    )
+
+    rebased = clipped.state.ytd_history[0]
+    assert rebased.entry_date == "2026-01-05"  # date label is still YTD-bound
+    assert rebased.entry_prices == {"B.SH": 20.5}  # but basis is prev-day close
+    assert clipped.closed_returns[0][1] == pytest.approx(24.0 / 20.5 - 1)
+    assert clipped.state.ytd_entry_prices == {"D.SH": 40.5}
