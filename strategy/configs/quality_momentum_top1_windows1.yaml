@@ -1,4 +1,4 @@
-strategy_name: quality_momentum_top1
+strategy_name: quality_momentum_top1_windows1
 strategy_class: strategy.top1.Top1
 asset_pool:
   - 510300.SH   # 沪深300 ETF
