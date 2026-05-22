@@ -579,17 +579,17 @@ decision. It does not deploy a threshold and it does not modify the production
 
 ## Turnover-Side Evidence
 
-Whipsaw rows use the reconstructed rule documented in the attribution archive:
-leave an asset and return to it on the second executed switch; the intervening
-holding P&L is the whipsaw P&L.
+Whipsaw rows below are provisional until they are checked against the original
+2026-05-21 attribution definition, which was not found in this repository. The
+reconstructed rule documented in the attribution archive is: leave an asset and
+return to it on the second executed switch; the intervening holding P&L is the
+whipsaw P&L.
 
 {_markdown_table(whipsaw_summary)}
 
 The focus episodes separate switch-heavy drawdown months from the 2024-10
 single-asset month so threshold gains do not get credited to the wrong
-mechanism. The requested 2015-10 row remains in raw output, but this local
-reconstruction has no 2015-10 values because the Parquet pool available here
-starts in 2016.
+mechanism.
 
 {_markdown_table(focus_rows)}
 

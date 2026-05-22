@@ -8,8 +8,9 @@ import tushare as ts
 from data.config import get_tushare_token
 from data.store import merge_and_save, read_local
 
-# Full history start date for first-time sync
-_HISTORY_START = "20160101"
+# Full history start date for first-time sync. The four-ETF Top1 pool is
+# complete from 2013-07-29, after 518880.SH starts trading.
+_HISTORY_START = "20130101"
 
 
 def _is_rate_limit_error(exc: Exception) -> bool:

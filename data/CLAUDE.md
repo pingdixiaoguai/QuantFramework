@@ -8,7 +8,7 @@ Output: `pd.DataFrame` with columns `[date, open, high, low, close, volume]`, so
 - `store.py` — Parquet read/write, one file per asset under `data/db/{asset_code}.parquet`
 - `sync.py` — Tushare incremental sync. Fetches via `ts.pro_bar(asset="FD", adj="qfq")` (fund/ETF, forward-adjusted prices)
 - `config.py` — loads `TUSHARE_TOKEN` from env or `.env` (python-dotenv)
-- Incremental cursor: `start_date = max(local_date) + 1 day`; first-time sync starts from `_HISTORY_START = "20160101"`
+- Incremental cursor: `start_date = max(local_date) + 1 day`; first-time sync starts from `_HISTORY_START = "20130101"`. Existing Parquet files that already begin later still need an explicit historical backfill because the incremental cursor only moves forward.
 - Column rename on write: `trade_date → date`, `vol → volume` (see `_COLUMN_MAP`)
 - Dedup policy: `drop_duplicates(subset=["date"], keep="last")` — newer records overwrite older ones
 - Rate-limit handling: retries up to 3 times, sleeps 60s between attempts when error message contains `rate`/`40203`/`freq`/`exceed`
