@@ -269,7 +269,10 @@ def run(config: dict | None = None) -> BacktestResult:
 
             # Delegate to strategy for target weights. These are not effective
             # until the next trading day's open.
-            new_weights = strategy.generate_weights(asset_factor_values)
+            new_weights = strategy.generate_weights(
+                asset_factor_values,
+                current_weights=current_weights,
+            )
 
             if new_weights and new_weights != current_weights:
                 next_idx = day_idx + 1

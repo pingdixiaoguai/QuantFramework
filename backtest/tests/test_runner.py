@@ -390,14 +390,14 @@ class TestRebalanceEveryNDays:
         call_dates: list[pd.Timestamp] = []
         original = top1_mod.Top1.generate_weights
 
-        def spy(self, factor_values):
+        def spy(self, factor_values, current_weights=None):
             # The current trading day is the latest date present in any
             # asset's truncated factor view; we tag the call by current
             # max date inferred from factor_values keys' values? We can't
             # see the date directly here, so just count and let the
             # positions index tell us the dates.
             call_dates.append(pd.Timestamp("1970-01-01"))
-            return original(self, factor_values)
+            return original(self, factor_values, current_weights=current_weights)
 
         monkeypatch.setattr(top1_mod.Top1, "generate_weights", spy)
 
@@ -421,6 +421,100 @@ class TestRebalanceEveryNDays:
         expected_dates = [trading_days[i] for i in (2, 7, 12)]
 
         assert list(result.positions.index) == expected_dates
+
+
+class TestStrategyCurrentWeights:
+    def test_runner_passes_executed_current_weights(self, monkeypatch):
+        seen: list[dict[str, float]] = []
+        df = _make_asset_data("A.SH", [100.0, 101.0, 102.0, 103.0])
+
+        monkeypatch.setattr("backtest.runner.query", lambda asset, start, end: df)
+
+        def mock_compute(frame, params=None):
+            return pd.Series(frame["close"].values, index=frame["date"], dtype=float)
+
+        mock_meta = {
+            "name": "price",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 1,
+            "direction": "higher_better",
+            "description": "price",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {"price": {"METADATA": mock_meta, "compute": mock_compute}},
+        )
+
+        class SpyTop1:
+            def __init__(self, config):
+                self.config = config
+
+            def generate_weights(self, factor_values, current_weights=None):
+                seen.append(dict(current_weights or {}))
+                return {"A.SH": 1.0}
+
+        monkeypatch.setattr(
+            "backtest.runner.load_strategy",
+            lambda config: SpyTop1(config),
+        )
+
+        run({
+            "strategy_name": "test",
+            "asset_pool": ["A.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "price", "weight": 1.0, "params": {}}],
+            "train_ratio": 0.5,
+            "rebalance_days": 1,
+        })
+
+        assert seen[0] == {}
+        assert {"A.SH": 1.0} in seen[1:]
+
+    def test_hysteresis_rechecks_after_hold_floor_without_reset(self, monkeypatch):
+        prices_a = [110.0, 110.0, 110.0, 110.0, 110.0, 100.0, 100.0, 100.0]
+        prices_b = [100.0, 100.0, 100.0, 100.0, 100.0, 103.0, 106.0, 106.0]
+        df_a = _make_asset_data("A.SH", prices_a)
+        df_b = _make_asset_data("B.SH", prices_b)
+
+        monkeypatch.setattr(
+            "backtest.runner.query",
+            lambda asset, start, end: {"A.SH": df_a, "B.SH": df_b}[asset],
+        )
+
+        def mock_compute(frame, params=None):
+            return pd.Series(frame["close"].values, index=frame["date"], dtype=float)
+
+        mock_meta = {
+            "name": "price",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 1,
+            "direction": "higher_better",
+            "description": "price",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {"price": {"METADATA": mock_meta, "compute": mock_compute}},
+        )
+
+        result = run({
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH", "B.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "price", "weight": 1.0, "params": {}}],
+            "train_ratio": 0.5,
+            "rebalance_days": 5,
+            "hysteresis_threshold": 5.0,
+        })
+
+        trading_days = sorted(df_a["date"].tolist())
+        assert list(result.positions.index) == [trading_days[1], trading_days[7]]
 
 
 class TestTrainTestSplit:

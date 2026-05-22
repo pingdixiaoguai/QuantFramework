@@ -7,7 +7,9 @@ from strategy.base import BaseStrategy
 
 class TopN(BaseStrategy):
     def generate_weights(
-        self, factor_values: dict[str, dict[str, float]]
+        self,
+        factor_values: dict[str, dict[str, float]],
+        current_weights: dict[str, float] | None = None,
     ) -> dict[str, float]:
         if not factor_values:
             return {}

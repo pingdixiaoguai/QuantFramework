@@ -7,7 +7,9 @@ from strategy.base import BaseStrategy
 
 class Top1(BaseStrategy):
     def generate_weights(
-        self, factor_values: dict[str, dict[str, float]]
+        self,
+        factor_values: dict[str, dict[str, float]],
+        current_weights: dict[str, float] | None = None,
     ) -> dict[str, float]:
         if not factor_values:
             return {}
@@ -28,9 +30,43 @@ class Top1(BaseStrategy):
         if not scored:
             return {}
 
+        threshold = float(self.config.get("hysteresis_threshold", 0.0))
+        incumbent = self._incumbent_asset(current_weights)
+        if threshold > 0 and incumbent in scored:
+            challengers = {
+                asset: score
+                for asset, score in scored.items()
+                if asset != incumbent
+            }
+            if not challengers:
+                return {incumbent: 1.0}
+
+            challenger = (
+                min(challengers, key=challengers.get)
+                if flip
+                else max(challengers, key=challengers.get)
+            )
+            challenger_score = challengers[challenger]
+            incumbent_score = scored[incumbent]
+            clears_threshold = (
+                challenger_score < incumbent_score - threshold
+                if flip
+                else challenger_score > incumbent_score + threshold
+            )
+            return {challenger if clears_threshold else incumbent: 1.0}
+
         if flip:
             best = min(scored, key=scored.get)
         else:
             best = max(scored, key=scored.get)
 
         return {best: 1.0}
+
+    @staticmethod
+    def _incumbent_asset(
+        current_weights: dict[str, float] | None,
+    ) -> str | None:
+        if not current_weights or len(current_weights) != 1:
+            return None
+        incumbent, weight = next(iter(current_weights.items()))
+        return incumbent if weight > 0 else None

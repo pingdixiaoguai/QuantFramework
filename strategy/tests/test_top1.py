@@ -47,3 +47,45 @@ class TestTop1:
         })
         assert sum(result.values()) == 1.0
         assert len(result) == 1
+
+    def test_hysteresis_keeps_incumbent_below_threshold(self):
+        s = Top1({**_config(), "hysteresis_threshold": 0.05})
+        result = s.generate_weights(
+            {
+                "A.SH": {"qmom": 0.50},
+                "B.SH": {"qmom": 0.53},
+            },
+            current_weights={"A.SH": 1.0},
+        )
+        assert result == {"A.SH": 1.0}
+
+    def test_hysteresis_switches_when_challenger_clears_threshold(self):
+        s = Top1({**_config(), "hysteresis_threshold": 0.05})
+        result = s.generate_weights(
+            {
+                "A.SH": {"qmom": 0.50},
+                "B.SH": {"qmom": 0.56},
+            },
+            current_weights={"A.SH": 1.0},
+        )
+        assert result == {"B.SH": 1.0}
+
+    def test_hysteresis_falls_back_when_incumbent_score_missing(self):
+        s = Top1({**_config(), "hysteresis_threshold": 0.05})
+        result = s.generate_weights(
+            {"B.SH": {"qmom": 0.53}},
+            current_weights={"A.SH": 1.0},
+        )
+        assert result == {"B.SH": 1.0}
+
+    def test_direction_flip_hysteresis_requires_lower_challenger(self):
+        config = _config([{"name": "vol", "weight": 1.0, "direction_flip": True}])
+        s = Top1({**config, "hysteresis_threshold": 0.05})
+        result = s.generate_weights(
+            {
+                "A.SH": {"vol": 0.50},
+                "B.SH": {"vol": 0.46},
+            },
+            current_weights={"A.SH": 1.0},
+        )
+        assert result == {"A.SH": 1.0}

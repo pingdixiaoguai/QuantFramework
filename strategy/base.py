@@ -11,12 +11,16 @@ class BaseStrategy(ABC):
 
     @abstractmethod
     def generate_weights(
-        self, factor_values: dict[str, dict[str, float]]
+        self,
+        factor_values: dict[str, dict[str, float]],
+        current_weights: dict[str, float] | None = None,
     ) -> dict[str, float]:
         """Generate target portfolio weights from cross-sectional factor values.
 
         Args:
             factor_values: asset_code -> factor_name -> value (today's snapshot)
+            current_weights: executed asset_code -> weight holdings when the
+                caller has portfolio context available.
 
         Returns:
             asset_code -> weight (must sum to 1.0), or empty dict if no input.
