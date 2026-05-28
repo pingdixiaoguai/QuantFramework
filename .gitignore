@@ -12,6 +12,7 @@ wheels/
 # Project-specific
 .env
 data/db/
+data/db_backups/
 experiments/*.yaml
 experiments/*.html
 state/*.json
