@@ -14,7 +14,7 @@ the same live semantics as run_daily.py:
 2. the trade is booked at the next trading day's open;
 3. the outgoing holding keeps close[T] -> open[T+1] overnight PnL;
 4. the incoming holding earns open[T+1] -> close[T+1] intraday PnL;
-5. config["rebalance_days"] is honored.
+5. config["rebalance_mode"] and config["rebalance_days"] are honored.
 
 When --from-date is before Jan 1, the replay may use prior-year signals to
 discover the position carried into the year. Periods that span the year
@@ -50,6 +50,7 @@ from factors.validator import validate
 from notification.formatter import ASSET_NAMES
 from run_daily import _should_hold
 from strategy.loader import load_strategy
+from strategy.rebalance import normalize_rebalance_mode
 
 
 PriceLookup = Callable[[list[str], date], dict[str, float]]
@@ -350,10 +351,12 @@ def _replay_signals_to_state(
     rebalance_days: int,
     initial_state: PositionState | None = None,
     holding_calendar: list[date] | None = None,
+    rebalance_mode: str | None = "min_hold",
 ) -> ReplayResult:
     """Replay precomputed daily signals into a PositionState ledger."""
     if not trading_days:
         raise RuntimeError("no trading days found for this year")
+    rebalance_mode = normalize_rebalance_mode(rebalance_mode)
 
     initial_state = initial_state or PositionState()
     current_weights: dict[str, float] = dict(initial_state.weights)
@@ -423,7 +426,12 @@ def _replay_signals_to_state(
         )
         target_weights = (
             current_weights
-            if _should_hold(current_weights, holding_days, rebalance_days)
+            if _should_hold(
+                current_weights,
+                holding_days,
+                rebalance_days,
+                rebalance_mode,
+            )
             else signal_weights
         )
 
@@ -486,6 +494,7 @@ def _replay_strategy(
     rebalance_days = int(config.get("rebalance_days", 1))
     if rebalance_days < 1:
         raise ValueError(f"rebalance_days must be >= 1, got {rebalance_days}")
+    rebalance_mode = normalize_rebalance_mode(config.get("rebalance_mode"))
 
     signal_weights_by_date = [
         (
@@ -501,6 +510,7 @@ def _replay_strategy(
         rebalance_days,
         initial_state=initial_state,
         holding_calendar=holding_calendar,
+        rebalance_mode=rebalance_mode,
     )
     # If the wider calendar reaches before YTD, rebase any carried period to
     # close[last prior-year trading day] so the chained YTD return matches the

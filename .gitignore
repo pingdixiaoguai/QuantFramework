@@ -25,4 +25,5 @@ state/*.json
 .claude/
 .codebuddy/
 .workbuddy/
+.worktrees/
 docs/superpowers/

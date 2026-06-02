@@ -422,6 +422,56 @@ class TestRebalanceEveryNDays:
 
         assert list(result.positions.index) == expected_dates
 
+    def test_fixed_cycle_mode_skips_non_boundary_signals(self, monkeypatch):
+        """fixed_cycle only evaluates on held-day multiples of rebalance_days."""
+        prices_a = [200.0, 200.0, 200.0, 100.0, 100.0, 100.0]
+        prices_b = [100.0, 100.0, 100.0, 300.0, 300.0, 300.0]
+
+        df_a = _make_asset_data("A.SH", prices_a)
+        df_b = _make_asset_data("B.SH", prices_b)
+
+        monkeypatch.setattr(
+            "backtest.runner.query",
+            lambda asset, start, end: {"A.SH": df_a, "B.SH": df_b}[asset],
+        )
+
+        def mock_compute(df, params=None):
+            return pd.Series(df["close"].values, index=df["date"], dtype=float)
+
+        mock_meta = {
+            "name": "price",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 1,
+            "direction": "higher_better",
+            "description": "price",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {"price": {"METADATA": mock_meta, "compute": mock_compute}},
+        )
+
+        config = {
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH", "B.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "price", "weight": 1.0, "params": {}}],
+            "train_ratio": 0.7,
+            "rebalance_days": 2,
+            "rebalance_mode": "fixed_cycle",
+        }
+
+        result = run(config)
+
+        trading_days = sorted(df_a["date"].tolist())
+        assert list(result.positions.index) == [
+            trading_days[1],
+            trading_days[5],
+        ]
+
 
 class TestTrainTestSplit:
     def test_train_end_at_correct_position(self, monkeypatch):

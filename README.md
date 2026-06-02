@@ -177,6 +177,8 @@ factors:
     params: {window: 20}
 train_ratio: 0.7
 rebalance_rule: daily
+rebalance_mode: min_hold
+rebalance_days: 5
 ```
 
 配置说明：
@@ -188,6 +190,8 @@ rebalance_rule: daily
 | `start` / `end` | 回测时间范围 |
 | `factors` | 使用的因子列表，`weight` 为组合权重，`direction_flip` 翻转排序 |
 | `train_ratio` | 训练集占比，用于过拟合检测 |
+| `rebalance_mode` | 调仓时序，`min_hold` 为持有满 N 日后每日评估，`fixed_cycle` 为仅在第 N、2N、3N... 个持仓交易日评估 |
+| `rebalance_days` | 调仓窗口交易日数 N |
 
 **第四步：运行回测**
 
