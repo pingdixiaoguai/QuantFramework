@@ -36,3 +36,43 @@ class TestRebalanceDaysFive:
         # Just bought yesterday; entry_date is set but today's bar not yet
         # reflected → holding_days reads None. Must hold (don't churn).
         assert _should_hold({"X": 1.0}, holding_days=None, rebalance_days=5) is True
+
+
+class TestFixedCycleRebalanceMode:
+    def test_only_rebalances_on_exact_cycle_boundaries(self):
+        assert (
+            _should_hold(
+                {"X": 1.0},
+                holding_days=1,
+                rebalance_days=2,
+                rebalance_mode="fixed_cycle",
+            )
+            is True
+        )
+        assert (
+            _should_hold(
+                {"X": 1.0},
+                holding_days=2,
+                rebalance_days=2,
+                rebalance_mode="fixed_cycle",
+            )
+            is False
+        )
+        assert (
+            _should_hold(
+                {"X": 1.0},
+                holding_days=3,
+                rebalance_days=2,
+                rebalance_mode="fixed_cycle",
+            )
+            is True
+        )
+        assert (
+            _should_hold(
+                {"X": 1.0},
+                holding_days=4,
+                rebalance_days=2,
+                rebalance_mode="fixed_cycle",
+            )
+            is False
+        )

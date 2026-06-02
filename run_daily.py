@@ -36,6 +36,7 @@ from factors.validator import validate
 from notification.dingtalk import DingTalkNotifier
 from notification.formatter import ASSET_NAMES, NotificationContext, format_notification
 from strategy.loader import load_strategy
+from strategy.rebalance import normalize_rebalance_mode, should_hold_position
 
 
 def _load_config(path: Path) -> dict:
@@ -314,6 +315,7 @@ def _should_hold(
     current_weights: dict[str, float],
     holding_days: int | None,
     rebalance_days: int,
+    rebalance_mode: str | None = "min_hold",
 ) -> bool:
     """Decide whether to override today's signal and keep the current position.
 
@@ -324,14 +326,15 @@ def _should_hold(
       reflected; hold to avoid same-day churn.
     - holding_days < rebalance_days → inside the hold window; hold.
     - holding_days >= rebalance_days → window elapsed; allow rebalance.
+    - rebalance_mode="fixed_cycle" → only allow rebalance on exact multiples
+      of rebalance_days.
     """
-    if rebalance_days <= 1:
-        return False
-    if not current_weights:
-        return False
-    if holding_days is None:
-        return True
-    return holding_days < rebalance_days
+    return should_hold_position(
+        current_weights,
+        holding_days,
+        rebalance_days,
+        rebalance_mode,
+    )
 
 
 def _next_entry_date(today: date, asset_pool: list[str]) -> date:
@@ -357,6 +360,7 @@ def run(config: dict) -> None:
     rebalance_days = int(config.get("rebalance_days", 1))
     if rebalance_days < 1:
         raise ValueError(f"rebalance_days must be >= 1, got {rebalance_days}")
+    rebalance_mode = normalize_rebalance_mode(config.get("rebalance_mode"))
 
     # 1. Sync data and verify freshness
     _sync_and_check(asset_pool, today)
@@ -409,10 +413,11 @@ def run(config: dict) -> None:
     # override the signal with the current position so the diff produces
     # no orders. This is what reduces friction cost.
     holding_days = _count_holding_days(current_state.entry_date, signal_date, asset_pool)
-    if _should_hold(current_weights, holding_days, rebalance_days):
+    if _should_hold(current_weights, holding_days, rebalance_days, rebalance_mode):
         target_weights = current_weights
         print(
-            f"Hold window active: holding_days={holding_days}/{rebalance_days} "
+            f"Hold window active: mode={rebalance_mode} "
+            f"holding_days={holding_days}/{rebalance_days} "
             f"— signal {signal_weights} suppressed."
         )
     else:

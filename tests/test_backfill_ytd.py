@@ -117,6 +117,46 @@ def test_replay_honors_rebalance_days_hold_window():
     assert result.state.entry_date == "2026-01-07"
 
 
+def test_replay_fixed_cycle_skips_non_boundary_signals():
+    trading_days = [
+        date(2026, 1, 2),
+        date(2026, 1, 5),
+        date(2026, 1, 6),
+        date(2026, 1, 7),
+        date(2026, 1, 8),
+        date(2026, 1, 9),
+    ]
+    signals = [
+        (date(2026, 1, 2), {"A.SH": 1.0}),
+        (date(2026, 1, 5), {"A.SH": 1.0}),
+        (date(2026, 1, 6), {"A.SH": 1.0}),
+        (date(2026, 1, 7), {"B.SH": 1.0}),
+        (date(2026, 1, 8), {"B.SH": 1.0}),
+        (date(2026, 1, 9), {"B.SH": 1.0}),
+    ]
+    prices = {
+        ("A.SH", date(2026, 1, 5)): 10.0,
+        ("A.SH", date(2026, 1, 9)): 12.0,
+        ("B.SH", date(2026, 1, 9)): 20.0,
+    }
+
+    result = _replay_signals_to_state(
+        signals,
+        trading_days,
+        _price_lookup(prices),
+        rebalance_days=2,
+        rebalance_mode="fixed_cycle",
+    )
+
+    assert len(result.state.ytd_history) == 1
+    closed = result.state.ytd_history[0]
+    assert closed.weights == {"A.SH": 1.0}
+    assert closed.entry_date == "2026-01-05"
+    assert closed.exit_date == "2026-01-09"
+    assert result.state.weights == {"B.SH": 1.0}
+    assert result.state.entry_date == "2026-01-09"
+
+
 def test_state_as_of_preserves_before_date_and_activates_spanning_period():
     before = PositionPeriod(
         weights={"A.SH": 1.0},

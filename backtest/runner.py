@@ -13,6 +13,7 @@ from data.store import query
 from factors.registry import load_registered_factors
 from factors.validator import validate
 from strategy.loader import load_strategy
+from strategy.rebalance import normalize_rebalance_mode, should_hold_position
 
 
 @dataclass
@@ -101,14 +102,14 @@ def _should_hold_position(
     current_weights: dict[str, float],
     holding_days: int | None,
     rebalance_days: int,
+    rebalance_mode: str | None = "min_hold",
 ) -> bool:
-    if rebalance_days <= 1:
-        return False
-    if not current_weights:
-        return False
-    if holding_days is None:
-        return True
-    return holding_days < rebalance_days
+    return should_hold_position(
+        current_weights,
+        holding_days,
+        rebalance_days,
+        rebalance_mode,
+    )
 
 
 def run(config: dict | None = None) -> BacktestResult:
@@ -124,6 +125,7 @@ def run(config: dict | None = None) -> BacktestResult:
     rebalance_days = int(config.get("rebalance_days", 1))
     if rebalance_days < 1:
         raise ValueError(f"rebalance_days must be >= 1, got {rebalance_days}")
+    rebalance_mode = normalize_rebalance_mode(config.get("rebalance_mode"))
 
     # Load strategy and factor modules
     strategy = load_strategy(config)
@@ -231,7 +233,12 @@ def run(config: dict | None = None) -> BacktestResult:
         )
         should_signal = (
             pending_weights is None
-            and not _should_hold_position(current_weights, holding_days, rebalance_days)
+            and not _should_hold_position(
+                current_weights,
+                holding_days,
+                rebalance_days,
+                rebalance_mode,
+            )
         )
 
         if should_signal:
