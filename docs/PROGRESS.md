@@ -65,6 +65,8 @@
 
 5. **✅ 已解决：rebalance_days 口径不一致** —— 由 §3.6 含成本回测有据确立 rd=2，闭环。
 
+6. **🟡 通知渠道：对接飞书 / Telegram** —— 钉钉用不习惯，后续切换。通知层是可插拔适配器（DESIGN §2.6，统一 `send(message)` 接口），新增飞书或 Telegram 适配器各一个文件即可，再把 `run_daily.py` / `backfill_ytd.py` 的推送切到新渠道。
+
 ---
 
 ## 五、下一步计划
