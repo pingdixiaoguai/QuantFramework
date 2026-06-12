@@ -18,6 +18,10 @@ experiments/*.html
 state/*.json
 .pytest_cache/
 
+# PTrade backtest exports: keep screenshots + CSV details, drop the bulky raw log
+backtest/ptrade/**/Log.txt
+backtest/ptrade/Log.txt
+
 # IDE
 .idea/
 

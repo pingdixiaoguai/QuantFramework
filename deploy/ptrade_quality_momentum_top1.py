@@ -38,6 +38,7 @@ PTrade 用 .SS（上交所）/ .SZ（深交所）。框架里的 .SH 统一改�
 """
 
 import numpy as np
+import traceback
 
 # ============================ 可调参数 ============================
 # 资产池（框架 .SH → PTrade .SS）。顺序不影响结果。
@@ -53,7 +54,8 @@ REBALANCE_DAYS = 2          # 最短持有期；≥该天数后才允许重新�
 REBALANCE_MODE = "min_hold" # "min_hold"（满 N 日后每日评估）或 "fixed_cycle"（仅第 N、2N… 日评估）
 INVEST_RATIO = 0.98         # 目标仓位占总资产比例。<1 留缓冲，避免费用/价格波动导致下单资金不足。
                             # 如券商成交可靠、想更贴近框架的 100% 满仓，可调到 0.99~1.0。
-REBALANCE_TIME = "09:30"    # 开盘调仓时间。如需走集合竞价可改 '09:25' 并配合限价单。
+REBALANCE_TIME = "09:31"    # 开盘后调仓时间。探针实测 run_daily 在日线回测固定 09:31 触发；
+                            # 避免用 09:30 整点（部分版本会拒绝整点开盘，导致 initialize 抛错）。
 BENCHMARK = "000300.SS"     # 约定基准（沪深300指数）；框架真实基准为四资产等权。
 HISTORY_BARS = WINDOW + 20  # 每次取的历史 bar 数。因子只需 WINDOW+1，多取是安全垫：
                             # get_history(count) 按交易日历对齐，标的停牌当日会缺失（研究环境
@@ -101,6 +103,16 @@ def _quality_momentum_score(closes, window):
 
 # ============================ PTrade 框架函数 ============================
 def initialize(context):
+    # 薄包装：捕获并打印初始化异常的完整 traceback（平台只报「空错误」时用于定位根因）。
+    log.info("initialize: start")
+    try:
+        _initialize_impl(context)
+    except Exception:
+        log.info("initialize FAILED:\n" + traceback.format_exc())
+        raise
+
+
+def _initialize_impl(context):
     """策略初始化（启动时执行一次）。"""
     set_universe(SECURITIES)
     set_benchmark(BENCHMARK)
@@ -116,6 +128,15 @@ def initialize(context):
         set_fixed_slippage(0.0)
     except Exception as e:
         log.info("set_fixed_slippage skipped: %s" % e)
+    # 成交比例：回测默认 0.25（单笔最多吃当期可成交量的 25%，超出部分直接丢弃，不挂单）。
+    # 对「小账户交易大规模 ETF」过于保守，会导致大单部分成交、资金闲置、旧仓清不掉。设为 1.0
+    # 允许足额成交（这些 ETF 的真实日成交量远大于本策略订单，对小账户合理）。
+    # 注意：2014 年初 513100 等早期流动性极低的时段，即便 1.0 仍可能因真实成交量不足而部分成交
+    # ——这是真实约束而非设置问题，必要时把回测起点设到 2015+ 规避早期低流动性失真。
+    try:
+        set_volume_ratio(1.0)
+    except Exception as e:
+        log.info("set_volume_ratio skipped: %s" % e)
 
     # —— 策略状态（PTrade 会序列化 g，跨交易日 / 重启持久化）——
     g.held = None        # 当前持有的标的代码；None 表示空仓
@@ -132,6 +153,14 @@ def handle_data(context, data):
 
 
 def rebalance(context):
+    # 薄包装：单日异常不应中断整个回测（与框架「记录警告而非中断」一致），并打印 traceback。
+    try:
+        _rebalance_impl(context)
+    except Exception:
+        log.info("rebalance FAILED:\n" + traceback.format_exc())
+
+
+def _rebalance_impl(context):
     """每个交易日开盘执行一次：算因子 → Top1 → 最短持有期过滤 → 调仓。"""
     # ---- 0. 与券商真实持仓对账（处理重启 / 手工干预 / 未成交）----
     actual_held = [
@@ -186,27 +215,37 @@ def rebalance(context):
     best = max(scores, key=lambda k: scores[k])
     log.info("scores=%s -> best=%s" % ({k: round(v, 4) for k, v in scores.items()}, best))
 
-    # ---- 4. 若 Top1 变化则切换 ----
-    if best != g.held:
-        positions = context.portfolio.positions
-        # 待换出：除 best 外所有有持仓的标的
-        to_sell = [s for s in positions
-                   if s != best and getattr(positions[s], "amount", 0) > 0]
-        # A 股 T+1：当日买入的股票当日不可卖（enable_amount=0）。正常情况下因有最短持有期，
-        # 待换出的都是过了 T+1 的旧仓；但若遇到不可卖（如重启后对账采用了当日新仓），本日不切换、
-        # 下个交易日重试，避免卖单被取消却又买入新仓导致超额持仓。
-        not_sellable = [s for s in to_sell
-                        if getattr(positions[s], "enable_amount", 0) <= 0]
-        if not_sellable:
-            log.info("待换出标的今日不可卖（T+1）：%s — 本日不切换，下个交易日重试。" % not_sellable)
+    # ---- 4. 调仓：始终保证只持有 best ----
+    positions = context.portfolio.positions
+    switching = best != g.held
+
+    # 待清理：除 best 外所有仍有持仓的标的（换仓的旧主仓 + 历史部分成交残留的杂仓）
+    to_sell = [s for s in positions
+               if s != best and getattr(positions[s], "amount", 0) > 0]
+
+    # A 股 T+1：当日买入当日不可卖。换仓时若旧主仓今日不可卖，本日不切、下个交易日重试，
+    # 避免卖不掉却又买入新仓导致超额持仓。（正常因有最短持有期不会触发。）
+    if switching and g.held is not None:
+        held_pos = positions.get(g.held)
+        if (held_pos is not None
+                and getattr(held_pos, "amount", 0) > 0
+                and getattr(held_pos, "enable_amount", 0) <= 0):
+            log.info("旧仓 %s 今日不可卖（T+1）— 本日不切换，下个交易日重试。" % g.held)
             return
-        for s in to_sell:
-            order_target(s, 0)                     # 全部卖出旧标的（卖出资金当日可用于买入）
-            log.info("卖出 %s（清仓）" % s)
-        # 用 order_target_value 按市值下单：回测/实盘的真实成交价与 get_history 后复权价基准不同，
-        # 按市值下单由平台内部用真实价折算股数，避免复权因子错配。
+
+    # 卖出所有可卖的非 best 持仓（换仓旧标的 + 杂仓清理）。不可卖的杂仓留到下个交易日再清。
+    # 每个评估日都执行，确保部分成交残留的杂仓不会长期挂着，组合始终收敛到单一标的。
+    for s in to_sell:
+        if getattr(positions[s], "enable_amount", 0) > 0:
+            order_target(s, 0)
+            log.info("卖出 %s（清仓/清理杂仓）" % s)
+
+    # 仅在 best 变化时建仓/换仓买入；best 未变则维持，不重复下单（避免无谓换手，与框架一致）。
+    # 用 order_target_value 按市值下单：真实成交价与 get_history 后复权价基准不同，按市值下单
+    # 由平台内部用真实价折算股数，避免复权因子错配。
+    if switching:
         target_value = context.portfolio.total_value * INVEST_RATIO
-        order_target_value(best, target_value)     # 买入新标的到目标市值
+        order_target_value(best, target_value)
         log.info("买入 %s 到目标市值 %.2f（总资产 %.2f × %.2f）"
                  % (best, target_value, context.portfolio.total_value, INVEST_RATIO))
         g.held = best
