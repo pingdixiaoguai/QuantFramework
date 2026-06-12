@@ -98,6 +98,19 @@ def _chain_returns(*returns: float | None) -> float | None:
     return product - 1 if has_return else None
 
 
+def _turnover(old_weights: dict[str, float], new_weights: dict[str, float]) -> float:
+    """One-way turnover = sum of |Δweight| across the union of held assets.
+
+    A full Top1 switch A->B (sell 100% A, buy 100% B) gives 2.0; a first entry
+    from cash gives 1.0. Commission is charged on both buy and sell legs, so the
+    per-execution cost fraction is ``commission_ratio * turnover``.
+    """
+    assets = set(old_weights) | set(new_weights)
+    return sum(
+        abs(new_weights.get(a, 0.0) - old_weights.get(a, 0.0)) for a in assets
+    )
+
+
 def _should_hold_position(
     current_weights: dict[str, float],
     holding_days: int | None,
@@ -126,6 +139,11 @@ def run(config: dict | None = None) -> BacktestResult:
     if rebalance_days < 1:
         raise ValueError(f"rebalance_days must be >= 1, got {rebalance_days}")
     rebalance_mode = normalize_rebalance_mode(config.get("rebalance_mode"))
+    # Single-side commission rate, charged on each executed trade (both buy and
+    # sell legs via turnover). Default 0.0 preserves historical cost-free runs.
+    commission_ratio = float(config.get("commission_ratio", 0.0))
+    if commission_ratio < 0:
+        raise ValueError(f"commission_ratio must be >= 0, got {commission_ratio}")
 
     # Load strategy and factor modules
     strategy = load_strategy(config)
@@ -205,6 +223,16 @@ def run(config: dict | None = None) -> BacktestResult:
                     current_weights, open_prices, close_prices, t, t
                 )
                 strat_ret = _chain_returns(overnight_ret, intraday_ret)
+                # Deduct commission on the open execution. Cost fraction =
+                # commission_ratio * turnover; applied multiplicatively so it
+                # also registers a negative return when no market return exists.
+                if commission_ratio > 0.0:
+                    turnover = _turnover(old_weights, current_weights)
+                    if turnover > 0.0:
+                        base = strat_ret if strat_ret is not None else 0.0
+                        strat_ret = (1.0 + base) * (
+                            1.0 - commission_ratio * turnover
+                        ) - 1.0
             elif current_weights:
                 strat_ret = _weighted_return_between(
                     current_weights, close_prices, close_prices, prev_t, t

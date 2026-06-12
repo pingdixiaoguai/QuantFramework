@@ -473,6 +473,79 @@ class TestRebalanceEveryNDays:
         ]
 
 
+class TestCommissionModel:
+    """commission_ratio deducts a turnover-based cost on each executed trade."""
+
+    def _run(self, monkeypatch, commission_ratio):
+        # Day 0 close chooses A (tie -> A), entered day 1 open (first entry, turnover=1).
+        # Day 1 close chooses B, switch entered day 2 open (turnover=2).
+        prices_a = [100.0, 90.0, 120.0]
+        prices_b = [100.0, 110.0, 55.0]
+        opens_a = [100.0, 100.0, 99.0]
+        opens_b = [100.0, 100.0, 50.0]
+        df_a = _make_asset_data("A.SH", prices_a, opens=opens_a)
+        df_b = _make_asset_data("B.SH", prices_b, opens=opens_b)
+
+        monkeypatch.setattr(
+            "backtest.runner.query",
+            lambda asset, start, end: {"A.SH": df_a, "B.SH": df_b}[asset],
+        )
+
+        def mock_compute(df, params=None):
+            return pd.Series(df["close"].values, index=df["date"], dtype=float)
+
+        mock_meta = {
+            "name": "price",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 1,
+            "direction": "higher_better",
+            "description": "price",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {"price": {"METADATA": mock_meta, "compute": mock_compute}},
+        )
+
+        config = {
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH", "B.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "price", "weight": 1.0, "params": {}}],
+            "train_ratio": 0.5,
+            "rebalance_days": 1,
+            "commission_ratio": commission_ratio,
+        }
+        return run(config)
+
+    def test_default_zero_commission_unchanged(self, monkeypatch):
+        """commission_ratio defaulting to 0 leaves returns identical."""
+        base = self._run(monkeypatch, 0.0)
+        assert base.daily_returns.iloc[0] == pytest.approx(-0.10, abs=1e-12)
+        assert base.daily_returns.iloc[1] == pytest.approx(1.10 * 1.10 - 1, abs=1e-12)
+
+    def test_commission_charged_by_turnover(self, monkeypatch):
+        """First entry costs turnover=1; a full switch costs turnover=2."""
+        c = 0.001
+        base = self._run(monkeypatch, 0.0)
+        costed = self._run(monkeypatch, c)
+
+        # Day 1: first entry into A, turnover = 1 (buy leg only).
+        assert costed.daily_returns.iloc[0] == pytest.approx(
+            (1 + base.daily_returns.iloc[0]) * (1 - c * 1) - 1, abs=1e-12
+        )
+        # Day 2: full switch A->B, turnover = 2 (sell + buy legs).
+        assert costed.daily_returns.iloc[1] == pytest.approx(
+            (1 + base.daily_returns.iloc[1]) * (1 - c * 2) - 1, abs=1e-12
+        )
+        # Commission only makes returns worse.
+        assert costed.daily_returns.iloc[0] < base.daily_returns.iloc[0]
+        assert costed.daily_returns.iloc[1] < base.daily_returns.iloc[1]
+
+
 class TestTrainTestSplit:
     def test_train_end_at_correct_position(self, monkeypatch):
         """train_end should be at train_ratio position in trading days."""
