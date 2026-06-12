@@ -57,6 +57,9 @@ INVEST_RATIO = 0.98         # 目标仓位占总资产比例。<1 留缓冲，�
 REBALANCE_TIME = "09:31"    # 开盘后调仓时间。探针实测 run_daily 在日线回测固定 09:31 触发；
                             # 避免用 09:30 整点（部分版本会拒绝整点开盘，导致 initialize 抛错）。
 BENCHMARK = "000300.SS"     # 约定基准（沪深300指数）；框架真实基准为四资产等权。
+COMMISSION_RATIO = 0.00005  # 回测佣金率，仅影响回测（实盘按券商真实费率成交）。
+                            # 取万0.5 = 本账户真实 ETF 佣金。注意 rd 之间的优劣对摩擦敏感，
+                            # 必须用真实费率才能做准（早先用万2 回测高估了高换手配置的拖累）。
 HISTORY_BARS = WINDOW + 20  # 每次取的历史 bar 数。因子只需 WINDOW+1，多取是安全垫：
                             # get_history(count) 按交易日历对齐，标的停牌当日会缺失（研究环境
                             # 探针实测 159915.SZ 在 25 日窗口里只返回 24 条），多取避免缓冲不足。
@@ -118,9 +121,9 @@ def _initialize_impl(context):
     set_benchmark(BENCHMARK)
 
     # —— 以下 set_commission / set_slippage 仅影响回测；实盘按券商真实费率成交 ——
-    # ETF 无印花税，佣金按 ETF 类型设置（此处万分之二、单笔最低 5 元，按需调整）。
+    # ETF 无印花税，佣金率取 COMMISSION_RATIO（万0.5，本账户真实费率），单笔最低 5 元。
     try:
-        set_commission(commission_ratio=0.0002, min_commission=5.0, type="ETF")
+        set_commission(commission_ratio=COMMISSION_RATIO, min_commission=5.0, type="ETF")
     except Exception as e:
         log.info("set_commission skipped: %s" % e)
     # 框架假设通过集合竞价实现 ≈0 滑点，这里设固定滑点 0；做敏感性测试时可调大。
