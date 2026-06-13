@@ -473,6 +473,60 @@ class TestRebalanceEveryNDays:
         ]
 
 
+    def test_transaction_cost_uses_executed_abs_delta_not_order_count(self, monkeypatch):
+        prices_a = [100.0, 100.0, 100.0]
+        prices_b = [100.0, 101.0, 102.0]
+        df_a = _make_asset_data("A.SH", prices_a)
+        df_b = _make_asset_data("B.SH", prices_b)
+
+        monkeypatch.setattr(
+            "backtest.runner.query",
+            lambda asset, start, end: {"A.SH": df_a, "B.SH": df_b}[asset],
+        )
+
+        def mock_compute(df, params=None):
+            return pd.Series(df["close"].values, index=df["date"], dtype=float)
+
+        mock_meta = {
+            "name": "price",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 1,
+            "direction": "higher_better",
+            "description": "price",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {"price": {"METADATA": mock_meta, "compute": mock_compute}},
+        )
+
+        config = {
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH", "B.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "price", "weight": 1.0, "params": {}}],
+            "train_ratio": 0.7,
+            "rebalance_days": 1,
+            "transaction_cost_rate": 0.0001,
+        }
+
+        result = run(config)
+
+        assert result.gross_daily_returns is not None
+        assert result.turnover is not None
+        assert result.costs is not None
+        assert result.turnover.iloc[0] == pytest.approx(1.0)
+        assert result.costs.iloc[0] == pytest.approx(0.0001)
+        pd.testing.assert_series_equal(
+            result.daily_returns,
+            result.gross_daily_returns - result.costs,
+            check_names=False,
+        )
+
+
 class TestTrainTestSplit:
     def test_train_end_at_correct_position(self, monkeypatch):
         """train_end should be at train_ratio position in trading days."""

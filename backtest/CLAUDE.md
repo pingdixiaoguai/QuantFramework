@@ -1,7 +1,7 @@
 # Backtest Engine
 
 ## Contract
-`run(config: dict | None) -> BacktestResult` where `BacktestResult = {daily_returns, benchmark_returns, positions, train_end, config, baseline_strategy_name?}`
+`run(config: dict | None) -> BacktestResult` where `BacktestResult = {daily_returns, benchmark_returns, positions, train_end, config, baseline_strategy_name?, gross_daily_returns?, turnover?, costs?}`
 `report.generate(result, output_path, benchmark_title=None)` → HTML via quantstats; `benchmark_title` labels the benchmark series when set
 `experiment_log.save(result, output_dir)` → YAML snapshot under `experiments/`
 
@@ -12,6 +12,7 @@
   - Skips assets whose truncated history is shorter than `max(min_history)` across registered factors
   - Returns calculation uses live open-execution semantics. A signal generated at `t` close is executed at the next trading day's open. On an execution day, the outgoing holding earns the overnight `close[t] -> open[t+1]` return, then the incoming holding earns the intraday `open[t+1] -> close[t+1]` return. On non-execution days, the carried position earns ordinary close-to-close return.
   - Benchmark is equal-weight across `asset_pool` (not `1/len(asset_pool)` weighted by availability — it's `np.mean` of the per-asset returns on that day)
+  - Transaction costs are optional via `config["transaction_cost_rate"]` (one-side decimal fee). Costs are deducted from strategy returns on actual open execution days as `rate * Σ_assets |w_new - w_old|`. `daily_returns` is net of cost; `gross_daily_returns`, `turnover`, and `costs` retain the decomposition.
   - Train/test split by day index at `train_ratio` (default 0.7); overfit warning fires when `train_sharpe > 2 × test_sharpe` and both windows have ≥ 20 days
   - **Rebalance timing** (`config["rebalance_mode"]`, default `min_hold`; `config["rebalance_days"]`, int, default 1): the engine tracks actual open entry dates. `min_hold` carries the current position while `holding_days < rebalance_days`, then re-evaluates daily until a different non-empty target is scheduled for the next open. `fixed_cycle` only calls `strategy.generate_weights()` on held-day multiples of `rebalance_days` (N, 2N, 3N...).
 - `report.py` — lazy-imports `quantstats` and calls `qs.reports.html(...)`
