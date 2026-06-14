@@ -1,0 +1,11 @@
+﻿metric,explicit_min_hold,current_default,diff,exact_match
+annual_return,0.32255021910783976,0.32255021910783976,0.0,True
+sharpe,1.2116079438764318,1.2116079438764318,0.0,True
+max_drawdown,-0.2579467007454498,-0.2579467007454498,0.0,True
+annual_turnover,23.00502512562814,23.00502512562814,0.0,True
+avg_holding_days,10.934065934065934,10.934065934065934,0.0,True
+switch_count,272,272,0.0,True
+trading_days,2985,2985,0.0,True
+total_return,26.425596528883432,26.425596528883432,0.0,True
+net_returns_series,True,True,0.0,True
+positions_df,True,True,0.0,True
