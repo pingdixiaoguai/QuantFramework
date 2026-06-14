@@ -1,0 +1,7 @@
+window_months,metric,n,hit_rate_pct,random_baseline_pct,strong_baseline_pct,note
+3,return,144,15.28,25.0,50.0,
+3,sharpe,144,15.97,25.0,50.0,低样本、慎读
+6,return,138,18.12,25.0,50.0,
+6,sharpe,138,20.29,25.0,50.0,
+12,return,126,9.52,25.0,50.0,
+12,sharpe,126,11.9,25.0,50.0,
