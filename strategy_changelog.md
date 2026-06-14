@@ -294,7 +294,7 @@ rd=5 的非单调观察也复现:rd=3 按 Sharpe 仍劣于 2 和 5;rd=10 仍是�
 
 #### 数据存档
 
-- `strategy_changelog_attachments/2026-05-25_hfq_phase3_measurement.md`(及 4 个 raw CSV)
+- `strategy_changelog_attachments/2026-05-25_hfq_rebuild/2026-05-25_hfq_phase3_measurement.md`(及 4 个 raw CSV)
 - 校验脚本:`scripts/validate_hfq_rebuild.py`
 - 旧 qfq 数据备份:`data/db_backups/20260525_phase1_qfq_backup`(本地,不进版本控制)
 
@@ -361,7 +361,7 @@ rd=5 的非单调观察也复现:rd=3 按 Sharpe 仍劣于 2 和 5;rd=10 仍是�
 
 #### 治理边界(反模式 #6)
 
-- 本条**只动成本模型一件事**。2026-06-04 同期工作区曾混入 τ/hysteresis 闸门代码与 `current_weights` 接口——那是**已否决方向**(Mode C 研究,立论被证伪 + 高 τ 区过拟合指纹,归档于 `strategy_changelog_attachments/2026-06-04_tau_hysteresis_rejection.md`),**不进本日志、不入版本库**,已于 2026-06-13 从工作区剔除(连同其附属的 `current_weights` 死接口)。τ 若日后翻案、真要落地,按接口表属"决策规则变更",届时单独立条。
+- 本条**只动成本模型一件事**。2026-06-04 同期工作区曾混入 τ/hysteresis 闸门代码与 `current_weights` 接口——那是**已否决方向**(Mode C 研究,立论被证伪 + 高 τ 区过拟合指纹,归档于 `strategy_changelog_attachments/2026-06-04_cost_tau_scan/2026-06-04_tau_hysteresis_rejection.md`),**不进本日志、不入版本库**,已于 2026-06-13 从工作区剔除(连同其附属的 `current_weights` 死接口)。τ 若日后翻案、真要落地,按接口表属"决策规则变更",届时单独立条。
 
 #### 后续监测项
 
@@ -371,8 +371,8 @@ rd=5 的非单调观察也复现:rd=3 按 Sharpe 仍劣于 2 和 5;rd=10 仍是�
 
 #### 数据存档
 
-- `strategy_changelog_attachments/2026-06-04_cost_tau_scan.md`(Codex 报告,含成本扫描全表;同文件 τ 扫描部分仅作研究记录,**不作变更依据**)+ raw CSV。
-- τ 否决归档:`strategy_changelog_attachments/2026-06-04_tau_hysteresis_rejection.md`。
+- `strategy_changelog_attachments/2026-06-04_cost_tau_scan/2026-06-04_cost_tau_report.md`(Codex 报告,含成本扫描全表;同文件 τ 扫描部分仅作研究记录,**不作变更依据**)+ raw CSV。
+- τ 否决归档:`strategy_changelog_attachments/2026-06-04_cost_tau_scan/2026-06-04_tau_hysteresis_rejection.md`。
 
 ---
 
@@ -398,7 +398,7 @@ rd=5 的非单调观察也复现:rd=3 按 Sharpe 仍劣于 2 和 5;rd=10 仍是�
 
 #### 结论指针（2026-06-13 补，承接本条"后续监测项"）
 
-三闸门 + 成本面板核查已完成并归档（`strategy_changelog_attachments/2026-06-13_rd2_vs_rd5_evaluation.md`）。熔断锚点对齐（rd=5@1bp 全期 33.11% / 1.23 / −25.79% / 单边年化换手 2291.29%，与 §2.3 一致）。结论：**不支持 rd=2 转正，回滚 rd=5**，三条理由：
+三闸门 + 成本面板核查已完成并归档（`strategy_changelog_attachments/2026-06-13_rd2_vs_rd5_evaluation/2026-06-13_rd2_vs_rd5_evaluation.md`）。熔断锚点对齐（rd=5@1bp 全期 33.11% / 1.23 / −25.79% / 单边年化换手 2291.29%，与 §2.3 一致）。结论：**不支持 rd=2 转正，回滚 rd=5**，三条理由：
 
 - Gate 1 近年曲面非单调且为 U 型——rd=7（最慢档）在 2022/2024/2025/2026 每个近年窗口的累计收益与 Sharpe 均高于 rd=2。"近年 regime 奖励快轮动"叙事被证伪（若成立则最慢档应最差）；rd=2 仅在与 rd=5 两点比较时占优，放宽扫描即为次优，近年 rd 寻优 = 追噪声。
 - Gate 2 滚动基率显示 rd=2 非系统性占优：36m 收益跑赢仅 52.63%、60m Sharpe 跑赢仅 47.78%，rd=5 回撤更浅占 36m 的 88% / 60m 的 100%；当前 rd=2 领先处历史 96–98 分位（异常有利窗口，非常态）。
@@ -467,7 +467,7 @@ rd=5 的非单调观察也复现:rd=3 按 Sharpe 仍劣于 2 和 5;rd=10 仍是�
   3. **配置漂移可见性（承接 §3.7 工程债）**：run_daily 启动打印生效 config + 关键参数（rebalance_days、资产池）到钉钉；run_daily.py 默认 config 仍指向 momentum_rotation.yaml（裸跑 fallback rd=1），应改默认或令裸跑报错。
   4. **入库校验（承接 §3.6）**：已完成，见上方部署 commit SHA + `git log -1` 核对。
 
-- **数据存档**：`strategy_changelog_attachments/2026-06-13_rd2_vs_rd5_evaluation.md`（三闸门 + 成本面板全表 + raw CSV：逐年表、成本面板表、滚动窗口 36m/60m、episode 明细表）。
+- **数据存档**：`strategy_changelog_attachments/2026-06-13_rd2_vs_rd5_evaluation/2026-06-13_rd2_vs_rd5_evaluation.md`（三闸门 + 成本面板全表 + raw CSV：逐年表、成本面板表、滚动窗口 36m/60m、episode 明细表）。
 
 ---
 

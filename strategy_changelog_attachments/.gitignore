@@ -1,0 +1,15 @@
+*_daily_series.csv
+*_daily_returns.csv
+!2026-05-21_momentum_strategy_daily_returns.csv
+*_daily_positions.csv
+*_selector_equity.csv
+*_curves.csv
+*_good_switches.csv
+*_gate_a_rolling_diffs.csv
+*_gate_b_best_rd_detail.csv
+*_bad_window_curves.csv
+*_cash_segment_ledger.csv
+*_switch_pnl.csv
+*_surface_metrics.csv
+*_warmup_trimmed_metrics.csv
+*_intersection_calendar.csv
