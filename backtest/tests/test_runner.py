@@ -527,6 +527,87 @@ class TestRebalanceEveryNDays:
         )
 
 
+class TestTransactionCostTurnover:
+    """transaction_cost_rate subtracts rate*turnover on each executed open.
+
+    Complements test_transaction_cost_uses_executed_abs_delta_not_order_count
+    (which only exercises the first-entry turnover=1 case) by also covering
+    (a) default 0 leaving returns bit-identical and (b) a full A->B switch
+    incurring turnover=2 (sell + buy legs).
+    """
+
+    def _run(self, monkeypatch, rate):
+        # Day 0 close ties -> A, entered day 1 open (first entry, turnover=1).
+        # Day 1 close picks B, switch entered day 2 open (turnover=2).
+        df_a = _make_asset_data("A.SH", [100.0, 90.0, 120.0], opens=[100.0, 100.0, 99.0])
+        df_b = _make_asset_data("B.SH", [100.0, 110.0, 55.0], opens=[100.0, 100.0, 50.0])
+
+        monkeypatch.setattr(
+            "backtest.runner.query",
+            lambda asset, start, end: {"A.SH": df_a, "B.SH": df_b}[asset],
+        )
+
+        def mock_compute(df, params=None):
+            return pd.Series(df["close"].values, index=df["date"], dtype=float)
+
+        mock_meta = {
+            "name": "price",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 1,
+            "direction": "higher_better",
+            "description": "price",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {"price": {"METADATA": mock_meta, "compute": mock_compute}},
+        )
+
+        config = {
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH", "B.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "price", "weight": 1.0, "params": {}}],
+            "train_ratio": 0.5,
+            "rebalance_days": 1,
+            "transaction_cost_rate": rate,
+        }
+        return run(config)
+
+    def test_default_zero_cost_unchanged(self, monkeypatch):
+        """transaction_cost_rate defaulting to 0 leaves the cost-free returns intact."""
+        base = self._run(monkeypatch, 0.0)
+        # Day 1: first entry into A, open 100 -> close 90.
+        assert base.daily_returns.iloc[0] == pytest.approx(-0.10, abs=1e-12)
+        # Day 2: switch A->B, A overnight 90->99 then B intraday 50->55.
+        assert base.daily_returns.iloc[1] == pytest.approx(1.10 * 1.10 - 1, abs=1e-12)
+
+    def test_full_switch_costs_turnover_two(self, monkeypatch):
+        """First entry costs turnover=1; a full A->B switch costs turnover=2 (subtractive)."""
+        rate = 0.001
+        base = self._run(monkeypatch, 0.0)
+        costed = self._run(monkeypatch, rate)
+
+        # Net = gross - rate * turnover, charged on the execution day.
+        assert costed.daily_returns.iloc[0] == pytest.approx(
+            base.daily_returns.iloc[0] - rate * 1, abs=1e-12
+        )
+        assert costed.daily_returns.iloc[1] == pytest.approx(
+            base.daily_returns.iloc[1] - rate * 2, abs=1e-12
+        )
+        # Decomposition exposed on the result.
+        assert costed.turnover.iloc[0] == pytest.approx(1.0)
+        assert costed.turnover.iloc[1] == pytest.approx(2.0)
+        assert costed.costs.iloc[0] == pytest.approx(rate * 1)
+        assert costed.costs.iloc[1] == pytest.approx(rate * 2)
+        # Cost only makes returns worse.
+        assert costed.daily_returns.iloc[0] < base.daily_returns.iloc[0]
+        assert costed.daily_returns.iloc[1] < base.daily_returns.iloc[1]
+
+
 class TestTrainTestSplit:
     def test_train_end_at_correct_position(self, monkeypatch):
         """train_end should be at train_ratio position in trading days."""
