@@ -17,6 +17,7 @@
 | `2026-06-14_adaptive_rd_predictability/` | 2026-06-14 | 自适应 rd/动量的动量可预测性 | 研究 | 否决(三 Gate 一致证伪) |
 | `2026-06-15_close_execution_variant/` | 2026-06-15 | T+1 收盘成交 vs T+1 开盘成交变体诊断 | 研究 | 轻微提升但回撤恶化/2024-09 拖累 |
 | `2026-06-15_ytd_attribution_rebalance_scan/` | 2026-06-15 | 2026 YTD 损失归因: rebalance_days 扫描 | 研究 | rd=7 优于 rd=5; 指定事件B未被消除 |
+| `2026-06-15_holdings_diff_vs_external/` | 2026-06-15 | 实盘动量策略 vs 外部对标逐日持仓 diff | 研究 | 方向假设: 相位错位 + whipsaw |
 
 ## 命名规范
 
