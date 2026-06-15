@@ -29,8 +29,10 @@ PTrade 用 .SS（上交所）/ .SZ（深交所）。框架里的 .SH 统一改�
 
 ⚠️ 已知口径分歧（迁移时如实保留，部署前请确认）
 ------------------------------------------------
-- rebalance_days：当前部署的 yaml 是 2，但 strategy_changelog.md 的 v0 基准
-  记录是 5。此处默认取 2（与最新 yaml 一致）。要切回 5 改 REBALANCE_DAYS 即可。
+- rebalance_days：本实盘当前 = 2，与框架基准 rd=5 刻意不一致（非配置漂移）。
+  框架 2026-06-13 经三闸门评估已否决 rd=2、回滚 rd=5（changelog §3.7/§3.8）；
+  此处 2026-06-15 经决策保留 rd=2 作外部对照样本。详见 PTRADE_MIGRATION.md §5.1。
+  要与框架对齐改 REBALANCE_DAYS = 5（切换须在 §5.1 补记日期与理由）。
 - 交易成本：框架回测当前未扣成本（已知缺陷，§3.2 最高优先级待办）。PTrade
   实盘按券商真实费率成交；回测里用 set_commission 模拟，见 initialize()。
 - 基准：框架基准是「四资产等权」，PTrade 的 set_benchmark 只能设单一标的，
