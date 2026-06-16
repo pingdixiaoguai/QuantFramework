@@ -1,0 +1,33 @@
+name: no-ptrade-on-main
+
+# Guard: PTrade-only paths live on the long-lived `ptrade` overlay branch and
+# must never be merged into `main` (main is the framework single source of truth).
+# This job fails any PR *targeting main* that touches `deploy/` or
+# `backtest/ptrade/`. It is scoped to base=main, so it does NOT run for PRs
+# targeting the `ptrade` branch (where those paths are expected).
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reject PTrade-only paths
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          changed="$(git diff --name-only "$base" "$head")"
+          echo "Changed files in this PR:"
+          echo "$changed"
+          offending="$(echo "$changed" | grep -E '^(deploy/|backtest/ptrade/)' || true)"
+          if [ -n "$offending" ]; then
+            echo "::error::These PTrade-only paths must not be merged to main; they belong on the 'ptrade' overlay branch:"
+            echo "$offending"
+            exit 1
+          fi
+          echo "OK: no PTrade-only paths touched."
