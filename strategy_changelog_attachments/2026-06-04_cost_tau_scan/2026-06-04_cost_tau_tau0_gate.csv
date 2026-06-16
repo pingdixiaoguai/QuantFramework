@@ -1,0 +1,5 @@
+﻿check,passed
+gross_daily_returns,True
+positions,True
+turnover,True
+net_daily_returns_zero_cost,True

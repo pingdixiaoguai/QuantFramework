@@ -24,6 +24,9 @@ class BacktestResult:
     train_end: date                # train set end date
     config: dict                   # original config snapshot
     baseline_strategy_name: str | None = None  # populated by callers when comparing against a baseline run
+    gross_daily_returns: pd.Series | None = None  # pre-cost strategy returns
+    turnover: pd.Series | None = None  # executed Σ|Δw| by rebalance date
+    costs: pd.Series | None = None  # daily cost deductions aligned to daily_returns
 
 
 def _default_config() -> dict:
@@ -98,17 +101,13 @@ def _chain_returns(*returns: float | None) -> float | None:
     return product - 1 if has_return else None
 
 
-def _turnover(old_weights: dict[str, float], new_weights: dict[str, float]) -> float:
-    """One-way turnover = sum of |Δweight| across the union of held assets.
-
-    A full Top1 switch A->B (sell 100% A, buy 100% B) gives 2.0; a first entry
-    from cash gives 1.0. Commission is charged on both buy and sell legs, so the
-    per-execution cost fraction is ``commission_ratio * turnover``.
-    """
-    assets = set(old_weights) | set(new_weights)
-    return sum(
-        abs(new_weights.get(a, 0.0) - old_weights.get(a, 0.0)) for a in assets
-    )
+def _turnover_between(
+    target: dict[str, float],
+    current: dict[str, float],
+) -> float:
+    """Executed turnover as Σ_assets |w_target - w_current|."""
+    assets = set(target) | set(current)
+    return float(sum(abs(target.get(asset, 0.0) - current.get(asset, 0.0)) for asset in assets))
 
 
 def _should_hold_position(
@@ -139,11 +138,17 @@ def run(config: dict | None = None) -> BacktestResult:
     if rebalance_days < 1:
         raise ValueError(f"rebalance_days must be >= 1, got {rebalance_days}")
     rebalance_mode = normalize_rebalance_mode(config.get("rebalance_mode"))
-    # Single-side commission rate, charged on each executed trade (both buy and
-    # sell legs via turnover). Default 0.0 preserves historical cost-free runs.
-    commission_ratio = float(config.get("commission_ratio", 0.0))
-    if commission_ratio < 0:
-        raise ValueError(f"commission_ratio must be >= 0, got {commission_ratio}")
+    transaction_cost_rate = float(
+        config.get(
+            "transaction_cost_rate",
+            config.get("cost_rate", config.get("fee", 0.0)),
+        )
+        or 0.0
+    )
+    if transaction_cost_rate < 0:
+        raise ValueError(
+            f"transaction_cost_rate must be >= 0, got {transaction_cost_rate}"
+        )
 
     # Load strategy and factor modules
     strategy = load_strategy(config)
@@ -189,7 +194,10 @@ def run(config: dict | None = None) -> BacktestResult:
     # Run day-by-day
     positions_records: list[dict] = []
     strategy_returns: list[tuple[pd.Timestamp, float]] = []
+    gross_returns: list[tuple[pd.Timestamp, float]] = []
     benchmark_returns: list[tuple[pd.Timestamp, float]] = []
+    turnover_records: list[tuple[pd.Timestamp, float]] = []
+    cost_records: list[tuple[pd.Timestamp, float]] = []
 
     current_weights: dict[str, float] = {}
     current_entry_idx: int | None = None
@@ -217,22 +225,14 @@ def run(config: dict | None = None) -> BacktestResult:
                 current_weights = pending_weights or {}
                 current_entry_idx = day_idx
                 positions_records.append({"date": t, **current_weights})
+                executed_turnover = _turnover_between(current_weights, old_weights)
+                turnover_records.append((t, executed_turnover))
                 pending_weights = None
                 pending_entry_idx = None
                 intraday_ret = _weighted_return_between(
                     current_weights, open_prices, close_prices, t, t
                 )
                 strat_ret = _chain_returns(overnight_ret, intraday_ret)
-                # Deduct commission on the open execution. Cost fraction =
-                # commission_ratio * turnover; applied multiplicatively so it
-                # also registers a negative return when no market return exists.
-                if commission_ratio > 0.0:
-                    turnover = _turnover(old_weights, current_weights)
-                    if turnover > 0.0:
-                        base = strat_ret if strat_ret is not None else 0.0
-                        strat_ret = (1.0 + base) * (
-                            1.0 - commission_ratio * turnover
-                        ) - 1.0
             elif current_weights:
                 strat_ret = _weighted_return_between(
                     current_weights, close_prices, close_prices, prev_t, t
@@ -241,7 +241,11 @@ def run(config: dict | None = None) -> BacktestResult:
                 strat_ret = None
 
             if strat_ret is not None:
-                strategy_returns.append((t, strat_ret))
+                gross_returns.append((t, strat_ret))
+                cost = executed_turnover * transaction_cost_rate if opened_today else 0.0
+                if cost:
+                    cost_records.append((t, cost))
+                strategy_returns.append((t, strat_ret - cost))
 
                 if opened_today and not old_weights:
                     bench_ret = _equal_weight_return_between(
@@ -321,6 +325,16 @@ def run(config: dict | None = None) -> BacktestResult:
     else:
         daily_ret = pd.Series(dtype=float)
 
+    if gross_returns:
+        gross_dates, gross_vals = zip(*gross_returns)
+        gross_daily_ret = pd.Series(
+            gross_vals,
+            index=pd.DatetimeIndex(gross_dates),
+            dtype=float,
+        )
+    else:
+        gross_daily_ret = pd.Series(dtype=float)
+
     if benchmark_returns:
         bench_dates, bench_vals = zip(*benchmark_returns)
         bench_ret = pd.Series(bench_vals, index=pd.DatetimeIndex(bench_dates), dtype=float)
@@ -331,12 +345,32 @@ def run(config: dict | None = None) -> BacktestResult:
     if len(positions_df) > 0:
         positions_df = positions_df.set_index("date")
 
+    if turnover_records:
+        turnover = pd.Series(
+            dict(turnover_records),
+            index=pd.DatetimeIndex([dt for dt, _ in turnover_records]),
+            dtype=float,
+        )
+    else:
+        turnover = pd.Series(dtype=float)
+
+    if len(daily_ret) > 0:
+        costs = pd.Series(0.0, index=daily_ret.index, dtype=float)
+        for dt, cost in cost_records:
+            if dt in costs.index:
+                costs.loc[dt] = cost
+    else:
+        costs = pd.Series(dtype=float)
+
     result = BacktestResult(
         daily_returns=daily_ret,
         benchmark_returns=bench_ret,
         positions=positions_df,
         train_end=train_end_date,
         config=config,
+        gross_daily_returns=gross_daily_ret,
+        turnover=turnover,
+        costs=costs,
     )
 
     # Overfit warning
