@@ -80,8 +80,11 @@ def _shape_descriptors(close: pd.Series) -> tuple[pd.Series, pd.Series]:
         if window_log.isna().any():
             continue
 
-        _, _, c = np.polyfit(x, window_log.to_numpy(), deg=2)
-        conv_values[end_pos] = float(c)
+        # polyfit returns coefficients highest-power first: [quadratic, linear,
+        # constant]. Convexity is the quadratic coefficient (curvature of the
+        # log-price path), not the constant term.
+        quad_coeff, _, _ = np.polyfit(x, window_log.to_numpy(), deg=2)
+        conv_values[end_pos] = float(quad_coeff)
 
         window_returns = returns.iloc[start_pos + 1 : end_pos + 1].abs()
         denom = window_returns.sum()
