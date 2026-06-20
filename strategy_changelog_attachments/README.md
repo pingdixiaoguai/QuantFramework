@@ -19,6 +19,8 @@
 | `2026-06-15_ytd_attribution_rebalance_scan/` | 2026-06-15 | 2026 YTD 损失归因: rebalance_days 扫描 | 研究 | rd=7 优于 rd=5; 指定事件B未被消除 |
 | `2026-06-15_holdings_diff_vs_external/` | 2026-06-15 | 实盘动量策略 vs 外部对标逐日持仓 diff | 研究 | 方向假设: 相位错位 + whipsaw |
 | `2026-06-16_mom5_gate_hfq/` | 2026-06-16 | 形状信号 mom5 gate HFQ 口径诊断 | 研究 | 关闭 DTW/形状族; 不转短动量 |
+| `2026-06-20_cross_pool_validation/` | 2026-06-20 | 跨资产池验证(DESIGN 护栏首次执行): 行业池 vs 4-ETF 大类池 | 研究 | 大类池泛化/行业池脆弱 |
+| `2026-06-20_top2_bond_defensive_leg/` | 2026-06-20 | Top2 决策规则 + 国债防御腿 2×2(治单资产崩盘回撤) | 研究 | 弱成立且代价高; 基准 Sharpe 仍最优 |
 
 ## 命名规范
 
