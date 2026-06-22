@@ -337,18 +337,83 @@ def _should_hold(
     )
 
 
-def _next_entry_date(today: date, asset_pool: list[str]) -> date:
-    """Return the next trading date after today available in the data store."""
-    for asset in asset_pool:
-        df = read_local(asset)
-        if df is None:
-            continue
-        future = df[df["date"] > pd.Timestamp(today)]
-        if len(future) > 0:
-            return future.iloc[0]["date"].date()
-    # Fallback: no future data yet (happens in live run before next sync)
-    from datetime import timedelta
-    return today + timedelta(days=1)
+def _next_entry_date(signal_date: date) -> date:
+    """Return the next SSE trading day after a signal date.
+
+    Local daily bars normally end at the signal date, so they cannot determine
+    whether the following calendar day is a market holiday.  Persisting a
+    target against a holiday makes it look executed on the next run and can
+    suppress the outstanding rebalance instruction.
+    """
+    pro = ts.pro_api(get_tushare_token())
+    calendar = pro.trade_cal(
+        exchange="SSE",
+        start_date=(signal_date + timedelta(days=1)).strftime("%Y%m%d"),
+        # Covers the longest domestic market closure plus the following week.
+        end_date=(signal_date + timedelta(days=14)).strftime("%Y%m%d"),
+        is_open="1",
+    )
+    if calendar is None or calendar.empty or "cal_date" not in calendar:
+        raise RuntimeError(
+            "Cannot determine the next SSE trading day; refusing to save "
+            "an unpriced rebalance target."
+        )
+    open_dates = pd.to_datetime(calendar["cal_date"], format="%Y%m%d")
+    return open_dates.min().date()
+
+
+def _is_unpriced_pending_target(state: PositionState, signal_date: date) -> bool:
+    """Whether *state* records a target whose scheduled entry is still ahead.
+
+    The position file intentionally stores tomorrow's target after a signal.
+    While the corresponding open has not appeared in price data, that target
+    is an instruction, not the portfolio's current holding.
+    """
+    if state.entry_date is None or state.entry_prices is not None:
+        return False
+    return date.fromisoformat(state.entry_date) > signal_date
+
+
+def _save_or_update_rebalance_target(
+    current_state: PositionState,
+    target_weights: dict[str, float],
+    entry_date: date,
+    signal_date: date,
+    strategy_name: str,
+) -> bool:
+    """Persist a rebalance target without duplicating an unfilled order.
+
+    Returns ``True`` when an existing pending target was updated.  This keeps
+    the archived outgoing holding intact when the same signal is sent again
+    before the next trading open (for example across a market holiday).
+    """
+    if not _is_unpriced_pending_target(current_state, signal_date):
+        save_position(target_weights, entry_date, strategy_name, entry_prices=None)
+        return False
+
+    updated_history = list(current_state.ytd_history)
+    if updated_history and updated_history[-1].exit_prices is None:
+        outgoing = updated_history[-1]
+        updated_history[-1] = PositionPeriod(
+            weights=outgoing.weights,
+            entry_date=outgoing.entry_date,
+            exit_date=entry_date.isoformat(),
+            entry_prices=outgoing.entry_prices,
+            exit_prices=None,
+        )
+
+    write_position(
+        PositionState(
+            weights=target_weights,
+            entry_date=entry_date.isoformat(),
+            entry_prices=None,
+            ytd_entry_date=current_state.ytd_entry_date,
+            ytd_entry_prices=current_state.ytd_entry_prices,
+            ytd_history=updated_history,
+        ),
+        strategy_name,
+    )
+    return True
 
 
 def run(config: dict) -> None:
@@ -407,12 +472,17 @@ def run(config: dict) -> None:
 
     # 5. Strategy → today's signal weights (raw output before hold filter)
     signal_weights = strategy.generate_weights(asset_factor_values)
-    current_weights = current_state.weights
+    # A target saved for a future market open is not a filled position yet.
+    # Use the actually priced holding for the hold rule, execution diff and
+    # notification so a holiday cannot turn an outstanding rebalance into a
+    # misleading "当前持仓" message.
+    priced_state = _priced_state_as_of(current_state, signal_date)
+    current_weights = priced_state.weights
 
     # 5b. Hold-window filter: if we're inside a rebalance_days window,
     # override the signal with the current position so the diff produces
     # no orders. This is what reduces friction cost.
-    holding_days = _count_holding_days(current_state.entry_date, signal_date, asset_pool)
+    holding_days = _count_holding_days(priced_state.entry_date, signal_date, asset_pool)
     if _should_hold(current_weights, holding_days, rebalance_days, rebalance_mode):
         target_weights = current_weights
         print(
@@ -427,7 +497,6 @@ def run(config: dict) -> None:
     orders = diff(target_weights, current_weights)
 
     # 7. Compute metrics for notification
-    priced_state = _priced_state_as_of(current_state, signal_date)
     priced_holding_days = _count_holding_days(
         priced_state.entry_date,
         signal_date,
@@ -493,9 +562,16 @@ def run(config: dict) -> None:
     # 9. Persist new position only on rebalance (exit_prices backfilled on next run)
     is_rebalance = any(o.action in ("buy", "sell") for o in orders)
     if is_rebalance:
-        next_entry_date = _next_entry_date(signal_date, asset_pool)
-        save_position(target_weights, next_entry_date, strategy_name, entry_prices=None)
-        print(f"Position saved: {target_weights}, next_entry_date={next_entry_date}")
+        next_entry_date = _next_entry_date(signal_date)
+        updated_pending = _save_or_update_rebalance_target(
+            current_state,
+            target_weights,
+            next_entry_date,
+            signal_date,
+            strategy_name,
+        )
+        action = "Pending position updated" if updated_pending else "Position saved"
+        print(f"{action}: {target_weights}, next_entry_date={next_entry_date}")
     else:
         print(f"Hold signal — position unchanged: {current_weights}")
 
