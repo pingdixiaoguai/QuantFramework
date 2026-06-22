@@ -34,7 +34,7 @@ CONFIG_PATH = REPO_ROOT / "strategy" / "configs" / "quality_momentum_top1.yaml"
 DATA_DIR = REPO_ROOT / "data" / "db"
 ASSETS = ["510300.SH", "159915.SZ", "513100.SH", "518880.SH"]
 START = dt.date(2014, 1, 1)
-COMMISSION = 0.00005  # 万0.5,本账户真实费率(本地引擎参数名为 commission_ratio)
+COMMISSION = 0.00005  # 万0.5,本账户真实费率(本地引擎参数名为 transaction_cost_rate)
 
 
 def _price_returns() -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -80,7 +80,7 @@ def main() -> None:
         cfg = dict(base)
         cfg["start"] = START
         cfg["rebalance_days"] = rd
-        cfg["commission_ratio"] = COMMISSION
+        cfg["transaction_cost_rate"] = COMMISSION  # main 已弃用 commission_ratio,改用此 key
         result = run(cfg)
         held = _held_assets(result)
 

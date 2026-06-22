@@ -31,13 +31,12 @@ if str(REPO_ROOT) not in sys.path:
 
 from backtest.runner import run  # noqa: E402
 from run_backtest import _load_config_from_yaml  # noqa: E402
+from scripts.ptrade_recon.parse import SS2SH  # noqa: E402  # 后缀映射的唯一真相源
 
 CONFIG_PATH = REPO_ROOT / "strategy" / "configs" / "quality_momentum_top1.yaml"
 DATA_DIR = REPO_ROOT / "data" / "db"
 PTRADE_DIR = REPO_ROOT / "backtest" / "ptrade"
 ASSETS = ["510300.SH", "159915.SZ", "513100.SH", "518880.SH"]
-SS2SH = {"510300.SS": "510300.SH", "513100.SS": "513100.SH",
-         "518880.SS": "518880.SH", "159915.SZ": "159915.SZ"}
 START = dt.date(2014, 1, 1)
 COMMISSION = 0.00005
 
@@ -56,7 +55,7 @@ def _framework_held(rd, base):
     cfg = dict(base)
     cfg["start"] = START
     cfg["rebalance_days"] = rd
-    cfg["commission_ratio"] = COMMISSION
+    cfg["transaction_cost_rate"] = COMMISSION  # main 已弃用 commission_ratio,改用此 key
     result = run(cfg)
     daily = result.positions.sort_index().fillna(0.0).reindex(result.daily_returns.index).ffill()
     held = daily.dropna(how="all").fillna(0.0).idxmax(axis=1)
