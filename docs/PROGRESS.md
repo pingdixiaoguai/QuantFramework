@@ -8,9 +8,9 @@
 
 - **当前状态**:PTrade 迁移由「独立 repo」改为「同仓 `ptrade` overlay 分支」。基建全就绪;两个 main-PR(#23、#26)已合并。**逐日对账 harness 已建成并全绿**(`tests/test_ptrade_reconciliation.py`,2026-06-21):score 逻辑 bit-exact(max diff 0.0)、Top1 / min_hold 规则精确一致、held 端到端一致率 rd2=98.27% / rd5=98.20%(残余为执行模型差异)。**迁移在契约意义上已「完成」,可据此上模拟盘/实盘。**
 - **下一步**:
-  1. 把归因 memo + `backtest/ptrade/` CSV 发给 owner(PR #17 评论 #4)。
-  2. 上模拟盘验证(harness 已为实盘放行)。
-  3. 收尾遗留(见下「待办」§4:CLAUDE.md 漂移、main 侧 PROGRESS 归属)。
+  1. 上模拟盘验证(harness 已为实盘放行)。
+  2. 收尾遗留(见下「待办」§4:CLAUDE.md 漂移、main 侧 PROGRESS 归属)。
+  3. 等 owner 回复(已于 2026-06-21 交付:对账完成 + 归因结论 + 4 CSV + memo,见 `backtest/ptrade/2026-06-21_owner_handoff.md`)。
 - **悬而未决**:实盘刻意保留 rd=2(框架已三闸门回滚 rd=5)作外部对照,长期去留待定;CLAUDE.md 仍称「docs/PROGRESS.md 单一入口」,分支拆分后 main 上无此文件,约定已漂移待修。
 - **决策与理由**:
   - 同仓长期 `ptrade` overlay(= main + ptrade 文件),**单向 main→ptrade、永不回流**,main 保持框架单一真相源。(放弃独立 repo 与整支 rebase。)
@@ -30,9 +30,10 @@
 ### 1. 逐日对账 harness(迁移"完成"的硬指标)— 已完成 ✅(2026-06-21)
 采用方案 B(committed CSV fixture):`tests/test_ptrade_reconciliation.py` + 导出脚本 `scripts/export_framework_reference.py` + 解析模块 `scripts/ptrade_recon/`。逻辑三维 bit-exact 硬门 + held 端到端容差对账门(≥97%,实测 98.2%)全绿。跑/刷新方法见 `CONTRACT.md` §3、`backtest/ptrade/reference/MANIFEST.md`、`docs/plans/2026-06-21_ptrade_reconciliation_harness.md`。
 
-### 2. 交付 owner(PR #17 评论 #4)
-- 归因 memo(`backtest/ptrade/2026-06-15_attribution_reconciliation.md`)+ 可贴版结论已生成。
-- `backtest/ptrade/` 交易/持仓 CSV 作为逐笔对账原料。
+### 2. 交付 owner(PR #17 评论 #4)— 已交付 ✅(2026-06-21)
+- 交付文本:`backtest/ptrade/2026-06-21_owner_handoff.md`(对账完成 + 归因结论,回 PR #17 四点)。
+- 已附:rd2/rd5 交易详情+持仓明细 4 个 CSV + 归因 memo(`2026-06-15_attribution_reconciliation.md`)。
+- 待 owner 回复(尤其 point #3 三闸门结果 → 定 rd=2 去留)。
 
 ### 3. main-PR(已合并 ✅)
 - [PR #23](https://github.com/pingdixiaoguai/QuantFramework/pull/23) — `transaction_cost_rate` 测试(default-0 + 全切换 turnover=2)。已于 2026-06-16 合并。
