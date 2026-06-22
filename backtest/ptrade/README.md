@@ -71,8 +71,23 @@
 
 ---
 
+## 六、逐日对账 harness（迁移「完成」的硬指标）
+
+`reference/` 下是**框架侧**每日 (score, held, positions) 的 committed CSV fixture;
+`rd2/`、`rd5/` 是 **PTrade 侧**实盘导出。两者由 `tests/test_ptrade_reconciliation.py`
+做逐日三维对账(score / Top1 / 持仓),容差内全绿即满足 `../../CONTRACT.md` 的迁移完成定义。
+
+- **跑测试**:`uv run pytest tests/test_ptrade_reconciliation.py -v -s`(`-s` 看 held 分歧段清单)
+- **刷新 fixture**(改了策略/因子/`data/db` 数据后):`uv run python scripts/export_framework_reference.py`,
+  再 review CSV diff 并回填 `reference/MANIFEST.md` 的数据快照。
+- **设计 / 口径 / 容差**:见 `reference/MANIFEST.md`、`../../CONTRACT.md` §3、
+  `../../docs/plans/2026-06-21_ptrade_reconciliation_harness.md`。
+
+> ⚠️ fixture 由本地 `data/db`(junction)生成。**勿删 main worktree**,否则 junction 悬空、无法刷新。
+
 ## 相关文档
 
 - 策略主文件：`deploy/ptrade_quality_momentum_top1.py`
 - 迁移说明 + API 验证：`deploy/PTRADE_MIGRATION.md`
 - 参数决策与「天气预报员」监测协议：`strategy_changelog.md` §3.6
+- 迁移完成契约 + 对账 harness：`../../CONTRACT.md`

@@ -29,14 +29,29 @@ QuantFramework PR #17 review 中维护者定的标准（原话）:
 - **全周期回测风险面对齐**:年化波动 25.75% vs ~25.8%,回撤/换手吻合(`§7`)。
 - **归因口径对账**:510300 负贡献分解为 度量口径 ~66% + 执行 ~31% + 分红 ~3%,确认无危险后复权污染(`backtest/ptrade/2026-06-15_attribution_reconciliation.md`)。
 
-## 3. 待建（本仓的主要工程）
+## 3. 已建 ✅（2026-06-21）
 
-**自动化逐日对账 harness**,把上面的「score / Top1 / 持仓」三维比对做成可重复运行的测试:
+**自动化逐日对账 harness** 已落地:`tests/test_ptrade_reconciliation.py`。采用方案 B
+（committed CSV fixture）—— 因 ptrade 为同仓 overlay 分支,框架代码与 `data/db` junction
+就在同一工作树,但 `data/db` 被 gitignore、CI 跑不了引擎,故把框架产出快照成 CSV 提交进仓,
+测试只读 committed CSV(framework fixture + PTrade 导出),CI 可跑。
 
-- `scripts/ptrade_vs_framework_attribution.py`、`ptrade_dividend_attribution_check.py` 已经是雏形,但它们 `import backtest.runner` 且读 `data/db/*.parquet` —— **依赖 QuantFramework 仓库**,无法在本仓独立运行。
-- 落地方式(择一,待定):
-  1. 把 QuantFramework 作为 **git submodule** 或并列 checkout,脚本通过 `FRAMEWORK_ROOT` 环境变量定位。
-  2. 从框架导出每日 (score, held, positions) 为 CSV 存到本仓,对账测试只读 CSV(去依赖,但需手动刷新)。
-- 验收:`逐日对账测试` 在容差内全绿 → 迁移正式“完成”,可据此上模拟盘/实盘。
+测试分两层:
 
-> 现状:本仓为 scaffold 阶段——文件已就位、契约已写清、对账脚本为雏形;完整 harness 是下一步。
+- **逻辑精确硬门**(同一份后复权价,隔离策略逻辑,bit-exact):
+  - score:框架 `compute()` vs deploy 真实 `_quality_momentum_score` —— 实测 12014 单元 `max abs diff = 0.0`。
+  - Top1:两侧每日 argmax 精确一致。
+  - min_hold 规则:deploy `_should_hold` vs 框架 `should_hold_position`,输入网格全一致。
+- **持仓容差对账门**(端到端 tripwire):引擎 held vs PTrade 持仓明细,索引交集一致率
+  **≥ 97%**(实测 rd2=98.27% / rd5=98.20%),所有分歧连续段写入测试日志供审阅。残余分歧
+  经查为执行模型差异(框架 T+1 开盘 vs PTrade 同 bar + min_hold 相位 + 近平手日数据馈送微差),
+  非 port 逻辑 bug(逻辑由三个硬门保证)。
+
+**怎么跑**:`uv run pytest tests/test_ptrade_reconciliation.py -v -s`（`-s` 看分歧段清单)。
+**怎么刷新 fixture**(改了策略/因子/`data/db` 后):`uv run python scripts/export_framework_reference.py`,
+然后 review CSV diff 并回填 `backtest/ptrade/reference/MANIFEST.md` 的数据快照。
+
+**验收达成**:harness 容差内全绿 → 迁移在契约意义上“完成”,可据此上模拟盘/实盘。
+
+> 设计与排查记录见 `docs/plans/2026-06-21_ptrade_reconciliation_harness.md`(含一个 fillna
+> 顺序 bug 的发现:它曾使 held 一致率假性跌到 23%,正是容差对账门要挡的回归)。
