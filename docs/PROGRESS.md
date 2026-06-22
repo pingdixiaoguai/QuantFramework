@@ -11,7 +11,7 @@
   1. 上模拟盘验证(harness 已为实盘放行)。
   2. 收尾遗留(见下「待办」§4:CLAUDE.md 漂移、main 侧 PROGRESS 归属)。
   3. 等 owner 回复(已于 2026-06-21 交付:对账完成 + 归因结论 + 4 CSV + memo,见 `backtest/ptrade/2026-06-21_owner_handoff.md`)。
-- **悬而未决**:实盘刻意保留 rd=2(框架已三闸门回滚 rd=5)作外部对照,长期去留待定;CLAUDE.md 仍称「docs/PROGRESS.md 单一入口」,分支拆分后 main 上无此文件,约定已漂移待修。
+- **悬而未决**:实盘刻意保留 rd=2(框架已三闸门回滚 rd=5)作外部对照,长期去留待定。(原记的「CLAUDE.md 称 PROGRESS 单一入口」漂移经 2026-06-21 复核为**幻影**:无任何 CLAUDE.md 含此声明,分支模型已在 `PTRADE.md` 记清——见 §4。)
 - **决策与理由**:
   - 同仓长期 `ptrade` overlay(= main + ptrade 文件),**单向 main→ptrade、永不回流**,main 保持框架单一真相源。(放弃独立 repo 与整支 rebase。)
   - `commission_ratio` 撤回(被 main 的 `transaction_cost_rate` 取代),仅捞出测试改造成 PR #23。
@@ -39,7 +39,8 @@
 - [PR #23](https://github.com/pingdixiaoguai/QuantFramework/pull/23) — `transaction_cost_rate` 测试(default-0 + 全切换 turnover=2)。已于 2026-06-16 合并。
 - [PR #26](https://github.com/pingdixiaoguai/QuantFramework/pull/26) — CI 防护(挡 ptrade 文件误合 main)。已于 2026-06-16 合并,防护已生效。
 
-### 4. 收尾遗留(建议 `/phase-cleanup` 处理)
-- CLAUDE.md(main)修正:补 ptrade 分支模型 + 修「PROGRESS 单一入口」漂移(走 main-PR)。
-- main 侧 PROGRESS 归属待定。
-- main worktree 里未跟踪的 `backtest/ptrade/`(含本地独有 `Log.txt`)归位到 ptrade worktree——**移而非删**。
+### 4. 收尾遗留 — 复核后基本 moot(2026-06-21)
+- ~~修「PROGRESS 单一入口」漂移~~ **幻影**:全仓无任何 CLAUDE.md 含此声明;root CLAUDE.md(main 与 ptrade 逐字一致)Entry Points 是 DESIGN.md/specs/,不提 PROGRESS。无可修。
+- ~~补 ptrade 分支模型~~ **已记于 `PTRADE.md`**(铁律/overlay 清单/工作流/CI 防护)。是否再在 main 的 CLAUDE.md 加一句「存在 overlay 分支」属 main 治理,与「main 保持 ptrade-agnostic」权衡,**留给 owner 定**(若要则走 main-PR)。
+- main 侧 PROGRESS 归属:main 无 PROGRESS.md 是**正确**的(PROGRESS 为 ptrade 专属;框架进展在 DESIGN.md 决策日志/changelog)。无 action。
+- ~~main worktree 未跟踪 `backtest/ptrade/` 归位~~ **moot**:该 worktree 下无 backtest/ptrade 未跟踪文件。
