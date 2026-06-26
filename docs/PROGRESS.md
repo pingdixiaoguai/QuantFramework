@@ -6,22 +6,25 @@
 ## 🔄 会话交接(Session Handoff)
 > 由 /bye 覆盖式维护为最新。下一轮 PTrade 会话:开 ptrade worktree,先读此区块。
 
-- **当前状态**:PTrade 迁移由「独立 repo」改为「同仓 `ptrade` overlay 分支」。基建全就绪;两个 main-PR(#23、#26)已合并。**逐日对账 harness 已建成并全绿**(`tests/test_ptrade_reconciliation.py`,2026-06-21):score 逻辑 bit-exact(max diff 0.0)、Top1 / min_hold 规则精确一致、held 端到端一致率 rd2=98.27% / rd5=98.20%(残余为执行模型差异)。**迁移在契约意义上已「完成」,可据此上模拟盘/实盘。**
+- **当前状态**:**模拟盘已部署并初始化成功**(2026-06-26):universe 四只 / rd=2 / min_hold,无 `initialize FAILED`。逻辑等价性早已闭环(harness 三硬门 + 持仓对账 98.2%,2026-06-21);现进入「模拟盘观察」阶段,验的是平台数据馈送 + 真实下单这最后一段。两个 main-PR(#23、#26)已合并。
 - **下一步**:
-  1. 上模拟盘验证(harness 已为实盘放行)。
-  2. 收尾遗留(见下「待办」§4:CLAUDE.md 漂移、main 侧 PROGRESS 归属)。
-- **owner round-trip 已闭环(2026-06-23)**:[PR #17](https://github.com/pingdixiaoguai/QuantFramework/pull/17) **已关闭**(owner 要求 deploy 不进 main、移对应流程——符合 overlay「永不回流」铁律,本就不该 merge,关闭即预期结果);2026-06-21 交付物(对账完成 + 归因结论 + 4 CSV + memo,见 `backtest/ptrade/2026-06-21_owner_handoff.md`)已归位。
-- **悬而未决**:实盘 rd=2 **暂时保留观察**(框架已三闸门回滚 rd=5,PTrade 留 rd=2 作外部对照),长期去留待定。(原记的「CLAUDE.md 称 PROGRESS 单一入口」漂移经 2026-06-21 复核为**幻影**:无任何 CLAUDE.md 含此声明,分支模型已在 `PTRADE.md` 记清——见 §4。)
+  1. **周一 6/29 开盘 09:31** 看第一条 `scores={...} -> best=X` + 首个调仓日志(checklist §4)。
+  2. 观察 1–2 个调仓周期,重点核**首次轮动足额成交**(替代回测里的 set_volume_ratio)。
+  3. 通过后走 checklist §7「模拟 → 实盘」gate。
+- **悬而未决**:
+  - 实盘 rd=2 **暂时保留观察**(框架已三闸门回滚 rd=5,PTrade 留 rd=2 作外部对照),长期去留待 owner。
+  - 模拟盘尚未跑过任何调仓周期 —— 下单/成交/对账三件**全未实测**。
 - **决策与理由**:
-  - 同仓长期 `ptrade` overlay(= main + ptrade 文件),**单向 main→ptrade、永不回流**,main 保持框架单一真相源。(放弃独立 repo 与整支 rebase。)
-  - `commission_ratio` 撤回(被 main 的 `transaction_cost_rate` 取代),仅捞出测试改造成 PR #23。
-  - 实盘保留 rd=2 作外部对照,文档已显式标注为「有意分歧、非配置漂移」。
+  - PR #17 记为**已关闭**(非合并):repo 实为 CLOSED 且 owner 明确要求关掉;overlay 永不回流 main,本就不该 merge。(用户初称"已合并",经核对更正。)
+  - 三条 `交易不支持...` WARNING 判为**预期**:set_commission/slippage/volume_ratio 均回测专用旋钮,交易模式走真实费率 + 真实盘口撮合,被拒属正常,非版本缺功能。
+  - 同仓长期 `ptrade` overlay(= main + ptrade 文件),**单向 main→ptrade、永不回流**,main 保持框架单一真相源。
 - **踩过的坑**:
-  - 整支 nyxx-dev rebase→新 main = 冲突地狱(changelog/runner/CLAUDE/PROGRESS 两边都改)且与拆分意图相悖 → 放弃,改干净分支 + cherry-pick 思路。
+  - 模拟盘初始化日志必有三条 `交易不支持xxx函数` —— 别误判为故障(已在 checklist §3 注明)。
+  - Bash 工具是 Git Bash:commit message 用 heredoc(`-F - <<'EOF'`),**勿**用 PowerShell here-string `@'...'@`(上轮污染了 commit subject,已 amend 修掉)。
   - git worktree **不共享 gitignored 文件** → ptrade worktree 无 `data/db` → 对账脚本跑不了;用 `mklink /J` junction 解决(**勿删 main worktree,否则 junction 悬空**)。
-  - PTrade 归因里 510300 负贡献 ≠ qfq 污染:实测走原始价(分红盲),但分红只占 ~3%,主因是 money-weighted 度量口径(~66%)+ 执行差异(~31%)。
-  - 引擎 `positions` 稀疏(执行日行只记当前持仓那只=1.0,其余 NaN):派生逐日持仓必须**先 `fillna(0)` 再 `reindex+ffill`**,顺序反了会按列前向填充旧持仓→多列同时 1.0→`idxmax` 取错。此 bug 曾使对账 held 一致率假性跌到 23%(实为 98%)。
-- **最后更新**:2026-06-23
+  - 引擎 `positions` 稀疏:派生逐日持仓必须**先 `fillna(0)` 再 `reindex+ffill`**,顺序反了会多列同时 1.0→`idxmax` 取错(曾使 held 一致率假性跌到 23%,实为 98%)。
+  - PTrade 归因 510300 负贡献 ≠ qfq 污染:主因 money-weighted 口径(~66%)+ 执行差异(~31%),分红仅 ~3%。
+- **最后更新**:2026-06-26
 
 ---
 
