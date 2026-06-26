@@ -27,14 +27,17 @@
 - [ ] 频率 = **日线**(务必;分钟频慢一个数量级且无收益,MIGRATION §7)
 - [ ] 交易时段允许 `run_daily(time="09:31")` 在开盘后触发
 - [ ] 选**模拟盘**账户;起始资金 ≥ 能买整数手最贵 ETF 的数倍(`INVEST_RATIO=0.98` 已留 2% 缓冲)
-- [ ] 确认 `set_volume_ratio(1.0)` 生效(代码已含;看 initialize 日志无 "set_volume_ratio skipped")
+- [ ] `set_volume_ratio` 仅回测有效;模拟/实盘会被平台拒绝(`交易不支持...`,**属预期**,见 §3),足额成交改由 §4「首次轮动」验证
 
-## 3. 启动自检(看 initialize 日志)
+## 3. 启动自检(看 initialize 日志)— 已确认 ✅(2026-06-26 模拟盘)
 
-- [ ] 出现 `initialized: universe=[...] rd=2 mode=min_hold`
-- [ ] **无** `initialize FAILED` traceback
-- [ ] `set_commission / set_fixed_slippage / set_volume_ratio` 均未被 "skipped"
-      (若某项 skipped = 该 API 在你版本不可用,记录之,不阻断启动)
+- [x] 出现 `initialized: universe=[...] rd=2 mode=min_hold`
+- [x] **无** `initialize FAILED` traceback
+- [x] `set_commission / set_fixed_slippage / set_volume_ratio` 三个**回测专用** API:
+      模拟/实盘(交易)模式下平台会打出 `交易不支持xxx函数` WARNING —— **这是预期行为,不是版本缺功能**。
+      这三个旋钮(佣金/滑点/成交比例)只作用于回测引擎;交易模式走券商真实费率 + 真实盘口撮合,
+      noop 不影响策略。每次跑模拟/实盘都会出现,记录、不阻断。
+      (回测里 `set_volume_ratio(1.0)` 解决的「部分成交」,在交易模式由真实流动性决定,改由 §4「首次轮动足额成交」验证。)
 
 ## 4. 观察 1–2 个调仓周期(MIGRATION §6 step 4)
 

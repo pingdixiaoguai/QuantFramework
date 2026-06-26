@@ -15,7 +15,7 @@
 | `factors/quality_momentum.py` | `_quality_momentum_score()`（numpy 移植） | 已逐位验证一致，见 §4 |
 | `strategy/top1.py`（Top1 全仓） | `order_target_value(best, total_value × INVEST_RATIO)` | 全仓得分最高者 |
 | `strategy/rebalance.py`（min_hold/fixed_cycle） | `_should_hold()`（直接移植） | 最短持有期 / 固定周期判定 |
-| 信号 T 收盘 → 成交 T+1 开盘 | `run_daily(time='09:30')` + `get_history(include=False)` | 见 §2 时序 |
+| 信号 T 收盘 → 成交 T+1 开盘 | `run_daily(time='09:31')` + `get_history(include=False)` | 见 §2 时序 |
 | 后复权 HFQ | `get_history(fq='post')` | 见 §3 |
 | 数据层 `query()` | `get_history(count,'1d','close',s,fq='post')` | 逐标的取收盘价 |
 | 等权基准 | `set_benchmark('000300.SS')` | ⚠️ 口径不同，见 §5 |
@@ -32,15 +32,15 @@
 框架约定（`strategy_changelog.md §1.1`）：**T 日收盘后**用 T 及之前数据生成 score，**T+1 日开盘**成交。
 
 PTrade 复现方式：
-- `run_daily(context, rebalance, time='09:30')` 让 `rebalance` 在**每个交易日开盘**执行。
+- `run_daily(context, rebalance, time='09:31')` 让 `rebalance` 在**每个交易日开盘**执行。
 - `get_history(WINDOW+5, '1d', 'close', s, fq='post', include=False)` 中 `include=False`
   **排除当日 bar**，取到的最新收盘价即「昨日收盘」——等价于「用 T 日及之前数据」。
-- 在 09:30 开盘下单 ≈ 框架的「T+1 开盘成交」。
+- 在 09:31 开盘下单 ≈ 框架的「T+1 开盘成交」(用 09:31 而非 09:30 整点:部分版本拒绝整点开盘会致 initialize 抛错)。
 
 这与框架**实盘** `run_daily.py` 的语义完全一致（早盘用昨日数据出信号、当日开盘成交）。
 
 > 想更贴近「集合竞价成交」可把 `REBALANCE_TIME` 调到 `'09:25'` 并改用限价单；
-> 但仅交易大规模 ETF，09:30 市价/现价限价单的偏差极小，框架本身也假设滑点 ≈ 0。
+> 但仅交易大规模 ETF，09:31 市价/现价限价单的偏差极小，框架本身也假设滑点 ≈ 0。
 
 ### 最短持有期（rebalance_days）的状态机
 
@@ -103,7 +103,7 @@ framework Top1 == port Top1                          → 一致
 
 **部署：**
 1. 在 PTrade 新建策略，把 `ptrade_quality_momentum_top1.py` 全文粘贴进编辑器。
-2. 策略频率选**日线**；交易时段设为开盘后能执行 `run_daily(time='09:30')`。
+2. 策略频率选**日线**；交易时段设为开盘后能执行 `run_daily(time='09:31')`。
 3. 先用**回测**跑一段（如 2014-01-01 至今），核对收益曲线与框架回测的量级是否吻合
    （注意成本/基准口径差异，量级接近即可）。
 4. 再切**模拟盘**观察 1–2 个调仓周期，确认下单、对账、日志正常。
@@ -119,7 +119,7 @@ framework Top1 == port Top1                          → 一致
 - [x] `order_target_value(security, value)` 可用，返回订单号，回测内同 bar 同步成交；
       内部把 `.SS` 规范化为 `.XSHG`。`order_target(security, 0)` 清仓接口可用。
 - [x] `run_daily(context, func, time=...)` 回调签名 `func(context)`，注册并触发正常
-      （日线回测中固定在开盘 09:31 触发，与 `time='09:30'` 一致）。
+      （日线回测中固定在开盘 09:31 触发；故策略取 `time='09:31'`，避免 09:30 整点被部分版本拒绝而 initialize 抛错）。
 - [x] `set_benchmark` / `set_commission(type="ETF")` / `set_fixed_slippage` 均支持。
 
 **探针额外暴露并已在策略中处理的两点：**
