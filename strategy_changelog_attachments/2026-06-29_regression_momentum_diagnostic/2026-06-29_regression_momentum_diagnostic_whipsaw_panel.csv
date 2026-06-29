@@ -1,0 +1,6 @@
+﻿arm,description,switch_count,round_trip_count_15d,first_possible_switch_episode_share,avg_holding_days,episode_count
+A1,recency-weighted WLS slope x weighted R2(26),167,25,0.20833333333333334,17.952380952380953,168
+A2,equal-weight OLS slope x R2(26),161,24,0.21604938271604937,18.617283950617285,162
+A3,equal-weight OLS slope x ER(25),191,49,0.34375,15.708333333333334,192
+B,production baseline: pct_change(20) x ER(20),274,107,0.4618181818181818,10.967272727272727,275
+B_prime,window-matched baseline: pct_change(25) x ER(25),232,98,0.43776824034334766,12.944206008583691,233
