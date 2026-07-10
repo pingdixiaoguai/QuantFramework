@@ -71,11 +71,12 @@
 
 ---
 
-## 六、逐日对账 harness（迁移「完成」的硬指标）
+## 六、逐日对账 harness（信号/持仓逻辑迁移的硬指标）
 
 `reference/` 下是**框架侧**每日 (score, held, positions) 的 committed CSV fixture;
 `rd2/`、`rd5/` 是 **PTrade 侧**实盘导出。两者由 `tests/test_ptrade_reconciliation.py`
-做逐日三维对账(score / Top1 / 持仓),容差内全绿即满足 `../../CONTRACT.md` 的迁移完成定义。
+做逐日三维对账(score / Top1 / 持仓)。容差内全绿只表示逻辑迁移完成；交易模式还需通过
+`tests/test_ptrade_execution_state.py` 与模拟盘完整换仓 gate，分层定义见 `../../CONTRACT.md`。
 
 - **跑测试**:`uv run pytest tests/test_ptrade_reconciliation.py -v -s`(`-s` 看 held 分歧段清单)
 - **刷新 fixture**(改了策略/因子/`data/db` 数据后):`uv run python scripts/export_framework_reference.py`,

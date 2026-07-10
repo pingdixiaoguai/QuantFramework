@@ -12,7 +12,7 @@
 | `deploy/` | PTrade 策略主文件 + `PTRADE_MIGRATION.md` + 探针 |
 | `backtest/ptrade/` | rd2/rd5 回测 CSV + 截图 + `README.md` + 归因 memo（`Log.txt` 不入库） |
 | `scripts/ptrade_*.py` | 对账诊断脚本 |
-| `CONTRACT.md` | 迁移"完成"的接口契约 + 待建逐日对账测试 |
+| `CONTRACT.md` | 迁移“完成”的分层契约：逐日对账 + 异步执行测试 + 模拟盘换仓 gate |
 | `PTRADE.md` | 本文件 |
 
 其余一切（`factors/`、`strategy/`、`backtest/runner.py`、`data/`、`changelog` …）都来自 `main`,**不要在本分支改框架代码**。

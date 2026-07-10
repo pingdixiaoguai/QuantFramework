@@ -31,3 +31,4 @@ docs/superpowers/
 # PTrade 原始日志(体积大,关键指标登记在 backtest/ptrade/README.md §四)
 Log.txt
 **/Log.txt
+**/BatchLog.txt

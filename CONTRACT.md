@@ -5,7 +5,8 @@ QuantFramework PR #17 review 中维护者定的标准（原话）:
 > deploy/(PTrade 移植):走独立 repo,不进 main。main 要保持单一执行平台真相源。
 > **接口契约 = 逐日信号/持仓对账测试,与框架引擎逐行对齐才算完成。**
 
-本文件把这个标准落成可执行的验收条件,并记录已达成 / 待建部分。
+本文件把这个标准落成可执行的验收条件。逐日对账定义“信号/持仓逻辑迁移完成”；
+交易模式还必须通过异步执行测试和模拟盘完整换仓 gate，二者不能互相替代。
 
 ## 1. 对账测试要做什么
 
@@ -16,6 +17,7 @@ QuantFramework PR #17 review 中维护者定的标准（原话）:
 | 因子 score | `factors/quality_momentum.py` 经引擎 future-info guard 算出的每日值 | 策略 `_quality_momentum_score()` 用 `get_history(fq="post")` 算出的每日值 | 数值逐位一致(已验证,§4 of MIGRATION) |
 | Top1 选择 | 引擎每日 `held_asset` | 策略每日 `g.held` / 下单目标 | 每日选股一致 |
 | 持仓序列 | 引擎 `positions`(开仓执行日) | PTrade 持仓明细每日持仓 | 在执行模型差异容差内一致 |
+| 交易执行 | 同步回测模型 | PTrade 委托/成交/持仓/资金异步链路 | 卖出确认前不买、拒单不改状态、无重复单，且模拟盘完整换仓通过 |
 
 **容差来源(已知口径差,需在对账中显式扣除,不算失败):**
 
@@ -28,6 +30,8 @@ QuantFramework PR #17 review 中维护者定的标准（原话）:
 - **因子数学**:200 组随机序列上 `framework` vs `port` 最大误差 0.000e+00,Top1 一致(`deploy/PTRADE_MIGRATION.md §4`)。
 - **全周期回测风险面对齐**:年化波动 25.75% vs ~25.8%,回撤/换手吻合(`§7`)。
 - **归因口径对账**:510300 负贡献分解为 度量口径 ~66% + 执行 ~31% + 分红 ~3%,确认无危险后复权污染(`backtest/ptrade/2026-06-15_attribution_reconciliation.md`)。
+- **交易状态机本地门**:`tests/test_ptrade_execution_state.py` 覆盖显式限价、卖出/资金确认后买入、
+  拒单、部分成交、重复订单、查询失败和重启恢复（2026-07-10）。
 
 ## 3. 已建 ✅（2026-06-21）
 
@@ -51,7 +55,14 @@ QuantFramework PR #17 review 中维护者定的标准（原话）:
 **怎么刷新 fixture**(改了策略/因子/`data/db` 后):`uv run python scripts/export_framework_reference.py`,
 然后 review CSV diff 并回填 `backtest/ptrade/reference/MANIFEST.md` 的数据快照。
 
-**验收达成**:harness 容差内全绿 → 迁移在契约意义上“完成”,可据此上模拟盘/实盘。
+**分层验收**:
+
+1. `test_ptrade_reconciliation.py` 容差内全绿 + `test_ptrade_execution_state.py` 全绿
+   → 信号/持仓逻辑迁移完成，可重新部署到**模拟盘**。
+2. 模拟盘至少完成一次“卖出提交→旧仓及资金同步→买入提交→目标持仓确认”，且无价格为 0、
+   资金不足、状态分裂或重复订单 → 交易执行迁移完成，才可进入实盘 gate。
+
+2026-06-22 的首次模拟盘轮动证明：只有历史回测/对账全绿不足以批准实盘。旧结论已由上述分层门修正。
 
 > 设计与排查记录见 `docs/plans/2026-06-21_ptrade_reconciliation_harness.md`(含一个 fillna
 > 顺序 bug 的发现:它曾使 held 一致率假性跌到 23%,正是容差对账门要挡的回归)。
