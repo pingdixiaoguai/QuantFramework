@@ -1,0 +1,2 @@
+total_log_excess,n_episodes,max_episode_log_excess,max_episode_share_of_total,note
+-9.5e-05,174,0.118007,,share only meaningful when total_log_excess > 0
