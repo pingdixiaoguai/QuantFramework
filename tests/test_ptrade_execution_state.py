@@ -61,15 +61,23 @@ def trade_env():
 
     sell_calls = []
     buy_calls = []
+    order_seq = [0]
 
+    def order(security, amount, limit_price=None):
+        # 实盘拆单后按股数下单：正数买、负数卖。返回唯一 order_id（子单可能多笔）。
+        order_seq[0] += 1
+        side = "buy" if amount > 0 else "sell"
+        (buy_calls if amount > 0 else sell_calls).append((security, amount, limit_price))
+        return "%s-%s-%d" % (side, security, order_seq[0])
+
+    # 目标型 API 仅回测路径使用；交易模式已全部改走 order()。保留以防加载期缺名。
     def order_target(security, amount, limit_price=None):
-        sell_calls.append((security, amount, limit_price))
-        return "sell-%s" % security
+        return "target-%s" % security
 
     def order_target_value(security, value, limit_price=None):
-        buy_calls.append((security, value, limit_price))
-        return "buy-%s" % security
+        return "target_value-%s" % security
 
+    mod.order = order
     mod.order_target = order_target
     mod.order_target_value = order_target_value
     mod._ensure_execution_state()
@@ -96,7 +104,8 @@ def test_switch_submits_only_sell_until_old_position_is_really_gone(trade_env):
     assert mod._start_trade_switch(context, "159915.SZ", ["513100.SS"])
 
     assert len(sell_calls) == 1
-    assert sell_calls[0][0:2] == ("513100.SS", 0)
+    assert sell_calls[0][0] == "513100.SS"
+    assert sell_calls[0][1] == -43_800   # 卖出全部可卖数量（负数），单笔未超上限
     assert sell_calls[0][2] > 0
     assert buy_calls == []
     assert mod.g.held == "513100.SS"
@@ -130,7 +139,7 @@ def test_rejected_sell_never_triggers_buy(trade_env):
     mod, _, buy_calls = trade_env
     context = _context({"513100.SS": _position(43_800)})
     mod._start_trade_switch(context, "159915.SZ", ["513100.SS"])
-    sell_id = mod.g.pending_sell_orders["513100.SS"]
+    sell_id = mod.g.pending_sell_orders["513100.SS"][0]
 
     mod.on_order_response(
         context,
@@ -148,7 +157,7 @@ def test_partial_sell_waits_and_terminal_partial_does_not_buy(trade_env):
     mod, _, buy_calls = trade_env
     context = _context({"513100.SS": _position(10_000)})
     mod._start_trade_switch(context, "159915.SZ", ["513100.SS"])
-    sell_id = mod.g.pending_sell_orders["513100.SS"]
+    sell_id = mod.g.pending_sell_orders["513100.SS"][0]
     mod.get_open_orders = lambda: [
         {"order_id": sell_id, "stock_code": "513100.SS", "status": "7"}
     ]
@@ -175,7 +184,7 @@ def test_partial_buy_confirms_actual_position_and_marks_top_up(trade_env):
     mod.g.held_days = 0
 
     assert mod._submit_trade_buy(context, "159915.SZ")
-    buy_id = mod.g.pending_buy_order
+    buy_id = mod.g.pending_buy_orders[0]
     assert len(buy_calls) == 1
 
     context.portfolio.positions = {"159915.SZ": _position(5_000, price=4.2)}
@@ -213,6 +222,45 @@ def test_open_order_query_failure_is_fail_closed(trade_env):
     assert not mod._start_trade_switch(context, "159915.SZ", ["513100.SS"])
     assert sell_calls == []
     assert buy_calls == []
+
+
+def test_large_buy_splits_into_capped_chunks(trade_env):
+    # 1000万账户买 ~2 元 ETF：需 ~490万股 > 100万单笔上限，应拆成多笔子单。
+    mod, sell_calls, buy_calls = trade_env
+    context = _context({}, cash=10_000_000.0, total_value=10_000_000.0)
+    mod.g.held = None
+    mod.g.held_days = 0
+
+    assert mod._submit_trade_buy(context, "159915.SZ")
+
+    assert len(buy_calls) > 1
+    assert all(sec == "159915.SZ" for sec, _, _ in buy_calls)
+    assert all(0 < amt <= mod.MAX_ORDER_SHARES for _, amt, _ in buy_calls)
+    assert all(amt % 100 == 0 for _, amt, _ in buy_calls)          # 每笔整百股
+    assert len(mod.g.pending_buy_orders) == len(buy_calls)         # 每笔都被跟踪
+
+    price = mod._trade_limit_price("159915.SZ", "buy")
+    target_shares = int((10_000_000.0 * mod.INVEST_RATIO) / price // 100) * 100
+    assert sum(amt for _, amt, _ in buy_calls) == target_shares    # 子单求和 = 目标增量
+
+
+def test_large_sell_splits_into_capped_chunks(trade_env):
+    # 持有 250 万股 > 100万上限，换仓卖出应拆成多笔子单（否则整单被后端撤销）。
+    mod, sell_calls, buy_calls = trade_env
+    context = _context(
+        {"513100.SS": _position(2_500_000, price=2.0)},
+        cash=0.0,
+        total_value=5_000_000.0,
+    )
+
+    assert mod._start_trade_switch(context, "159915.SZ", ["513100.SS"])
+
+    assert len(sell_calls) == 3   # 100万 + 100万 + 50万
+    assert all(sec == "513100.SS" for sec, _, _ in sell_calls)
+    assert all(-mod.MAX_ORDER_SHARES <= amt < 0 for _, amt, _ in sell_calls)
+    assert sum(-amt for _, amt, _ in sell_calls) == 2_500_000
+    assert len(mod.g.pending_sell_orders["513100.SS"]) == 3
+    assert buy_calls == []         # 卖出阶段绝不同时买入
 
 
 def test_restart_preserves_serialized_holding_days_and_fresh_recovery_is_conservative(trade_env):

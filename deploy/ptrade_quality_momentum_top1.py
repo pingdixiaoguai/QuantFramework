@@ -67,6 +67,11 @@ HISTORY_BARS = WINDOW + 20  # 每次取的历史 bar 数。因子只需 WINDOW+1
                             # 探针实测 159915.SZ 在 25 日窗口里只返回 24 条），多取避免缓冲不足。
 ORDER_POLL_SECONDS = 10     # 交易模式轮询柜台持仓/未完成订单。文档提示持仓同步通常约需 6 秒。
 PRICE_PROTECTION_RATIO = 0.002  # 限价相对对手一档放宽 0.2%，兼顾成交概率与滑点上限。
+MAX_ORDER_SHARES = 1000000  # 交易所单笔申报数量上限（沪深两市基金/ETF 限价申报均为 100 万份）。
+                            # 单笔超过会被后端撤单（实测 510300 买 210 万股报「委托数量大于可委托数量
+                            # 【1000000】股，撤销委托」）。超过则拆成多笔 <= 该值的整百股子单。
+                            # ⚠️ 首次部署确认：深市 ETF（如 159915）单笔上限若低于此值，调小本常量即可
+                            #    （只是子单变多，永远安全）。
 
 _ORDER_FAILURE_STATUSES = ("5", "6", "9")  # 部撤 / 已撤 / 废单
 
@@ -123,8 +128,8 @@ def _ensure_execution_state():
     _set_state_default("pending_phase", None)       # None / selling / buying
     _set_state_default("pending_target", None)
     _set_state_default("pending_buy_required", False)
-    _set_state_default("pending_sell_orders", {})   # security -> order_id
-    _set_state_default("pending_buy_order", None)
+    _set_state_default("pending_sell_orders", {})   # security -> [order_id, ...]（拆单后每只多笔）
+    _set_state_default("pending_buy_orders", [])     # [order_id, ...]（拆单后可能多笔）
     _set_state_default("pending_error", None)
     _set_state_default("pending_buy_failed", False)
     _set_state_default("pending_stale_checks", 0)
@@ -216,9 +221,14 @@ def _strategy_open_order_ids():
 
 
 def _tracked_order_ids():
-    ids = set(str(v) for v in g.pending_sell_orders.values() if v)
-    if g.pending_buy_order:
-        ids.add(str(g.pending_buy_order))
+    ids = set()
+    for order_list in g.pending_sell_orders.values():
+        for oid in (order_list or []):
+            if oid:
+                ids.add(str(oid))
+    for oid in (g.pending_buy_orders or []):
+        if oid:
+            ids.add(str(oid))
     return ids
 
 
@@ -276,10 +286,34 @@ def _clear_pending(error=None):
     g.pending_target = None
     g.pending_buy_required = False
     g.pending_sell_orders = {}
-    g.pending_buy_order = None
+    g.pending_buy_orders = []
     g.pending_error = error
     g.pending_buy_failed = False
     g.pending_stale_checks = 0
+
+
+def _lot_floor(shares):
+    """向下取整到 100 股（A 股/ETF 最小交易单位为 1 手 = 100 份）。"""
+    return int(float(shares) // 100) * 100
+
+
+def _split_order_shares(total_shares, cap=MAX_ORDER_SHARES):
+    """把总股数拆成每笔 <= cap 的整百股子单，规避交易所单笔申报上限。
+
+    total_shares 需为整百股（调用方先经 _lot_floor / enable_amount 保证）；
+    cap 亦为整百，故每笔子单都是整百股。返回子单股数列表；<=0 时返回空列表。
+    """
+    total = int(total_shares)
+    if total <= 0:
+        return []
+    cap = int(cap)
+    chunks = []
+    remaining = total
+    while remaining > 0:
+        chunk = remaining if remaining <= cap else cap
+        chunks.append(chunk)
+        remaining -= chunk
+    return chunks
 
 
 def _submit_trade_buy(context, target):
@@ -294,10 +328,12 @@ def _submit_trade_buy(context, target):
     positions = _positive_positions(context)
     current_position = positions.get(target)
     current_value = 0.0
+    current_shares = 0
     if current_position is not None:
+        current_shares = int(getattr(current_position, "amount", 0) or 0)
         current_value = getattr(current_position, "market_value", None)
         if current_value is None:
-            current_value = float(getattr(current_position, "amount", 0)) * float(
+            current_value = float(current_shares) * float(
                 getattr(current_position, "last_sale_price", 0)
             )
         current_value = float(current_value)
@@ -308,21 +344,40 @@ def _submit_trade_buy(context, target):
                  % (target, required_cash, available_cash))
         return False
 
+    # 按限价折算目标持股数（向下取整百，略偏保守以防资金不足），减去已持得到本次增量股数。
+    target_shares = _lot_floor(target_value / price)
+    delta_shares = target_shares - current_shares
+    chunks = _split_order_shares(delta_shares)
+    if not chunks:
+        # 已达到/超过目标持仓，无需再买（top-up 路径据此清 needs_top_up）。
+        log.info("买入 %s 无需下单：目标 %d 股，当前已持 %d 股。"
+                 % (target, target_shares, current_shares))
+        return True
+
     g.pending_phase = "buying"
     g.pending_target = target
-    g.pending_buy_order = None
+    g.pending_buy_orders = []
     g.pending_buy_failed = False
     g.pending_error = None
     g.pending_stale_checks = 0
-    order_id = order_target_value(target, target_value, limit_price=price)
-    if not order_id:
+    placed = []
+    for chunk in chunks:
+        order_id = order(target, chunk, limit_price=price)
+        if order_id:
+            placed.append(str(order_id))
+            log.info("买入子单已提交 %s %d 股，限价 %.3f，order_id=%s"
+                     % (target, chunk, price, order_id))
+        else:
+            g.pending_buy_failed = True   # 有子单没创建成功 → 次日 needs_top_up 补足
+            log.info("买入子单创建失败 %s %d 股（limit_price=%.3f）" % (target, chunk, price))
+    if not placed:
         _clear_pending("买单创建失败")
-        log.info("买入 %s 订单创建失败（limit_price=%.3f）" % (target, price))
+        log.info("买入 %s 全部子单创建失败（limit_price=%.3f）" % (target, price))
         return False
 
-    g.pending_buy_order = str(order_id)
-    log.info("买入委托已提交 %s 到目标市值 %.2f，限价 %.3f，order_id=%s；等待真实持仓确认"
-             % (target, target_value, price, order_id))
+    g.pending_buy_orders = placed
+    log.info("买入委托已提交 %s 到目标市值 %.2f（增量 %d 股，拆 %d 笔子单），限价 %.3f；等待真实持仓确认"
+             % (target, target_value, delta_shares, len(placed), price))
     return True
 
 
@@ -343,23 +398,37 @@ def _start_trade_switch(context, target, to_sell, buy_required=True):
     g.pending_target = target
     g.pending_buy_required = bool(buy_required)
     g.pending_sell_orders = {}
-    g.pending_buy_order = None
+    g.pending_buy_orders = []
     g.pending_error = None
     g.pending_buy_failed = False
     g.pending_stale_checks = 0
 
+    positions = _positive_positions(context)
     for security in to_sell:
         price = _trade_limit_price(security, "sell")
         if price is None:
             g.pending_error = "%s 卖出实时价格无效" % security
             continue
-        order_id = order_target(security, 0, limit_price=price)
-        if not order_id:
-            g.pending_error = "%s 卖单创建失败" % security
+        position = positions.get(security)
+        # 只卖当前可卖数量（enable_amount），避免 T+1 锁定部分被拒；按单笔上限拆成整百股子单。
+        sell_shares = int(getattr(position, "enable_amount", 0) or 0) if position else 0
+        chunks = _split_order_shares(sell_shares)
+        if not chunks:
+            g.pending_error = "%s 无可卖数量" % security
             continue
-        g.pending_sell_orders[security] = str(order_id)
-        log.info("卖出委托已提交 %s（清仓/清理杂仓），限价 %.3f，order_id=%s；成交前不买新仓"
-                 % (security, price, order_id))
+        placed = []
+        for chunk in chunks:
+            order_id = order(security, -chunk, limit_price=price)
+            if order_id:
+                placed.append(str(order_id))
+                log.info("卖出子单已提交 %s %d 股，限价 %.3f，order_id=%s"
+                         % (security, chunk, price, order_id))
+            else:
+                g.pending_error = "%s 卖单创建失败" % security
+        if placed:
+            g.pending_sell_orders[security] = placed
+            log.info("卖出委托已提交 %s（清仓/清理杂仓，%d 股拆 %d 笔子单），限价 %.3f；成交前不买新仓"
+                     % (security, sell_shares, len(placed), price))
 
     if not g.pending_sell_orders:
         error = g.pending_error or "没有卖单成功创建"
@@ -419,8 +488,9 @@ def _process_pending_switch(context):
 
         if g.pending_phase == "buying":
             if target in positions:
-                if tracked_open and not g.pending_buy_failed:
-                    # 部分成交仍在继续，先反映真实持仓但等待订单终态。
+                if tracked_open:
+                    # 仍有买入子单在途（部分成交继续 / 多笔拆单未全部终结）：
+                    # 先反映真实持仓，等所有子单终结后再收敛，避免某子单先失败就提前判定完成。
                     g.held = target
                     g.held_days = 0
                     return
@@ -462,8 +532,9 @@ def on_order_response(context, order_list):
         log.info("订单回报: order_id=%s status=%s error=%s" % (order_id, status, error_info))
         if status in _ORDER_FAILURE_STATUSES:
             g.pending_error = "order_id=%s status=%s %s" % (order_id, status, error_info)
-            if g.pending_buy_order and str(order_id) == str(g.pending_buy_order):
-                g.pending_buy_failed = True
+            buy_ids = set(str(o) for o in (g.pending_buy_orders or []))
+            if str(order_id) in buy_ids:
+                g.pending_buy_failed = True   # 任一买入子单失败即标记，触发次日 needs_top_up 补足
 
 
 def on_trade_response(context, trade_list):
@@ -542,8 +613,8 @@ def _rebalance_impl(context):
     # ---- 0. 与券商真实持仓/在途订单对账（处理重启、手工干预、拒单、部分成交）----
     if trade_mode and g.pending_phase is not None:
         _process_pending_switch(context)
-        log.info("pending switch active: phase=%s target=%s sell_orders=%s buy_order=%s — 本次不重复下单"
-                 % (g.pending_phase, g.pending_target, g.pending_sell_orders, g.pending_buy_order))
+        log.info("pending switch active: phase=%s target=%s sell_orders=%s buy_orders=%s — 本次不重复下单"
+                 % (g.pending_phase, g.pending_target, g.pending_sell_orders, g.pending_buy_orders))
         return
     if trade_mode:
         open_ids = _strategy_open_order_ids()
