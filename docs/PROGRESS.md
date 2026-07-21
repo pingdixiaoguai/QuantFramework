@@ -6,26 +6,29 @@
 ## 🔄 会话交接(Session Handoff)
 > 由 /bye 覆盖式维护为最新。下一轮 PTrade 会话:开 ptrade worktree,先读此区块。
 
-- **当前状态**:**首次模拟盘轮动失败已定位并完成本地修复,待重新部署验证**(2026-07-10)。`BatchLog.txt` 证实旧代码把回测同 bar 同步成交错误套到交易模式:卖单价格 0 被拒后仍立即买入,造成资金不足和 `g.held`/真实持仓分裂。现已改为显式 ETF 限价 + 卖出确认/资金到账后再买入 + 真实持仓确认后更新状态;执行状态机 8 项测试和原有对账 5 项均通过。
+- **当前状态**:**拆单修复已上模拟盘,7/21 全现金建仓验证通过(买入半程)**。7/21 首次建仓因单笔 210 万股 > 交易所 100 万股上限被后端撤单;已在 `deploy/ptrade_quality_momentum_top1.py` 买卖两侧按 `MAX_ORDER_SHARES=100万` 拆成整百股子单(改走 `order(sec, amount, limit_price=)`,仅交易模式,回测路径不变)。重部署后同日建仓:510300 增量 207.4 万股拆 3 笔全额成交、无超限撤单、`买入持仓已确认`。已 commit `e4e0e84` + push origin/ptrade;ptrade 全套 15 测试通过。
 - **下一步**:
-  1. 把修复后的 `deploy/ptrade_quality_momentum_top1.py` 全文重新粘贴到 PTrade 模拟盘并重启策略。
-  2. 等待下一次换仓,按 checklist §4 核对“卖出提交→资金/持仓同步→买入提交→持仓确认”完整链路。
-  3. 至少观察 1–2 个调仓周期;旧三类错误不复现后再走 checklist §7「模拟 → 实盘」gate。
+  1. **首次真正换仓时**验证三项(有提醒 chip `task_f7e91912`):卖出拆单、159915 深市单笔上限、§6.1 完整异步 gate(卖→买→确认三段)。触发:rd=2 建仓满 2 个交易日后信号切换。
+  2. 换仓结果回填 `PTRADE_MIGRATION.md §6.2` 的「仍待观察 ⏳」→「已验证 ✅」+ `checklist §4` 勾选。
+  3. 三项全过后评估 `checklist §7`「模拟 → 实盘」gate。
 - **悬而未决**:
-  - 实盘 rd=2 **暂时保留观察**(框架已三闸门回滚 rd=5,PTrade 留 rd=2 作外部对照),长期去留待 owner。
-  - 修复后的异步执行状态机尚未经过 PTrade 平台完整换仓复验;当前只有本地柜台替身测试通过。
+  - 卖出拆单 / 159915 深市上限 / 完整异步换仓 gate — 本次全现金建仓未覆盖,待首次换仓。
+  - `MAX_ORDER_SHARES=100万` 是沪市 510300 实测值;深市 159915 上限若更低,调小该常量重部署(只是子单变多)。
+  - 实盘 rd=2 长期去留待 owner(框架已三闸门回滚 rd=5,PTrade 留 rd=2 作外部对照 + 加速换仓验证)。
 - **决策与理由**:
-  - PR #17 记为**已关闭**(非合并):repo 实为 CLOSED 且 owner 明确要求关掉;overlay 永不回流 main,本就不该 merge。(用户初称"已合并",经核对更正。)
-  - 三条 `交易不支持...` WARNING 判为**预期**:set_commission/slippage/volume_ratio 均回测专用旋钮,交易模式走真实费率 + 真实盘口撮合,被拒属正常,非版本缺功能。
-  - 同仓长期 `ptrade` overlay(= main + ptrade 文件),**单向 main→ptrade、永不回流**,main 保持框架单一真相源。
+  - 拆单用按股数的 `order()`(非 `order_value`):股数是上限单位,拆分边界最精确;回测路径保留 `order_target*` 维持 §7/对账口径。
+  - 买入完成判定收紧为「所有在途子单终结后再收敛」:防多子单下某子单先失败就提前判完成(单笔行为不变)。
+  - rd=2 维持(7/20 复核):换仓周期短,加速异步链路验证 + 外部对照。
 - **踩过的坑**:
+  - PTrade 单笔限价申报上限 100 万股/份:全仓 Top1 + 千万级资金买 4–9 元 ETF 天然超限,无配置绕法,必须拆单。(6/22 首次失败是价格 0 异步 bug,7/21 首次失败是超限——两个不同坑。)
+  - 数据同步需 `TUSHARE_TOKEN`(在 `.env`,已可用);本地 `data/db` 曾滞后到 7/14,同步后到 7/17。
+  - 从 6/1 起跑回测需前置预热:因子 min_history=21、`query` 只加载 [start,end],起点须提前 ~1 月让因子在 6/1 当天预热完毕再切片报告。
   - PTrade 回测里的 `order_target*` 同 bar 同步成交不能外推到交易模式;交易柜台订单/持仓/资金异步更新,必须显式限价并管理 pending 状态。
   - 模拟盘初始化日志必有三条 `交易不支持xxx函数` —— 别误判为故障(已在 checklist §3 注明)。
-  - Bash 工具是 Git Bash:commit message 用 heredoc(`-F - <<'EOF'`),**勿**用 PowerShell here-string `@'...'@`(上轮污染了 commit subject,已 amend 修掉)。
+  - Bash 工具是 Git Bash:commit message 用 heredoc(`-F - <<'EOF'`),**勿**用 PowerShell here-string `@'...'@`。
   - git worktree **不共享 gitignored 文件** → ptrade worktree 无 `data/db` → 对账脚本跑不了;用 `mklink /J` junction 解决(**勿删 main worktree,否则 junction 悬空**)。
-  - 引擎 `positions` 稀疏:派生逐日持仓必须**先 `fillna(0)` 再 `reindex+ffill`**,顺序反了会多列同时 1.0→`idxmax` 取错(曾使 held 一致率假性跌到 23%,实为 98%)。
-  - PTrade 归因 510300 负贡献 ≠ qfq 污染:主因 money-weighted 口径(~66%)+ 执行差异(~31%),分红仅 ~3%。
-- **最后更新**:2026-07-10
+  - 引擎 `positions` 稀疏:派生逐日持仓必须**先 `fillna(0)` 再 `reindex+ffill`**,顺序反了会多列同时 1.0→`idxmax` 取错。
+- **最后更新**:2026-07-21
 
 ---
 
@@ -49,3 +52,11 @@
 - ~~补 ptrade 分支模型~~ **已记于 `PTRADE.md`**(铁律/overlay 清单/工作流/CI 防护)。是否再在 main 的 CLAUDE.md 加一句「存在 overlay 分支」属 main 治理,与「main 保持 ptrade-agnostic」权衡,**留给 owner 定**(若要则走 main-PR)。
 - main 侧 PROGRESS 归属:main 无 PROGRESS.md 是**正确**的(PROGRESS 为 ptrade 专属;框架进展在 DESIGN.md 决策日志/changelog)。无 action。
 - ~~main worktree 未跟踪 `backtest/ptrade/` 归位~~ **moot**:该 worktree 下无 backtest/ptrade 未跟踪文件。
+
+### 5. 模拟盘部署验证(进行中)— 2026-07-21
+- [x] 异步执行修复版部署(commit 7395370,§6.1)+ rd=2 维持(§5.1)。
+- [x] 单笔超限拆单修复(commit e4e0e84,§6.2):买卖两侧按 MAX_ORDER_SHARES 拆单。
+- [x] 7/21 买入拆单验证通过(510300 拆 3 笔全额成交)。
+- [ ] 首次真正换仓验证:卖出拆单 / 159915 深市上限 / §6.1 完整异步 gate(chip task_f7e91912)。
+- [ ] 三项全过 → checklist §7 模拟→实盘 gate。
+细项跟踪见 `deploy/SIM_DEPLOYMENT_CHECKLIST.md` §4/§7。
