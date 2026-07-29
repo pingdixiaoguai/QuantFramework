@@ -1,0 +1,87 @@
+"""Tests for the unattended daily-job wrapper."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from types import SimpleNamespace
+
+from scripts import run_daily_job
+
+
+def test_run_job_returns_on_first_success_without_alert(monkeypatch):
+    calls = []
+    alerts = []
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(run_daily_job.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        run_daily_job,
+        "_send_failure_alert",
+        lambda *args: alerts.append(args),
+    )
+
+    result = run_daily_job.run_job(Path("strategy.yaml"), retry_delay=0)
+
+    assert result == 0
+    assert len(calls) == 1
+    assert calls[0][0][-2:] == ["--config", "strategy.yaml"]
+    assert calls[0][1]["cwd"] == run_daily_job.PROJECT_ROOT
+    assert calls[0][1]["check"] is False
+    assert alerts == []
+
+
+def test_run_job_retries_then_sends_one_final_alert(monkeypatch):
+    return_codes = iter([2, 3, 4])
+    sleeps = []
+    alerts = []
+
+    monkeypatch.setattr(
+        run_daily_job.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=next(return_codes)),
+    )
+    monkeypatch.setattr(
+        run_daily_job.time,
+        "sleep",
+        lambda seconds: sleeps.append(seconds),
+    )
+    monkeypatch.setattr(
+        run_daily_job,
+        "_send_failure_alert",
+        lambda *args: alerts.append(args),
+    )
+
+    result = run_daily_job.run_job(
+        Path("strategy.yaml"),
+        attempts=3,
+        retry_delay=10,
+    )
+
+    assert result == 4
+    assert sleeps == [10, 10]
+    assert alerts == [(Path("strategy.yaml"), 3, "exit code 4")]
+
+
+def test_final_alert_uses_plain_text_dingtalk_alert(monkeypatch):
+    messages = []
+
+    class FakeNotifier:
+        def send_alert(self, message):
+            messages.append(message)
+
+    monkeypatch.setattr(run_daily_job, "DingTalkNotifier", FakeNotifier)
+    monkeypatch.setattr(run_daily_job.socket, "gethostname", lambda: "quant-host")
+
+    run_daily_job._send_failure_alert(
+        Path("strategy.yaml"),
+        3,
+        "exit code 1",
+    )
+
+    assert len(messages) == 1
+    assert "quant-host" in messages[0]
+    assert "exit code 1" in messages[0]
+    assert "journalctl -u quant-daily.service" in messages[0]

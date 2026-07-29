@@ -5,14 +5,17 @@ from __future__ import annotations
 from datetime import date
 
 import pandas as pd
+import pytest
 
 from execution.interfaces import diff
 from execution.position import PositionPeriod, PositionState
 from run_daily import (
+    _is_sse_trading_day,
     _is_unpriced_pending_target,
     _next_entry_date,
     _priced_state_as_of,
     _save_or_update_rebalance_target,
+    run,
 )
 
 
@@ -45,6 +48,69 @@ def test_next_entry_date_uses_exchange_calendar_not_next_calendar_day(monkeypatc
     monkeypatch.setattr("run_daily.ts.pro_api", lambda token: FakePro())
 
     assert _next_entry_date(date(2026, 6, 18)) == date(2026, 6, 22)
+
+
+def test_trading_day_status_uses_requested_sse_calendar_date(monkeypatch):
+    class FakePro:
+        def trade_cal(self, **kwargs):
+            assert kwargs == {
+                "exchange": "SSE",
+                "start_date": "20261001",
+                "end_date": "20261001",
+            }
+            return pd.DataFrame({"cal_date": ["20261001"], "is_open": [0]})
+
+    monkeypatch.setattr("run_daily.get_tushare_token", lambda: "token")
+    monkeypatch.setattr("run_daily.ts.pro_api", lambda token: FakePro())
+
+    assert _is_sse_trading_day(date(2026, 10, 1)) is False
+
+
+def test_trading_day_status_rejects_unusable_calendar_response(monkeypatch):
+    class FakePro:
+        def trade_cal(self, **kwargs):
+            return pd.DataFrame()
+
+    monkeypatch.setattr("run_daily.get_tushare_token", lambda: "token")
+    monkeypatch.setattr("run_daily.ts.pro_api", lambda token: FakePro())
+
+    with pytest.raises(RuntimeError, match="Cannot determine SSE trading status"):
+        _is_sse_trading_day(date(2026, 10, 1))
+
+
+def test_closed_market_skips_sync_and_state_changes(monkeypatch, capsys):
+    config = {
+        "strategy_name": "quality_momentum_top1",
+        "asset_pool": ["510300.SH"],
+        "factors": [{"name": "quality_momentum"}],
+        "enable_dingtalk": False,
+    }
+    monkeypatch.setattr("run_daily._is_sse_trading_day", lambda _: False)
+    monkeypatch.setattr(
+        "run_daily._sync_and_check",
+        lambda *_: (_ for _ in ()).throw(AssertionError("must not sync")),
+    )
+
+    run(config)
+
+    assert "daily signal skipped" in capsys.readouterr().out
+
+
+def test_enabled_dingtalk_configuration_error_is_not_swallowed(monkeypatch):
+    config = {
+        "strategy_name": "quality_momentum_top1",
+        "asset_pool": ["510300.SH"],
+        "factors": [{"name": "quality_momentum"}],
+        "enable_dingtalk": True,
+    }
+
+    def fail_notifier():
+        raise ValueError("DingTalk webhook URL required")
+
+    monkeypatch.setattr("run_daily.DingTalkNotifier", fail_notifier)
+
+    with pytest.raises(ValueError, match="webhook URL required"):
+        run(config)
 
 
 def test_unpriced_target_uses_outgoing_holding_for_repeat_signal():

@@ -11,6 +11,8 @@ import urllib.request
 import json
 import os
 
+from dotenv import load_dotenv
+
 from notification.interfaces import Notifier
 
 
@@ -29,6 +31,8 @@ class DingTalkNotifier(Notifier):
         webhook_url: str | None = None,
         secret: str | None = None,
     ):
+        if webhook_url is None:
+            load_dotenv()
         self.webhook_url = webhook_url or os.environ.get("DINGTALK_WEBHOOK", "")
         self.secret = secret or os.environ.get("DINGTALK_SECRET")
 
@@ -81,8 +85,12 @@ class DingTalkNotifier(Notifier):
 
         # 2. Send a plain text message to trigger @所有人 notification
         #    DingTalk only reliably fires the group-wide alert for text type.
+        self.send_alert("请查看今日调仓信号，及时操作！")
+
+    def send_alert(self, message: str) -> None:
+        """Send one plain-text @所有人 alert."""
         self._post(json.dumps({
             "msgtype": "text",
-            "text": {"content": "请查看今日调仓信号，及时操作！"},
+            "text": {"content": message},
             "at": {"isAtAll": True},
         }).encode("utf-8"))

@@ -10,6 +10,7 @@ from notification.dingtalk import DingTalkNotifier
 class TestDingTalkInit:
     def test_raises_without_url(self, monkeypatch):
         monkeypatch.delenv("DINGTALK_WEBHOOK", raising=False)
+        monkeypatch.setattr("notification.dingtalk.load_dotenv", lambda: None)
         with pytest.raises(ValueError, match="webhook URL required"):
             DingTalkNotifier()
 
@@ -22,9 +23,22 @@ class TestDingTalkInit:
         n = DingTalkNotifier()
         assert n.webhook_url == "https://env.example.com"
 
+    def test_loads_dotenv_before_reading_env(self, monkeypatch):
+        monkeypatch.delenv("DINGTALK_WEBHOOK", raising=False)
+
+        def fake_load_dotenv():
+            monkeypatch.setenv("DINGTALK_WEBHOOK", "https://dotenv.example.com")
+
+        monkeypatch.setattr("notification.dingtalk.load_dotenv", fake_load_dotenv)
+
+        n = DingTalkNotifier()
+
+        assert n.webhook_url == "https://dotenv.example.com"
+
 
 class TestDingTalkSign:
-    def test_no_secret_returns_original_url(self):
+    def test_no_secret_returns_original_url(self, monkeypatch):
+        monkeypatch.delenv("DINGTALK_SECRET", raising=False)
         n = DingTalkNotifier(webhook_url="https://example.com/webhook")
         assert n._sign_url() == "https://example.com/webhook"
 
@@ -92,3 +106,31 @@ class TestDingTalkSend:
         n = DingTalkNotifier(webhook_url="https://example.com/webhook")
         with pytest.raises(RuntimeError, match="bad token"):
             n.send("test")
+
+    def test_send_alert_posts_one_text_at_all_payload(self, monkeypatch):
+        captured = []
+
+        class FakeResponse:
+            def read(self):
+                return json.dumps({"errcode": 0, "errmsg": "ok"}).encode()
+            def __enter__(self):
+                return self
+            def __exit__(self, *a):
+                pass
+
+        def fake_urlopen(req):
+            captured.append(json.loads(req.data.decode()))
+            return FakeResponse()
+
+        monkeypatch.setattr("notification.dingtalk.urllib.request.urlopen", fake_urlopen)
+
+        n = DingTalkNotifier(webhook_url="https://example.com/webhook")
+        n.send_alert("任务失败")
+
+        assert captured == [
+            {
+                "msgtype": "text",
+                "text": {"content": "任务失败"},
+                "at": {"isAtAll": True},
+            }
+        ]
