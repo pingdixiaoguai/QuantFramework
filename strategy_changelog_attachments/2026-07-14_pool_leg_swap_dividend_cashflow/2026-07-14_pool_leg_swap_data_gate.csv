@@ -1,0 +1,8 @@
+gate,check,value,threshold,n_overlap_days,passed
+D1,512890 HFQ vs H20269 total-return daily-return corr,0.978878,>=0.97,1811,True
+D2,"512890.SH no-NaN close, strictly increasing unique dates",1812.0,sanity,,True
+D2,"159201.SZ no-NaN close, strictly increasing unique dates",335.0,sanity,,True
+D2,"159399.SZ no-NaN close, strictly increasing unique dates",335.0,sanity,,True
+D2,"H20269.CSI no-NaN close, strictly increasing unique dates",3283.0,sanity,,True
+D2,"H30269.CSI no-NaN close, strictly increasing unique dates",3283.0,sanity,,True
+D2,"932365.CSI no-NaN close, strictly increasing unique dates",3046.0,sanity,,True

@@ -38,6 +38,7 @@
 | 2026-06-20 | Top2 × 国债防御腿 | 仅 Top2 会恶化回撤；仅加债无效；Top2+债可压回撤但以约 13pp CAGR 换取约 1.7pp 全期最大回撤，Sharpe 仍低于基准。 | 弱成立，不部署 | [`报告`](2026-06-20_top2_bond_defensive_leg/2026-06-20_top2_bond_defensive_leg.md) |
 | 2026-06-22 | 单日跳变 / score 稳健化 | 生产轮动序列复现通过；但 k=2.5 / 3.0 的崩盘相邻轮动事件仅为 17 / 9，严格阈值触发预注册规模闸门（N<10）。winsorize 后“离群驱动”桶必为该稀疏事件集的子集，反事实必然更小，不能支撑可解释推断。 | **关闭：不做信号稳健化** | [`报告`](2026-06-22_jump_robustness_diagnostic/2026-06-22_jump_robustness_diagnostic_report.md)、[`事件`](2026-06-22_jump_robustness_diagnostic/2026-06-22_jump_robustness_diagnostic_events.csv)、[`漏斗`](2026-06-22_jump_robustness_diagnostic/2026-06-22_jump_robustness_diagnostic_funnel.csv) |
 | 2026-06-29 | 回归 slope 动量诊断 | 预注册的 slope 端点鲁棒性机制成立：A3 相比窗口匹配 B′ 降低换手、切换和 15 日 round-trip；但收益/Sharpe 未兑现，触发关闭条件。完整 swap A1 被 B 全面压制，A2 仅作为未预注册观察挂起。 | **A3/A1 关闭；A2 挂起，不部署** | [`报告`](2026-06-29_regression_momentum_diagnostic/2026-06-29_regression_momentum_diagnostic_report.md)、[`指标`](2026-06-29_regression_momentum_diagnostic/2026-06-29_regression_momentum_diagnostic_metrics_full.csv)、[`whipsaw`](2026-06-29_regression_momentum_diagnostic/2026-06-29_regression_momentum_diagnostic_whipsaw_panel.csv) |
+| 2026-07-14 | 池内换腿(510300→红利低波/现金流) | 相关性假设成立(512890 与 159915 相关 0.35，远低于 510300 的 0.84)，但 ETF 真实窗口(2019+)是精确等效替换：累计超额≈0、滚动 36m 领先仅 24%；长窗 proxy 优势集中于 2015/2018 不可交易年代，判 regime 依赖。现金流 proxy 全面落后；近 16 个月 ETF 强势仅为观察。2022 熊市"伪防御"A股腿吸走黄金腿配置(−1.2% vs +22.8%)。 | **双线关闭，维持现行池** | [`报告`](2026-07-14_pool_leg_swap_dividend_cashflow/2026-07-14_pool_leg_swap_report.md)、[`设计`](2026-07-14_pool_leg_swap_dividend_cashflow/2026-07-14_pool_leg_swap_design.md) |
 
 ## 按研究主题阅读
 
@@ -47,7 +48,7 @@
 - **已关闭的形状扩展**：5 月初诊中的 `conv` 曾误取二次拟合的常数项；PR #32 已修复为真正的二次系数，旧 `conv` 表不作为证据。后续 HFQ 加 every-5 抽样的 mom5 × COM Gate 仍未复现稳定增量，因此 DTW/路径形状族维持关闭。
 - **已关闭的单日跳变稳健化**：6 月 22 日的预注册诊断在完整轮动复现后，发现严格 k=3.0 下实际“暴跌相邻轮出”只有 9 次；winsorize 反事实的“离群驱动”桶是其子集，样本量只会进一步下降。该线因漏斗稀疏而关闭，**不是**等待参数扫描或实现的候选改动。除非新的预注册设计实质扩大事件宇宙，否则不得在后续 session 将它重新作为新想法提出。
 - **已关闭的回归 slope 线**：6 月 29 日诊断确认 slope 相比窗口匹配 B′ 能降低 whipsaw，但 A3 没有把机制兑现为年化或 Sharpe；完整近端加权版本 A1 也被 B 在收益、Sharpe、回撤三轴压制。A2（等权 `slope × R²`）是未预注册观察，不是部署候选；重开必须另起预注册研究，先给出“为什么 R² 应优于 ER”的机制假设，再做窗口/干净度稳健性与回撤门槛检验。
-- **资产池边界**：跨池验证显示有效性依赖低相关大类资产的轮动结构；它并未在行业 ETF 池中稳定复现。当前结论只适用于四资产、Top1、T+1 执行和报告锁定的样本，不外推至个股池或行业横截面。
+- **资产池边界**：跨池验证显示有效性依赖低相关大类资产的轮动结构；它并未在行业 ETF 池中稳定复现。当前结论只适用于四资产、Top1、T+1 执行和报告锁定的样本，不外推至个股池或行业横截面。池内换腿诊断(2026-07-14)进一步确认：即使把 510300 换成相关性显著更低的红利低波腿(0.35 vs 0.84)，真实可交易窗口下也只是等效替换——"降低池内相关性"本身不自动兑现为收益；池内已有黄金真防御腿时，A股"伪防御"腿在熊市反而是负贡献。红利低波与现金流两条替换线均已关闭。
 
 ### 调仓、成本与执行
 
