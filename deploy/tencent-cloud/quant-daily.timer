@@ -1,0 +1,11 @@
+[Unit]
+Description=Run QuantFramework before the A-share market opens
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 09:00:00
+AccuracySec=1min
+RandomizedDelaySec=0
+Unit=quant-daily.service
+
+[Install]
+WantedBy=timers.target
