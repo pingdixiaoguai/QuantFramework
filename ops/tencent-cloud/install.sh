@@ -12,7 +12,7 @@ env_file="${env_dir}/quant.env"
 uv_version="${UV_VERSION:-0.11.32}"
 
 if [[ "${EUID}" -ne 0 ]]; then
-    echo "Run this installer as root: sudo bash deploy/tencent-cloud/install.sh" >&2
+    echo "Run this installer as root: sudo bash ops/tencent-cloud/install.sh" >&2
     exit 1
 fi
 

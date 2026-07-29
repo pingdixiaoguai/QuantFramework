@@ -110,7 +110,7 @@ uv run python run_daily.py --config strategy/configs/momentum_rotation.yaml
 
 交易日早盘运行时，程序使用最新完整交易日作为信号日，并按交易所日历计算下一开仓
 日；上交所休市日会直接跳过。腾讯云 Linux 服务器的 09:00 定时部署、失败重试和钉钉
-故障告警见 [`deploy/tencent-cloud/README.md`](deploy/tencent-cloud/README.md)。
+故障告警见 [`ops/tencent-cloud/README.md`](ops/tencent-cloud/README.md)。
 
 ### 6. 补全年初至今持仓状态
 

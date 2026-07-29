@@ -1,5 +1,5 @@
 [Unit]
-Description=QuantFramework 09:00 daily position signal
+Description=QuantFramework 09:00 daily position signal on Tencent Cloud
 Wants=network-online.target
 After=network-online.target
 ConditionPathExists=/opt/QuantFramework/run_daily.py

@@ -58,9 +58,9 @@ state/quality_momentum_top1_position.json
 
 ```bash
 cd /opt/QuantFramework
-sudo bash deploy/tencent-cloud/install.sh
+sudo bash ops/tencent-cloud/install.sh
 sudoedit /etc/quantframework/quant.env
-sudo bash deploy/tencent-cloud/install.sh
+sudo bash ops/tencent-cloud/install.sh
 ```
 
 安装器会完成以下操作：

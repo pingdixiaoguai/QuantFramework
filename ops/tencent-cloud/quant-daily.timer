@@ -1,5 +1,5 @@
 [Unit]
-Description=Run QuantFramework before the A-share market opens
+Description=Run QuantFramework before the A-share market opens on Tencent Cloud
 
 [Timer]
 OnCalendar=Mon..Fri *-*-* 09:00:00
