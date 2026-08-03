@@ -235,6 +235,26 @@ def _build_ytd_line(ctx: NotificationContext) -> str:
     return f"**年初至今：** {_fmt_pct(ctx.ytd_return)}"
 
 
+def _build_signal_targets_section(ctx: NotificationContext) -> str:
+    """Show the production and shadow Top1 targets without raw diagnostics."""
+    if ctx.old_signal_target is None and ctx.new_signal_target is None:
+        return ""
+
+    lines = ["**新旧信号**"]
+    if ctx.old_signal_target is not None:
+        lines.append(
+            "• 旧信号（原策略）："
+            f"{_asset_label(ctx.old_signal_target, ctx.asset_names)}"
+        )
+    if ctx.new_signal_target is not None:
+        lines.append(
+            "• 新信号（OHLC ER影子）："
+            f"{_asset_label(ctx.new_signal_target, ctx.asset_names)}"
+        )
+    lines.append("新信号仅作观察，不改变原策略交易")
+    return "\n\n".join(lines)
+
+
 def format_notification(ctx: NotificationContext) -> str:
     """Format a rich DingTalk markdown message from a NotificationContext.
 
@@ -255,11 +275,14 @@ def format_notification(ctx: NotificationContext) -> str:
 
     benchmark = _build_benchmark_section(ctx)
     alpha = _build_alpha_section(ctx) if is_rebalance else ""
+    signal_targets = _build_signal_targets_section(ctx)
     ytd = _build_ytd_line(ctx)
 
     parts = [header, "---", middle]
     if alpha:
         parts += ["---", alpha]
+    if signal_targets:
+        parts += ["---", signal_targets]
     if benchmark:
         parts += ["---", benchmark]
     parts += ["---", ytd]

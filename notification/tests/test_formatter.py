@@ -148,7 +148,7 @@ class TestFormatNotificationHold:
         # benchmark 159915.SZ = +2.44%, position = +0.89%, diff = +1.54% above
         assert "超出持仓" in msg or "↑" in msg or "↓" in msg
 
-    def test_omits_old_new_signal_comparison_on_hold_days(self):
+    def test_shows_old_and_new_targets_without_raw_diagnostics(self):
         msg = format_notification(
             self._make_ctx(
                 signal_comparison={
@@ -159,8 +159,14 @@ class TestFormatNotificationHold:
                     }
                 },
                 signal_confidence={"159915.SZ": 0.40},
+                old_signal_target="510300.SH",
+                new_signal_target="159915.SZ",
             )
         )
+        assert "新旧信号" in msg
+        assert "旧信号（原策略）：510300 沪深300" in msg
+        assert "新信号（OHLC ER影子）：159915 创业板" in msg
+        assert "新信号仅作观察" in msg
         assert "新旧信号对照" not in msg
         assert "旧ER" not in msg
         assert "新ER" not in msg
@@ -239,4 +245,5 @@ class TestFormatNotificationRebalance:
         assert "超额" in msg
         assert "置信度 30.0%" in msg
         assert "置信度 70.0%" in msg
-        assert "新旧信号对照" not in msg
+        assert "旧信号（原策略）：513100 纳指ETF" in msg
+        assert "新信号（OHLC ER影子）：513100 纳指ETF" in msg
