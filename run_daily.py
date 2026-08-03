@@ -60,6 +60,36 @@ def _load_config(path: Path) -> dict:
 _STALE_TRADING_DAYS = 1
 
 
+def _is_sse_trading_day(day: date) -> bool:
+    """Return whether *day* is an open SSE trading day.
+
+    A missing or malformed calendar response is treated as an operational
+    failure rather than a market closure.  This prevents an upstream outage
+    from being reported as a successful no-op by the unattended daily job.
+    """
+    day_str = day.strftime("%Y%m%d")
+    pro = ts.pro_api(get_tushare_token())
+    calendar = pro.trade_cal(
+        exchange="SSE",
+        start_date=day_str,
+        end_date=day_str,
+    )
+    required = {"cal_date", "is_open"}
+    if calendar is None or calendar.empty or not required.issubset(calendar.columns):
+        raise RuntimeError(
+            f"Cannot determine SSE trading status for {day}; "
+            "trade_cal returned no usable row."
+        )
+
+    matching = calendar[calendar["cal_date"].astype(str) == day_str]
+    if matching.empty:
+        raise RuntimeError(
+            f"Cannot determine SSE trading status for {day}; "
+            "trade_cal did not return the requested date."
+        )
+    return str(matching.iloc[0]["is_open"]) == "1"
+
+
 def _count_trading_days_behind(latest: date, today: date) -> int:
     """Number of SSE trading days strictly after `latest` and up to `today`."""
     if latest >= today:
@@ -430,6 +460,12 @@ def run(config: dict, notification_only: bool = False) -> None:
         raise ValueError(f"rebalance_days must be >= 1, got {rebalance_days}")
     rebalance_mode = normalize_rebalance_mode(config.get("rebalance_mode"))
 
+    if not _is_sse_trading_day(today):
+        print(f"{today} is not an SSE trading day; daily signal skipped.")
+        return
+
+    notifier = DingTalkNotifier() if enable_dingtalk else None
+
     # 1. Sync data and verify freshness
     _sync_and_check(asset_pool, today)
     signal_date = _latest_common_data_date(asset_pool, today)
@@ -628,20 +664,16 @@ def run(config: dict, notification_only: bool = False) -> None:
         )
     print(message)
 
-    if enable_dingtalk:
-        try:
-            notifier = DingTalkNotifier()
-            if notification_only:
-                notifier.send(
-                    message,
-                    title="通知测试（无需操作）",
-                    alert_text="钉钉消息测试，请忽略，无需操作。",
-                )
-            else:
-                notifier.send(message)
-            print("\nDingTalk notification sent.")
-        except ValueError as exc:
-            print(f"\nDingTalk skipped: {exc}")
+    if notifier is not None:
+        if notification_only:
+            notifier.send(
+                message,
+                title="通知测试（无需操作）",
+                alert_text="钉钉消息测试，请忽略，无需操作。",
+            )
+        else:
+            notifier.send(message)
+        print("\nDingTalk notification sent.")
     else:
         print("\nDingTalk disabled by config (enable_dingtalk: false).")
 

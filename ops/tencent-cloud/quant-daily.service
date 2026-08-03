@@ -1,0 +1,29 @@
+[Unit]
+Description=QuantFramework 09:00 daily position signal on Tencent Cloud
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/opt/QuantFramework/run_daily.py
+ConditionPathExists=/opt/QuantFramework/.venv/bin/python
+
+[Service]
+Type=oneshot
+User=quant
+Group=quant
+WorkingDirectory=/opt/QuantFramework
+EnvironmentFile=/etc/quantframework/quant.env
+Environment=PYTHONUNBUFFERED=1
+RuntimeDirectory=quantframework
+RuntimeDirectoryMode=0750
+UMask=0027
+Nice=10
+
+ExecStart=/usr/bin/flock --nonblock /run/quantframework/daily.lock \
+    /opt/QuantFramework/.venv/bin/python \
+    -m scripts.run_daily_job \
+    --config strategy/configs/quality_momentum_top1.yaml \
+    --attempts 3 \
+    --retry-delay 600
+
+TimeoutStartSec=45min
+StandardOutput=journal
+StandardError=journal

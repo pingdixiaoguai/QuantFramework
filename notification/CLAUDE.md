@@ -5,9 +5,9 @@ Adapter interface (`interfaces.py`): `class Notifier(ABC)` with `send(message: s
 Message builder (`formatter.py`): `format_notification(ctx: NotificationContext) -> str` → markdown string for DingTalk
 
 ## Implementation Notes
-- `dingtalk.py` — `DingTalkNotifier(webhook_url, secret)`; reads `DINGTALK_WEBHOOK` / `DINGTALK_SECRET` env vars as fallback; HMAC-SHA256 signing appended as `timestamp` + `sign` query params when `secret` is set
+- `dingtalk.py` — `DingTalkNotifier(webhook_url, secret)`; loads `.env` and reads `DINGTALK_WEBHOOK` / `DINGTALK_SECRET` as fallback; HMAC-SHA256 signing appended as `timestamp` + `sign` query params when `secret` is set
 - `send()` performs **two POSTs**: (1) the `markdown` card with the formatted message, (2) a plain `text` message `"请查看今日调仓信号，及时操作！"` with `isAtAll: True` to trigger @所有人 (DingTalk only reliably fires the group-wide alert for `text` type — see commit `68a3fc7`). Optional keyword-only `title` and `alert_text` override those labels for safe test sends while preserving production defaults.
-- `run_daily.py --notification-only` sends a clearly labelled test notification and returns before any position backfill or persistence. It still syncs market data and computes the full production/shadow comparison.
+- `send_alert(message)` performs one plain-text `isAtAll: True` POST and is used by unattended-job failure reporting
 - `formatter.py` renders different layouts based on whether orders contain `buy`/`sell` (rebalance) or only `hold`
   - Sections: header → (rebalance instructions OR current position) → alpha comparison (rebalance only) → benchmark comparison → YTD return
   - `NotificationContext` aggregates: orders, target/current weights, entry date, holding days, position return, benchmark returns per asset, YTD return, optional per-asset factor values, and optional production signal confidence
