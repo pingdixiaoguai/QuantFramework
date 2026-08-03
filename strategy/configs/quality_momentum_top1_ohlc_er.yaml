@@ -1,0 +1,33 @@
+strategy_name: quality_momentum_top1_ohlc_er
+strategy_class: strategy.top1.Top1
+enable_dingtalk: false
+asset_pool:
+  - 510300.SH   # 沪深300 ETF
+  - 159915.SZ   # 创业板 ETF
+  - 513100.SH   # 纳斯达克 ETF
+  - 518880.SH   # 黄金 ETF
+start: "2013-07-01"
+end: "today"
+factors:
+  - name: ohlc_quality_momentum
+    weight: 1.0
+    params:
+      window: 20
+      weights:
+        close: 0.853
+        gap: 0.337
+        body: 0.029
+        range: 0.281
+train_ratio: 0.7
+rebalance_rule: daily
+rebalance_days: 1
+
+# Versioned, confirmed checkpoint.  The daily runner only reads this file;
+# parameter search is performed by the separate research workflow.
+parameter_checkpoint:
+  effective_date: "2026-07-01"
+  training_start: "2022-05-05"
+  training_end: "2026-06-30"
+  history_days: 1008
+  selection: "prior-quarter walk-forward search; mean of training-Sharpe Top10"
+  price_basis: "后复权 OHLC"

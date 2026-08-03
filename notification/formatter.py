@@ -63,13 +63,9 @@ class NotificationContext:
     asset_names: dict[str, str]       # asset → Chinese name
     asset_factor_values: dict[str, dict[str, float]] | None = None  # asset → factor → value
     signal_confidence: dict[str, float] | None = None  # asset → production signal confidence
-    signal_comparison: dict[str, dict[str, float]] | None = None
     old_signal_target: str | None = None
     new_signal_target: str | None = None
-    rolling_er_weights: dict[str, float] | None = None
-    rolling_er_effective_date: date | None = None
-    rolling_er_training_start: date | None = None
-    rolling_er_training_end: date | None = None
+    new_signal_name: str | None = None
 
 
 def _asset_label(asset: str, asset_names: dict[str, str]) -> str:
@@ -236,7 +232,7 @@ def _build_ytd_line(ctx: NotificationContext) -> str:
 
 
 def _build_signal_targets_section(ctx: NotificationContext) -> str:
-    """Show the production and shadow Top1 targets without raw diagnostics."""
+    """Show production and independently configured shadow targets."""
     if ctx.old_signal_target is None and ctx.new_signal_target is None:
         return ""
 
@@ -248,7 +244,7 @@ def _build_signal_targets_section(ctx: NotificationContext) -> str:
         )
     if ctx.new_signal_target is not None:
         lines.append(
-            "• 新信号（OHLC ER影子）："
+            f"• 新信号（{ctx.new_signal_name or '影子策略'}）："
             f"{_asset_label(ctx.new_signal_target, ctx.asset_names)}"
         )
     lines.append("新信号仅作观察，不改变原策略交易")
@@ -274,7 +270,9 @@ def format_notification(ctx: NotificationContext) -> str:
         middle = _build_position_section(ctx)
 
     benchmark = _build_benchmark_section(ctx)
-    alpha = _build_alpha_section(ctx) if is_rebalance else ""
+    # Factor scores and confidence are informational and are sent every day,
+    # including hold days; only the execution block changes with rebalance.
+    alpha = _build_alpha_section(ctx)
     signal_targets = _build_signal_targets_section(ctx)
     ytd = _build_ytd_line(ctx)
 

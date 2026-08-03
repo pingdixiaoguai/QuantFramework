@@ -1,4 +1,4 @@
-"""Tests for the quarterly rolling OHLC ER shadow strategy."""
+"""Tests for the research-only quarterly rolling OHLC ER search."""
 
 from __future__ import annotations
 

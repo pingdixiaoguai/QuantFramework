@@ -9,9 +9,10 @@ Message builder (`formatter.py`): `format_notification(ctx: NotificationContext)
 - `send()` performs **two POSTs**: (1) the `markdown` card with the formatted message, (2) a plain `text` message `"请查看今日调仓信号，及时操作！"` with `isAtAll: True` to trigger @所有人 (DingTalk only reliably fires the group-wide alert for `text` type — see commit `68a3fc7`). Optional keyword-only `title` and `alert_text` override those labels for safe test sends while preserving production defaults.
 - `send_alert(message)` performs one plain-text `isAtAll: True` POST and is used by unattended-job failure reporting
 - `formatter.py` renders different layouts based on whether orders contain `buy`/`sell` (rebalance) or only `hold`
-  - Sections: header → (rebalance instructions OR current position) → alpha comparison (rebalance only) → benchmark comparison → YTD return
+  - Sections: header → (rebalance instructions OR current position) → daily alpha/factor comparison → benchmark comparison → YTD return
   - `NotificationContext` aggregates: orders, target/current weights, entry date, holding days, position return, benchmark returns per asset, YTD return, optional per-asset factor values, and optional production signal confidence
-  - The notification appends the production signal's scale-free cross-sectional softmax confidence to each ETF comparison line, after the excess-return item, and shows the old/new Top1 targets in a compact summary. Raw old/new ER diagnostics are not sent to DingTalk.
+  - The notification appends the production signal's scale-free cross-sectional softmax confidence to each ETF comparison line, after the excess-return item, every day, and shows the old/new targets in a compact summary. Raw ER diagnostics are not sent to DingTalk.
+  - Shadow configs are ordinary strategy YAMLs loaded read-only through the factor registry and strategy loader. They do not affect production orders or position state.
   - `ASSET_NAMES` dict maps `510300.SH → 沪深300` etc.; unknown tickers fall back to the raw code
 
 ### Known deviations from DESIGN.md

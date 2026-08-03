@@ -1,13 +1,14 @@
-"""Quarterly rolling four-path OHLC efficiency-ratio shadow strategy.
+"""Research-only quarterly rolling four-path OHLC efficiency-ratio search.
 
-This module deliberately stays outside the production order path.  It:
+This module deliberately stays outside the production order path.  The
+research command uses it to:
 
 1. rolls the OHLC path weights forward at calendar-quarter boundaries;
 2. computes old close-only ER and new rolling OHLC ER diagnostics;
-3. returns a four-ETF signal comparison for notification.
+3. provide reproducible diagnostics for a reviewed YAML checkpoint.
 
-The production ``quality_momentum_top1`` target remains owned by ``run_daily``'s
-normal factor/strategy pipeline.
+The production and notification paths do not import this module. They consume
+the registered ``ohlc_quality_momentum`` factor through a normal strategy YAML.
 """
 
 from __future__ import annotations

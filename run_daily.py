@@ -14,10 +14,12 @@ Requires env vars:
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import warnings
 from datetime import date, timedelta
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import tushare as ts
 import yaml
@@ -39,7 +41,35 @@ from notification.dingtalk import DingTalkNotifier
 from notification.formatter import ASSET_NAMES, NotificationContext, format_notification
 from strategy.loader import load_strategy
 from strategy.rebalance import normalize_rebalance_mode, should_hold_position
-from strategy.rolling_ohlc_er import build_signal_comparison
+
+
+@dataclass(frozen=True)
+class SignalSnapshot:
+    """A standard factor/strategy snapshot used for notification diagnostics."""
+
+    strategy_name: str
+    factor_values: dict[str, dict[str, float]]
+    weights: dict[str, float]
+    target: str | None
+    confidence: dict[str, float]
+
+
+def _softmax_confidence(scores: dict[str, float]) -> dict[str, float]:
+    """Return cross-sectional confidence from a strategy's primary scores."""
+    if not scores:
+        return {}
+    assets = list(scores)
+    values = np.asarray([scores[asset] for asset in assets], dtype=float)
+    if not np.isfinite(values).all():
+        raise ValueError("signal scores must all be finite")
+    scale = float(np.std(values, ddof=0))
+    if scale <= 1e-12:
+        probabilities = np.full(len(values), 1.0 / len(values))
+    else:
+        logits = values / scale
+        exponentials = np.exp(logits - logits.max())
+        probabilities = exponentials / exponentials.sum()
+    return dict(zip(assets, probabilities, strict=True))
 
 
 def _load_config(path: Path) -> dict:
@@ -52,6 +82,92 @@ def _load_config(path: Path) -> dict:
             else:
                 raw[key] = date.fromisoformat(raw[key])
     return raw
+
+
+def _load_notification_shadow_configs(config: dict) -> list[dict]:
+    """Load independent read-only signal configs referenced by the runner.
+
+    Shadow configs are ordinary strategy YAML files.  They are never allowed
+    to carry out execution or state persistence; the runner only uses their
+    factor/strategy definitions to build a notification comparison.
+    """
+    configs: list[dict] = []
+    for raw_path in config.get("notification_shadow_configs", []):
+        path = Path(raw_path)
+        if not path.is_absolute() and not path.exists():
+            path = Path.cwd() / path
+        loaded = _load_config(path)
+        loaded["enable_dingtalk"] = False
+        configs.append(loaded)
+    return configs
+
+
+def _compute_factor_values(
+    config: dict,
+    asset_price_data: dict[str, pd.DataFrame],
+    signal_date: date,
+    all_factors: dict[str, dict],
+) -> dict[str, dict[str, float]]:
+    """Compute one config's registered factors from read-only price data."""
+    values_by_asset: dict[str, dict[str, float]] = {}
+    factor_configs = config["factors"]
+    for asset in config["asset_pool"]:
+        df = asset_price_data.get(asset)
+        if df is None or len(df) == 0:
+            continue
+        truncated = df.loc[df["date"] <= pd.Timestamp(signal_date)]
+        if len(truncated) == 0:
+            continue
+
+        factor_values: dict[str, float] = {}
+        for factor_config in factor_configs:
+            factor_name = factor_config["name"]
+            factor_module = all_factors[factor_name]
+            try:
+                series = factor_module["compute"](
+                    truncated.copy(),
+                    factor_config.get("params"),
+                )
+                validate(series, truncated, factor_module["METADATA"])
+                last_value = series.iloc[-1]
+                if pd.notna(last_value):
+                    factor_values[factor_name] = float(last_value)
+            except Exception as exc:
+                warnings.warn(
+                    f"factor '{factor_name}' failed for {asset}: {exc}",
+                    stacklevel=2,
+                )
+
+        if len(factor_values) == len(factor_configs):
+            values_by_asset[asset] = factor_values
+    return values_by_asset
+
+
+def _build_signal_snapshot(
+    config: dict,
+    factor_values: dict[str, dict[str, float]],
+) -> SignalSnapshot:
+    """Run the configured strategy and derive confidence from its primary factor."""
+    strategy = load_strategy(config)
+    weights = strategy.generate_weights(factor_values)
+    target = max(weights, key=weights.get) if weights else None
+
+    primary = config["factors"][0]
+    factor_name = primary["name"]
+    scores = {
+        asset: values[factor_name]
+        for asset, values in factor_values.items()
+        if factor_name in values
+    }
+    if primary.get("direction_flip", False):
+        scores = {asset: -value for asset, value in scores.items()}
+    return SignalSnapshot(
+        strategy_name=config["strategy_name"],
+        factor_values=factor_values,
+        weights=weights,
+        target=target,
+        confidence=_softmax_confidence(scores),
+    )
 
 
 # Max trading days a local file may lag behind today before being considered
@@ -452,7 +568,6 @@ def _save_or_update_rebalance_target(
 def run(config: dict, notification_only: bool = False) -> None:
     today = date.today()
     asset_pool = config["asset_pool"]
-    factor_configs = config["factors"]
     strategy_name = config["strategy_name"]
     enable_dingtalk = config.get("enable_dingtalk", True)
     rebalance_days = int(config.get("rebalance_days", 1))
@@ -460,15 +575,32 @@ def run(config: dict, notification_only: bool = False) -> None:
         raise ValueError(f"rebalance_days must be >= 1, got {rebalance_days}")
     rebalance_mode = normalize_rebalance_mode(config.get("rebalance_mode"))
 
-    if not _is_sse_trading_day(today):
+    if not _is_sse_trading_day(today) and not notification_only:
         print(f"{today} is not an SSE trading day; daily signal skipped.")
         return
 
     notifier = DingTalkNotifier() if enable_dingtalk else None
 
+    shadow_configs = _load_notification_shadow_configs(config)
+    all_assets = list(
+        dict.fromkeys(
+            asset_pool
+            + [
+                asset
+                for shadow_config in shadow_configs
+                for asset in shadow_config["asset_pool"]
+            ]
+        )
+    )
+    config_starts = [
+        value.get("start", date(2016, 1, 1))
+        for value in [config, *shadow_configs]
+    ]
+    data_start = min(config_starts)
+
     # 1. Sync data and verify freshness
-    _sync_and_check(asset_pool, today)
-    signal_date = _latest_common_data_date(asset_pool, today)
+    _sync_and_check(all_assets, today)
+    signal_date = _latest_common_data_date(all_assets, today)
     if signal_date != today:
         print(f"Using latest common priced date as signal date: {signal_date}\n")
 
@@ -480,63 +612,49 @@ def run(config: dict, notification_only: bool = False) -> None:
     if not notification_only:
         current_state = _backfill_open_prices(current_state, today, strategy_name)
 
-    strategy = load_strategy(config)
     all_factors = load_registered_factors()
 
-    # 4. Compute today's factor values for each asset
-    asset_factor_values: dict[str, dict[str, float]] = {}
+    # 4. Load a common read-only price snapshot.  Both production and shadow
+    # strategies use this same data access path; only the YAML/factor differs.
     asset_price_data: dict[str, pd.DataFrame] = {}
-
-    for asset in asset_pool:
-        df = query(asset, config.get("start", date(2016, 1, 1)), signal_date)
+    for asset in all_assets:
+        df = query(asset, data_start, signal_date)
         if len(df) == 0:
             continue
         asset_price_data[asset] = df
 
-        factor_vals: dict[str, float] = {}
-        for fc in factor_configs:
-            fname = fc["name"]
-            fmod = all_factors[fname]
-            params = fc.get("params")
-            try:
-                series = fmod["compute"](df.copy(), params)
-                validate(series, df, fmod["METADATA"])
-                last_val = series.iloc[-1]
-                if pd.notna(last_val):
-                    factor_vals[fname] = float(last_val)
-            except Exception as exc:
-                warnings.warn(
-                    f"factor '{fname}' failed for {asset}: {exc}",
-                    stacklevel=2,
-                )
-
-        if len(factor_vals) == len(factor_configs):
-            asset_factor_values[asset] = factor_vals
-
-    # 4b. Notification-only shadow signal.  This result is intentionally not
-    # passed into the production strategy, hold filter, execution diff, or
-    # position persistence.
-    signal_comparison = None
-    shadow_config = config.get("shadow_rolling_ohlc_er", {})
-    if shadow_config.get("enabled", False):
-        shadow_assets = list(shadow_config.get("asset_pool", asset_pool))
+    asset_factor_values = _compute_factor_values(
+        config,
+        asset_price_data,
+        signal_date,
+        all_factors,
+    )
+    production_snapshot = _build_signal_snapshot(config, asset_factor_values)
+    shadow_snapshots: list[SignalSnapshot] = []
+    for shadow_config in shadow_configs:
         try:
-            signal_comparison = build_signal_comparison(
-                asset_price_data,
-                shadow_assets,
-                signal_date,
-                strategy_name,
+            shadow_values = _compute_factor_values(
                 shadow_config,
+                asset_price_data,
+                signal_date,
+                all_factors,
+            )
+            shadow_snapshots.append(
+                _build_signal_snapshot(shadow_config, shadow_values)
             )
         except Exception as exc:
             warnings.warn(
-                "rolling OHLC ER shadow signal failed; "
+                f"shadow strategy '{shadow_config['strategy_name']}' failed; "
                 f"production signal is unchanged: {exc}",
                 stacklevel=2,
             )
 
+    # Shadow snapshots are notification-only.  They never enter the
+    # production target, hold filter, execution diff, or position persistence.
+    shadow_snapshot = shadow_snapshots[0] if shadow_snapshots else None
+
     # 5. Strategy → today's signal weights (raw output before hold filter)
-    signal_weights = strategy.generate_weights(asset_factor_values)
+    signal_weights = production_snapshot.weights
     # A target saved for a future market open is not a filled position yet.
     # Use the actually priced holding for the hold rule, execution diff and
     # notification so a holiday cannot turn an outstanding rebalance into a
@@ -609,49 +727,10 @@ def run(config: dict, notification_only: bool = False) -> None:
         ytd_return=ytd_return,
         asset_names=ASSET_NAMES,
         asset_factor_values=asset_factor_values,
-        signal_confidence=(
-            {
-                asset: values["old_confidence"]
-                for asset, values in signal_comparison.assets.items()
-            }
-            if signal_comparison is not None
-            else None
-        ),
-        signal_comparison=(
-            signal_comparison.assets if signal_comparison is not None else None
-        ),
-        old_signal_target=(
-            signal_comparison.old_target if signal_comparison is not None else None
-        ),
-        new_signal_target=(
-            signal_comparison.new_target if signal_comparison is not None else None
-        ),
-        rolling_er_weights=(
-            dict(
-                zip(
-                    ("close", "gap", "body", "range"),
-                    signal_comparison.weights.values,
-                    strict=True,
-                )
-            )
-            if signal_comparison is not None
-            else None
-        ),
-        rolling_er_effective_date=(
-            signal_comparison.weights.effective_date
-            if signal_comparison is not None
-            else None
-        ),
-        rolling_er_training_start=(
-            signal_comparison.weights.training_start
-            if signal_comparison is not None
-            else None
-        ),
-        rolling_er_training_end=(
-            signal_comparison.weights.training_end
-            if signal_comparison is not None
-            else None
-        ),
+        signal_confidence=production_snapshot.confidence,
+        old_signal_target=production_snapshot.target,
+        new_signal_target=(shadow_snapshot.target if shadow_snapshot else None),
+        new_signal_name=(shadow_snapshot.strategy_name if shadow_snapshot else None),
     )
 
     message = format_notification(ctx)

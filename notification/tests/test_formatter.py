@@ -151,21 +151,15 @@ class TestFormatNotificationHold:
     def test_shows_old_and_new_targets_without_raw_diagnostics(self):
         msg = format_notification(
             self._make_ctx(
-                signal_comparison={
-                    "159915.SZ": {
-                        "momentum": 0.05,
-                        "old_confidence": 0.40,
-                        "new_confidence": 0.42,
-                    }
-                },
                 signal_confidence={"159915.SZ": 0.40},
                 old_signal_target="510300.SH",
                 new_signal_target="159915.SZ",
+                new_signal_name="quality_momentum_top1_ohlc_er",
             )
         )
         assert "新旧信号" in msg
         assert "旧信号（原策略）：510300 沪深300" in msg
-        assert "新信号（OHLC ER影子）：159915 创业板" in msg
+        assert "新信号（quality_momentum_top1_ohlc_er）：159915 创业板" in msg
         assert "新信号仅作观察" in msg
         assert "新旧信号对照" not in msg
         assert "旧ER" not in msg
@@ -222,19 +216,9 @@ class TestFormatNotificationRebalance:
 
     def test_shows_production_confidence_after_excess_on_rebalance_days(self):
         ctx = self._make_ctx()
-        ctx.signal_comparison = {
-            "513100.SH": {
-                "momentum": 0.04,
-                "old_er": 0.30,
-                "old_score": 0.012,
-                "old_confidence": 1.0,
-                "new_er": 0.20,
-                "new_score": 0.008,
-                "new_confidence": 1.0,
-            }
-        }
         ctx.old_signal_target = "513100.SH"
         ctx.new_signal_target = "513100.SH"
+        ctx.new_signal_name = "quality_momentum_top1_ohlc_er"
         ctx.benchmark_returns["513100.SH"] = 0.01
         ctx.signal_confidence = {
             "159915.SZ": 0.30,
@@ -246,4 +230,4 @@ class TestFormatNotificationRebalance:
         assert "置信度 30.0%" in msg
         assert "置信度 70.0%" in msg
         assert "旧信号（原策略）：513100 纳指ETF" in msg
-        assert "新信号（OHLC ER影子）：513100 纳指ETF" in msg
+        assert "新信号（quality_momentum_top1_ohlc_er）：513100 纳指ETF" in msg
