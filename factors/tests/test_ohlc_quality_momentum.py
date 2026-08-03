@@ -36,4 +36,4 @@ def test_weighted_ohlc_er_matches_formula():
     ].diff().abs().rolling(20).sum()
     expected = momentum * er
     assert result.iloc[-1] == expected.iloc[-1]
-    assert result.index.equals(frame["date"])
+    assert result.index.equals(pd.Index(frame["date"]))
