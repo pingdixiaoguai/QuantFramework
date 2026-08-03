@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 
@@ -60,7 +61,6 @@ def _base_config():
         "factors": [{"name": "quality_momentum"}],
         "rebalance_days": 5,
         "enable_dingtalk": False,
-        "notification_shadow_configs": ["shadow.yaml"],
     }
 
 
@@ -127,7 +127,10 @@ def test_shadow_target_is_not_used_for_execution(monkeypatch):
     captured = {}
     _patch_common(monkeypatch, run_daily, captured)
 
-    run_daily.run(_base_config())
+    run_daily.run(
+        _base_config(),
+        shadow_config_paths=[Path("shadow.yaml")],
+    )
 
     assert captured["target"] == {"510300.SH": 1.0}
     assert captured["current"] == {}
@@ -163,7 +166,11 @@ def test_notification_only_works_on_holiday_without_state_write(monkeypatch):
 
     config = _base_config()
     config["enable_dingtalk"] = True
-    run_daily.run(config, notification_only=True)
+    run_daily.run(
+        config,
+        notification_only=True,
+        shadow_config_paths=[Path("shadow.yaml")],
+    )
 
     assert captured["sent"] is True
     assert captured["context"].signal_date == date(2026, 7, 27)

@@ -84,16 +84,15 @@ def _load_config(path: Path) -> dict:
     return raw
 
 
-def _load_notification_shadow_configs(config: dict) -> list[dict]:
-    """Load independent read-only signal configs referenced by the runner.
+def _load_notification_shadow_configs(paths: list[Path]) -> list[dict]:
+    """Load independent read-only signal configs passed by the runner.
 
     Shadow configs are ordinary strategy YAML files.  They are never allowed
     to carry out execution or state persistence; the runner only uses their
     factor/strategy definitions to build a notification comparison.
     """
     configs: list[dict] = []
-    for raw_path in config.get("notification_shadow_configs", []):
-        path = Path(raw_path)
+    for path in paths:
         if not path.is_absolute() and not path.exists():
             path = Path.cwd() / path
         loaded = _load_config(path)
@@ -565,7 +564,11 @@ def _save_or_update_rebalance_target(
     return True
 
 
-def run(config: dict, notification_only: bool = False) -> None:
+def run(
+    config: dict,
+    notification_only: bool = False,
+    shadow_config_paths: list[Path] | None = None,
+) -> None:
     today = date.today()
     asset_pool = config["asset_pool"]
     strategy_name = config["strategy_name"]
@@ -581,7 +584,7 @@ def run(config: dict, notification_only: bool = False) -> None:
 
     notifier = DingTalkNotifier() if enable_dingtalk else None
 
-    shadow_configs = _load_notification_shadow_configs(config)
+    shadow_configs = _load_notification_shadow_configs(shadow_config_paths or [])
     all_assets = list(
         dict.fromkeys(
             asset_pool
@@ -793,10 +796,24 @@ def main() -> None:
             "saving position state"
         ),
     )
+    parser.add_argument(
+        "--shadow-config",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "Optional independent read-only strategy YAML used for notification "
+            "comparison; may be repeated."
+        ),
+    )
     args = parser.parse_args()
 
     config = _load_config(args.config)
-    run(config, notification_only=args.notification_only)
+    run(
+        config,
+        notification_only=args.notification_only,
+        shadow_config_paths=args.shadow_config,
+    )
 
 
 if __name__ == "__main__":

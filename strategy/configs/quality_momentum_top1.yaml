@@ -14,8 +14,3 @@ factors:
 train_ratio: 0.7
 rebalance_rule: daily      # legacy field, kept for back-compat (engine ignores it)
 rebalance_days: 5          # rebalance every N trading days; reduces friction
-
-# Independent, read-only signal configuration.  The daily runner loads this
-# through the same registry/strategy pipeline as a normal strategy.
-notification_shadow_configs:
-  - strategy/configs/quality_momentum_top1_ohlc_er.yaml

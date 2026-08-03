@@ -118,7 +118,9 @@ HTML report: experiments/20260413-001.html
 ### 5. 每日实盘运行
 
 ```bash
-uv run python run_daily.py --config strategy/configs/momentum_rotation.yaml
+uv run python run_daily.py \
+  --config strategy/configs/quality_momentum_top1.yaml \
+  --shadow-config strategy/configs/quality_momentum_top1_ohlc_er.yaml
 ```
 
 执行流程：计算因子 → 策略生成目标权重 → 对比当前持仓 → 钉钉推送调仓信号 → 保存新持仓。
@@ -133,7 +135,10 @@ uv run python run_daily.py --config strategy/configs/momentum_rotation.yaml
 如果只想手动测试钉钉消息，不执行交易逻辑后的持仓保存、也不回填持仓状态：
 
 ```bash
-uv run python run_daily.py --config strategy/configs/quality_momentum_top1.yaml --notification-only
+uv run python run_daily.py \
+  --config strategy/configs/quality_momentum_top1.yaml \
+  --shadow-config strategy/configs/quality_momentum_top1_ohlc_er.yaml \
+  --notification-only
 ```
 
 测试消息会明确标注“无需操作”，但仍会同步行情并按最新共同交易日生成完整信号。
