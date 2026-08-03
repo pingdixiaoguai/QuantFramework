@@ -16,6 +16,7 @@ data/db_backups/
 experiments/*.yaml
 experiments/*.html
 state/*.json
+intraday_data/
 .pytest_cache/
 
 # IDE

@@ -2,6 +2,8 @@
 
 Usage:
     uv run python run_daily.py --config strategy/configs/momentum_rotation.yaml
+    uv run python run_daily.py --config strategy/configs/momentum_rotation.yaml \
+        --notification-only
 
 Requires env vars:
     TUSHARE_TOKEN       — data sync
@@ -37,6 +39,7 @@ from notification.dingtalk import DingTalkNotifier
 from notification.formatter import ASSET_NAMES, NotificationContext, format_notification
 from strategy.loader import load_strategy
 from strategy.rebalance import normalize_rebalance_mode, should_hold_position
+from strategy.rolling_ohlc_er import build_signal_comparison
 
 
 def _load_config(path: Path) -> dict:
@@ -416,7 +419,7 @@ def _save_or_update_rebalance_target(
     return True
 
 
-def run(config: dict) -> None:
+def run(config: dict, notification_only: bool = False) -> None:
     today = date.today()
     asset_pool = config["asset_pool"]
     factor_configs = config["factors"]
@@ -436,19 +439,23 @@ def run(config: dict) -> None:
     # 2. Read state (auto-migrates old format)
     current_state = read_position(strategy_name)
 
-    # 3. Backfill open prices if entry_prices is null
-    current_state = _backfill_open_prices(current_state, today, strategy_name)
+    # 3. Backfill open prices if entry_prices is null. Notification-only mode
+    # must leave the live position ledger byte-for-byte untouched.
+    if not notification_only:
+        current_state = _backfill_open_prices(current_state, today, strategy_name)
 
     strategy = load_strategy(config)
     all_factors = load_registered_factors()
 
     # 4. Compute today's factor values for each asset
     asset_factor_values: dict[str, dict[str, float]] = {}
+    asset_price_data: dict[str, pd.DataFrame] = {}
 
     for asset in asset_pool:
         df = query(asset, config.get("start", date(2016, 1, 1)), signal_date)
         if len(df) == 0:
             continue
+        asset_price_data[asset] = df
 
         factor_vals: dict[str, float] = {}
         for fc in factor_configs:
@@ -469,6 +476,28 @@ def run(config: dict) -> None:
 
         if len(factor_vals) == len(factor_configs):
             asset_factor_values[asset] = factor_vals
+
+    # 4b. Notification-only shadow signal.  This result is intentionally not
+    # passed into the production strategy, hold filter, execution diff, or
+    # position persistence.
+    signal_comparison = None
+    shadow_config = config.get("shadow_rolling_ohlc_er", {})
+    if shadow_config.get("enabled", False):
+        shadow_assets = list(shadow_config.get("asset_pool", asset_pool))
+        try:
+            signal_comparison = build_signal_comparison(
+                asset_price_data,
+                shadow_assets,
+                signal_date,
+                strategy_name,
+                shadow_config,
+            )
+        except Exception as exc:
+            warnings.warn(
+                "rolling OHLC ER shadow signal failed; "
+                f"production signal is unchanged: {exc}",
+                stacklevel=2,
+            )
 
     # 5. Strategy → today's signal weights (raw output before hold filter)
     signal_weights = strategy.generate_weights(asset_factor_values)
@@ -544,20 +573,81 @@ def run(config: dict) -> None:
         ytd_return=ytd_return,
         asset_names=ASSET_NAMES,
         asset_factor_values=asset_factor_values,
+        signal_confidence=(
+            {
+                asset: values["old_confidence"]
+                for asset, values in signal_comparison.assets.items()
+            }
+            if signal_comparison is not None
+            else None
+        ),
+        signal_comparison=(
+            signal_comparison.assets if signal_comparison is not None else None
+        ),
+        old_signal_target=(
+            signal_comparison.old_target if signal_comparison is not None else None
+        ),
+        new_signal_target=(
+            signal_comparison.new_target if signal_comparison is not None else None
+        ),
+        rolling_er_weights=(
+            dict(
+                zip(
+                    ("close", "gap", "body", "range"),
+                    signal_comparison.weights.values,
+                    strict=True,
+                )
+            )
+            if signal_comparison is not None
+            else None
+        ),
+        rolling_er_effective_date=(
+            signal_comparison.weights.effective_date
+            if signal_comparison is not None
+            else None
+        ),
+        rolling_er_training_start=(
+            signal_comparison.weights.training_start
+            if signal_comparison is not None
+            else None
+        ),
+        rolling_er_training_end=(
+            signal_comparison.weights.training_end
+            if signal_comparison is not None
+            else None
+        ),
     )
 
     message = format_notification(ctx)
+    if notification_only:
+        message = (
+            "## 🧪 钉钉通知测试\n\n"
+            "**仅发送测试，不执行交易、不保存或回填持仓。**\n\n"
+            "---\n\n"
+            f"{message}"
+        )
     print(message)
 
     if enable_dingtalk:
         try:
             notifier = DingTalkNotifier()
-            notifier.send(message)
+            if notification_only:
+                notifier.send(
+                    message,
+                    title="通知测试（无需操作）",
+                    alert_text="钉钉消息测试，请忽略，无需操作。",
+                )
+            else:
+                notifier.send(message)
             print("\nDingTalk notification sent.")
         except ValueError as exc:
             print(f"\nDingTalk skipped: {exc}")
     else:
         print("\nDingTalk disabled by config (enable_dingtalk: false).")
+
+    if notification_only:
+        print("Notification-only mode — position state unchanged.")
+        return
 
     # 9. Persist new position only on rebalance (exit_prices backfilled on next run)
     is_rebalance = any(o.action in ("buy", "sell") for o in orders)
@@ -584,10 +674,18 @@ def main() -> None:
         default=Path("strategy/configs/momentum_rotation.yaml"),
         help="Path to strategy config YAML",
     )
+    parser.add_argument(
+        "--notification-only",
+        action="store_true",
+        help=(
+            "Send a clearly labelled DingTalk test without backfilling or "
+            "saving position state"
+        ),
+    )
     args = parser.parse_args()
 
     config = _load_config(args.config)
-    run(config)
+    run(config, notification_only=args.notification_only)
 
 
 if __name__ == "__main__":

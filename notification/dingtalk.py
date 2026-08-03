@@ -37,6 +37,16 @@ class DingTalkNotifier(Notifier):
                 "DingTalk webhook URL required. "
                 "Set DINGTALK_WEBHOOK env var or pass webhook_url."
             )
+        if "your_token_here" in self.webhook_url.lower():
+            raise ValueError(
+                "DINGTALK_WEBHOOK still contains the example access-token "
+                "placeholder. Replace it with the custom robot webhook URL."
+            )
+        if self.secret and self.secret.lower() == "your_secret_here":
+            raise ValueError(
+                "DINGTALK_SECRET still contains the example placeholder. "
+                "Replace it with the custom robot signing secret."
+            )
 
     def _sign_url(self) -> str:
         """Append HMAC-SHA256 timestamp+sign to webhook URL if secret is set."""
@@ -68,13 +78,23 @@ class DingTalkNotifier(Notifier):
                     f"DingTalk API error: {result.get('errmsg', 'unknown')}"
                 )
 
-    def send(self, message: str) -> None:
-        """Send a markdown card followed by a separate @所有人 text message."""
+    def send(
+        self,
+        message: str,
+        *,
+        title: str = "调仓信号",
+        alert_text: str = "请查看今日调仓信号，及时操作！",
+    ) -> None:
+        """Send a markdown card followed by a separate @所有人 text message.
+
+        ``title`` and ``alert_text`` let notification-only runs identify
+        themselves as tests without changing the production defaults.
+        """
         # 1. Send the markdown card (no @mention inside)
         self._post(json.dumps({
             "msgtype": "markdown",
             "markdown": {
-                "title": "调仓信号",
+                "title": title,
                 "text": message,
             },
         }).encode("utf-8"))
@@ -83,6 +103,6 @@ class DingTalkNotifier(Notifier):
         #    DingTalk only reliably fires the group-wide alert for text type.
         self._post(json.dumps({
             "msgtype": "text",
-            "text": {"content": "请查看今日调仓信号，及时操作！"},
+            "text": {"content": alert_text},
             "at": {"isAtAll": True},
         }).encode("utf-8"))

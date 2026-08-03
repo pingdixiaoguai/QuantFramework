@@ -138,6 +138,14 @@ def run(config: dict | None = None) -> BacktestResult:
     if rebalance_days < 1:
         raise ValueError(f"rebalance_days must be >= 1, got {rebalance_days}")
     rebalance_mode = normalize_rebalance_mode(config.get("rebalance_mode"))
+    min_hold_drawdown_threshold = config.get("min_hold_drawdown_threshold")
+    if min_hold_drawdown_threshold is not None:
+        min_hold_drawdown_threshold = float(min_hold_drawdown_threshold)
+        if not 0 < min_hold_drawdown_threshold <= 1:
+            raise ValueError(
+                "min_hold_drawdown_threshold must be in (0, 1], got "
+                f"{min_hold_drawdown_threshold}"
+            )
     transaction_cost_rate = float(
         config.get(
             "transaction_cost_rate",
@@ -201,6 +209,8 @@ def run(config: dict | None = None) -> BacktestResult:
 
     current_weights: dict[str, float] = {}
     current_entry_idx: int | None = None
+    current_position_wealth: float | None = None
+    current_position_peak: float | None = None
     pending_weights: dict[str, float] | None = None
     pending_entry_idx: int | None = None
 
@@ -232,11 +242,23 @@ def run(config: dict | None = None) -> BacktestResult:
                 intraday_ret = _weighted_return_between(
                     current_weights, open_prices, close_prices, t, t
                 )
+                current_position_wealth = (
+                    1.0 + intraday_ret if intraday_ret is not None else 1.0
+                )
+                current_position_peak = max(1.0, current_position_wealth)
                 strat_ret = _chain_returns(overnight_ret, intraday_ret)
             elif current_weights:
                 strat_ret = _weighted_return_between(
                     current_weights, close_prices, close_prices, prev_t, t
                 )
+                if strat_ret is not None:
+                    current_position_wealth = (
+                        (current_position_wealth or 1.0) * (1.0 + strat_ret)
+                    )
+                    current_position_peak = max(
+                        current_position_peak or 1.0,
+                        current_position_wealth,
+                    )
             else:
                 strat_ret = None
 
@@ -263,13 +285,76 @@ def run(config: dict | None = None) -> BacktestResult:
             if current_entry_idx is not None and current_weights
             else None
         )
+        position_drawdown = (
+            current_position_wealth / current_position_peak - 1.0
+            if current_position_wealth is not None
+            and current_position_peak is not None
+            and current_position_peak > 0
+            else 0.0
+        )
+        factor_unlock = False
+        factor_unlock_config = config.get("min_hold_factor_unlock")
+        if (
+            factor_unlock_config
+            and rebalance_mode == "min_hold"
+            and current_weights
+            and pending_weights is None
+        ):
+            primary_asset = max(current_weights, key=current_weights.get)
+            unlock_factor_name = factor_unlock_config["factor"]
+            unlock_threshold = factor_unlock_config.get(
+                "thresholds",
+                {},
+            ).get(primary_asset, factor_unlock_config.get("threshold"))
+            unlock_factor_config = next(
+                (
+                    fc
+                    for fc in factor_configs
+                    if fc["name"] == unlock_factor_name
+                ),
+                None,
+            )
+            if unlock_threshold is not None and unlock_factor_config is not None:
+                unlock_df = asset_data[primary_asset]
+                unlock_truncated = unlock_df.loc[unlock_df["date"] <= t]
+                unlock_module = all_factors[unlock_factor_name]
+                unlock_params = unlock_factor_config.get("params")
+                unlock_asset_params = unlock_factor_config.get(
+                    "params_by_asset",
+                    {},
+                ).get(primary_asset)
+                if unlock_asset_params:
+                    unlock_params = {
+                        **(unlock_params or {}),
+                        **unlock_asset_params,
+                    }
+                unlock_series = unlock_module["compute"](
+                    unlock_truncated.copy(),
+                    unlock_params,
+                )
+                if len(unlock_series) > 0 and pd.notna(unlock_series.iloc[-1]):
+                    factor_unlock = (
+                        float(unlock_series.iloc[-1])
+                        < float(unlock_threshold)
+                    )
+        drawdown_unlock = (
+            min_hold_drawdown_threshold is not None
+            and rebalance_mode == "min_hold"
+            and holding_days is not None
+            and holding_days < rebalance_days
+            and position_drawdown <= -min_hold_drawdown_threshold
+        )
         should_signal = (
             pending_weights is None
-            and not _should_hold_position(
-                current_weights,
-                holding_days,
-                rebalance_days,
-                rebalance_mode,
+            and (
+                drawdown_unlock
+                or factor_unlock
+                or not _should_hold_position(
+                    current_weights,
+                    holding_days,
+                    rebalance_days,
+                    rebalance_mode,
+                )
             )
         )
 
@@ -290,6 +375,9 @@ def run(config: dict | None = None) -> BacktestResult:
                     fname = fc["name"]
                     fmod = all_factors[fname]
                     params = fc.get("params")
+                    asset_params = fc.get("params_by_asset", {}).get(asset)
+                    if asset_params:
+                        params = {**(params or {}), **asset_params}
                     try:
                         series = fmod["compute"](truncated.copy(), params)
                         validate(series, truncated, fmod["METADATA"])

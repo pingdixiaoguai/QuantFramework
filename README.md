@@ -108,6 +108,14 @@ uv run python run_daily.py --config strategy/configs/momentum_rotation.yaml
 
 当前持仓保存在 `state/current_position.json`。
 
+如果只想手动测试钉钉消息，不执行交易逻辑后的持仓保存、也不回填持仓状态：
+
+```bash
+uv run python run_daily.py --config strategy/configs/quality_momentum_top1.yaml --notification-only
+```
+
+测试消息会明确标注“无需操作”，但仍会同步行情并按最新共同交易日生成完整信号。
+
 ### 6. 补全年初至今持仓状态
 
 如果这台机器没有每天自动运行 `run_daily.py`，但某个策略从年初至今的配置没有变化，可以用补账脚本重放今年信号，重建

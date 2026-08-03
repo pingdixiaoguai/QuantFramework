@@ -11,6 +11,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
     "quantstats>=0.0.81",
+    "torch>=2.13.0",
     "tushare>=1.4.29",
 ]
 

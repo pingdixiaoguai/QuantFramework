@@ -62,6 +62,14 @@ class NotificationContext:
     ytd_return: float | None          # YTD cumulative return
     asset_names: dict[str, str]       # asset → Chinese name
     asset_factor_values: dict[str, dict[str, float]] | None = None  # asset → factor → value
+    signal_confidence: dict[str, float] | None = None  # asset → production signal confidence
+    signal_comparison: dict[str, dict[str, float]] | None = None
+    old_signal_target: str | None = None
+    new_signal_target: str | None = None
+    rolling_er_weights: dict[str, float] | None = None
+    rolling_er_effective_date: date | None = None
+    rolling_er_training_start: date | None = None
+    rolling_er_training_end: date | None = None
 
 
 def _asset_label(asset: str, asset_names: dict[str, str]) -> str:
@@ -176,6 +184,9 @@ def _build_alpha_section(ctx: NotificationContext) -> str:
             if target_return is not None and not is_target:
                 alpha = ret - target_return
                 parts.append(f"超额 {_fmt_pct(alpha)}")
+
+        if ctx.signal_confidence and asset in ctx.signal_confidence:
+            parts.append(f"置信度 {ctx.signal_confidence[asset]:.1%}")
 
         lines.append("• " + "　|　".join(parts))
 

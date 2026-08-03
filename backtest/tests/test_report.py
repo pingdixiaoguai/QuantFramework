@@ -26,6 +26,8 @@ class TestBenchmarkTitle:
 
         def fake_html(returns, benchmark=None, output=None, **kwargs):
             captured["kwargs"] = kwargs
+            captured["returns_name"] = returns.name
+            captured["benchmark_name"] = benchmark.name
             Path(output).write_text("<html></html>")
 
         monkeypatch.setattr("quantstats.reports.html", fake_html)
@@ -35,12 +37,16 @@ class TestBenchmarkTitle:
         generate(result, out, benchmark_title="my_baseline")
 
         assert captured["kwargs"].get("benchmark_title") == "my_baseline"
+        assert captured["returns_name"] == "Strategy"
+        assert captured["benchmark_name"] == "my_baseline"
 
     def test_omits_benchmark_title_when_none(self, tmp_path, monkeypatch):
         captured = {}
 
         def fake_html(returns, benchmark=None, output=None, **kwargs):
             captured["kwargs"] = kwargs
+            captured["returns_name"] = returns.name
+            captured["benchmark_name"] = benchmark.name
             Path(output).write_text("<html></html>")
 
         monkeypatch.setattr("quantstats.reports.html", fake_html)
@@ -50,3 +56,5 @@ class TestBenchmarkTitle:
         generate(result, out)  # no benchmark_title
 
         assert "benchmark_title" not in captured["kwargs"]
+        assert captured["returns_name"] == "Strategy"
+        assert captured["benchmark_name"] == "Benchmark"

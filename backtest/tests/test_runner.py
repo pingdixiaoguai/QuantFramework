@@ -30,6 +30,64 @@ def _make_asset_data(
 
 
 class TestFutureInfoTruncation:
+    def test_factor_params_support_asset_specific_overrides(self, monkeypatch):
+        seen: dict[float, set[tuple[int, float]]] = {}
+
+        def mock_compute(df, params=None):
+            asset_marker = float(df["close"].iloc[0])
+            seen.setdefault(asset_marker, set()).add(
+                (params["window"], params["activation_threshold"])
+            )
+            return pd.Series(1.0, index=df["date"], dtype=float)
+
+        mock_metadata = {
+            "name": "parameter_tracker",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 1,
+            "direction": "higher_better",
+            "description": "tracks per-asset parameters",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {
+                "parameter_tracker": {
+                    "METADATA": mock_metadata,
+                    "compute": mock_compute,
+                }
+            },
+        )
+        frames = {
+            "A.SH": _make_asset_data("A.SH", [100.0, 101.0, 102.0]),
+            "B.SH": _make_asset_data("B.SH", [200.0, 201.0, 202.0]),
+        }
+        monkeypatch.setattr(
+            "backtest.runner.query",
+            lambda asset, start, end: frames[asset],
+        )
+        config = {
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH", "B.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{
+                "name": "parameter_tracker",
+                "params": {"window": 20, "activation_threshold": 0.925},
+                "params_by_asset": {
+                    "A.SH": {"activation_threshold": 0.91},
+                    "B.SH": {"activation_threshold": 0.94},
+                },
+            }],
+            "rebalance_days": 1,
+        }
+
+        run(config)
+
+        assert seen[100.0] == {(20, 0.91)}
+        assert seen[200.0] == {(20, 0.94)}
+
     def test_factor_only_sees_past_data(self, monkeypatch):
         """Verify factor receives truncated data at each time step."""
         # Track the lengths of data passed to compute
@@ -318,6 +376,81 @@ class TestNoLookaheadBias:
 
 
 class TestRebalanceEveryNDays:
+    def test_drawdown_threshold_unlocks_min_hold_early(self, monkeypatch):
+        prices_a = [100.0, 100.0, 80.0, 80.0]
+        prices_b = [90.0, 90.0, 90.0, 90.0]
+        df_a = _make_asset_data("A.SH", prices_a)
+        df_b = _make_asset_data("B.SH", prices_b)
+
+        monkeypatch.setattr(
+            "backtest.runner.query",
+            lambda asset, start, end: {"A.SH": df_a, "B.SH": df_b}[asset],
+        )
+
+        def mock_compute(df, params=None):
+            return pd.Series(df["close"].values, index=df["date"], dtype=float)
+
+        mock_meta = {
+            "name": "price",
+            "author": "test",
+            "version": "1.0.0",
+            "params": {},
+            "min_history": 1,
+            "direction": "higher_better",
+            "description": "price",
+        }
+        monkeypatch.setattr(
+            "backtest.runner.load_registered_factors",
+            lambda: {"price": {"METADATA": mock_meta, "compute": mock_compute}},
+        )
+
+        base_config = {
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH", "B.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "price", "weight": 1.0, "params": {}}],
+            "train_ratio": 0.7,
+            "rebalance_days": 5,
+            "rebalance_mode": "min_hold",
+        }
+
+        locked = run(base_config)
+        unlocked = run({
+            **base_config,
+            "min_hold_drawdown_threshold": 0.15,
+        })
+        trading_days = sorted(df_a["date"].tolist())
+
+        assert list(locked.positions.index) == [trading_days[1]]
+        assert list(unlocked.positions.index) == [
+            trading_days[1],
+            trading_days[3],
+        ]
+        assert unlocked.positions.loc[trading_days[3], "B.SH"] == 1.0
+
+    @pytest.mark.parametrize("threshold", [0, -0.1, 1.01])
+    def test_drawdown_threshold_must_be_valid(self, monkeypatch, threshold):
+        df = _make_asset_data("A.SH", [100.0, 99.0])
+        monkeypatch.setattr("backtest.runner.query", lambda *args: df)
+        config = {
+            "strategy_name": "test",
+            "strategy_class": "strategy.top1.Top1",
+            "asset_pool": ["A.SH"],
+            "start": date(2024, 1, 1),
+            "end": date(2024, 12, 31),
+            "factors": [{"name": "unused", "weight": 1.0, "params": {}}],
+            "rebalance_days": 5,
+            "min_hold_drawdown_threshold": threshold,
+        }
+
+        with pytest.raises(
+            ValueError,
+            match="min_hold_drawdown_threshold must be in",
+        ):
+            run(config)
+
     def test_strategy_called_only_every_n_days(self, monkeypatch):
         """With rebalance_days=5, strategy.generate_weights is called on the
         first valid day, then every 5 trading days thereafter (intermediate
