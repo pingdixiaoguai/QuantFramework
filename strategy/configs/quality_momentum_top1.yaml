@@ -14,3 +14,4 @@ factors:
 train_ratio: 0.7
 rebalance_rule: daily      # legacy field, kept for back-compat (engine ignores it)
 rebalance_days: 5          # rebalance every N trading days; reduces friction
+
