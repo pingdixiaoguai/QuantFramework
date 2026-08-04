@@ -38,7 +38,12 @@ from execution.position import (
 from factors.registry import load_registered_factors
 from factors.validator import validate
 from notification.dingtalk import DingTalkNotifier
-from notification.formatter import ASSET_NAMES, NotificationContext, format_notification
+from notification.formatter import (
+    ASSET_NAMES,
+    NotificationContext,
+    StrategySignalView,
+    format_notification,
+)
 from strategy.loader import load_strategy
 from strategy.rebalance import normalize_rebalance_mode, should_hold_position
 
@@ -51,7 +56,9 @@ class SignalSnapshot:
     factor_values: dict[str, dict[str, float]]
     weights: dict[str, float]
     target: str | None
+    scores: dict[str, float]
     confidence: dict[str, float]
+    expected_assets: list[str]
 
 
 def _softmax_confidence(scores: dict[str, float]) -> dict[str, float]:
@@ -165,7 +172,9 @@ def _build_signal_snapshot(
         factor_values=factor_values,
         weights=weights,
         target=target,
+        scores=scores,
         confidence=_softmax_confidence(scores),
+        expected_assets=list(config["asset_pool"]),
     )
 
 
@@ -729,11 +738,25 @@ def run(
         benchmark_returns=benchmark_returns,
         ytd_return=ytd_return,
         asset_names=ASSET_NAMES,
-        asset_factor_values=asset_factor_values,
-        signal_confidence=production_snapshot.confidence,
-        old_signal_target=production_snapshot.target,
-        new_signal_target=(shadow_snapshot.target if shadow_snapshot else None),
-        new_signal_name=(shadow_snapshot.strategy_name if shadow_snapshot else None),
+        rebalance_days=rebalance_days,
+        production_signal=StrategySignalView(
+            strategy_name=production_snapshot.strategy_name,
+            target=production_snapshot.target,
+            scores=production_snapshot.scores,
+            confidence=production_snapshot.confidence,
+            expected_assets=production_snapshot.expected_assets,
+        ),
+        shadow_signal=(
+            StrategySignalView(
+                strategy_name=shadow_snapshot.strategy_name,
+                target=shadow_snapshot.target,
+                scores=shadow_snapshot.scores,
+                confidence=shadow_snapshot.confidence,
+                expected_assets=shadow_snapshot.expected_assets,
+            )
+            if shadow_snapshot
+            else None
+        ),
     )
 
     message = format_notification(ctx)

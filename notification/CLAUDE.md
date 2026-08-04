@@ -9,9 +9,9 @@ Message builder (`formatter.py`): `format_notification(ctx: NotificationContext)
 - `send()` performs **two POSTs**: (1) the `markdown` card with the formatted message, (2) a plain `text` message `"请查看今日调仓信号，及时操作！"` with `isAtAll: True` to trigger @所有人 (DingTalk only reliably fires the group-wide alert for `text` type — see commit `68a3fc7`). Optional keyword-only `title` and `alert_text` override those labels for safe test sends while preserving production defaults.
 - `send_alert(message)` performs one plain-text `isAtAll: True` POST and is used by unattended-job failure reporting
 - `formatter.py` renders different layouts based on whether orders contain `buy`/`sell` (rebalance) or only `hold`
-  - Sections: header → (rebalance instructions OR current position) → daily alpha/factor comparison → benchmark comparison → YTD return
-  - `NotificationContext` aggregates: orders, target/current weights, entry date, holding days, position return, benchmark returns per asset, YTD return, optional per-asset factor values, and optional production signal confidence
-  - The notification appends the production signal's scale-free cross-sectional softmax confidence to each ETF comparison line, after the excess-return item, every day, and shows the old/new targets in a compact summary. Raw ER diagnostics are not sent to DingTalk.
+  - Sections: header → actual execution → symmetric production/shadow signal comparison → benchmark comparison → YTD return
+  - `NotificationContext` aggregates execution state and optional `StrategySignalView` objects containing each strategy's target, primary-factor scores, relative strength, and expected universe
+  - Each strategy renders Top2 scores, scale-free cross-sectional softmax relative strength, Top1 lead, data completeness, and cross-strategy rank changes. Relative strength is explicitly labelled as non-probabilistic.
   - Shadow configs are ordinary strategy YAMLs loaded read-only through the factor registry and strategy loader. They do not affect production orders or position state.
   - `ASSET_NAMES` dict maps `510300.SH → 沪深300` etc.; unknown tickers fall back to the raw code
 
@@ -24,6 +24,5 @@ Message builder (`formatter.py`): `format_notification(ctx: NotificationContext)
 - HMAC signing timestamp is milliseconds (`int(time.time() * 1000)`), not seconds — DingTalk rejects second-precision timestamps with a signature error
 - `.env.example` contains non-working `your_token_here` / `your_secret_here` values. `DingTalkNotifier` rejects those placeholders with a clear `ValueError`; replace both with the custom robot's actual credentials before testing.
 - Adding a new asset to `ASSET_NAMES` must be coordinated with `strategy/configs/*.yaml`'s `asset_pool`; mismatched codes render as raw tickers
-- `_build_alpha_section` assumes all `asset_factor_values` entries share the same factor names — it reads them from the first asset only
-- `benchmark_returns` and `target_weights` keys must overlap for the alpha/superiority calculation to work; missing keys are silently skipped
 - Signal confidence is `softmax(score / population_std(score))` across the candidate ETFs. The standard-deviation temperature is required because raw return-like scores are small and direct softmax would remain close to equal probabilities.
+- Shadow diagnostics compare raw daily targets. They do not maintain a separate shadow position ledger or apply the shadow config's hold window.

@@ -49,6 +49,17 @@ ASSET_NAMES: dict[str, str] = {
 
 
 @dataclass
+class StrategySignalView:
+    """One strategy's read-only cross-sectional signal diagnostics."""
+
+    strategy_name: str
+    target: str | None
+    scores: dict[str, float]
+    confidence: dict[str, float]
+    expected_assets: list[str]
+
+
+@dataclass
 class NotificationContext:
     strategy_name: str
     signal_date: date
@@ -61,11 +72,9 @@ class NotificationContext:
     benchmark_returns: dict[str, float]  # asset → same-period return
     ytd_return: float | None          # YTD cumulative return
     asset_names: dict[str, str]       # asset → Chinese name
-    asset_factor_values: dict[str, dict[str, float]] | None = None  # asset → factor → value
-    signal_confidence: dict[str, float] | None = None  # asset → production signal confidence
-    old_signal_target: str | None = None
-    new_signal_target: str | None = None
-    new_signal_name: str | None = None
+    rebalance_days: int | None = None
+    production_signal: StrategySignalView | None = None
+    shadow_signal: StrategySignalView | None = None
 
 
 def _asset_label(asset: str, asset_names: dict[str, str]) -> str:
@@ -81,114 +90,192 @@ def _fmt_pct(value: float) -> str:
     return f"{sign}{value:.2%}"
 
 
-def _build_position_section(ctx: NotificationContext) -> str:
-    """Build the 当前持仓 block for the hold case."""
-    lines = ["**当前持仓**"]
-    for asset, weight in ctx.current_weights.items():
-        label = _asset_label(asset, ctx.asset_names)
-        weight_str = f"{weight:.0%}"
-
-        if ctx.holding_days is None or ctx.entry_date is None:
-            days_str = "—"
-            ret_str = "—"
-        elif ctx.position_return is None:
-            days_str = str(ctx.holding_days)
-            ret_str = "待更新"
-        else:
-            days_str = str(ctx.holding_days)
-            ret_str = _fmt_pct(ctx.position_return)
-
-        lines.append(
-            f"• {label}　{weight_str}　|　已持有 {days_str} 交易日　|　收益 **{ret_str}**"
-        )
-    return "\n\n".join(lines)
+def _target_from_weights(weights: dict[str, float]) -> str | None:
+    positive = {asset: weight for asset, weight in weights.items() if weight > 0}
+    return max(positive, key=positive.get) if positive else None
 
 
-def _build_rebalance_section(ctx: NotificationContext) -> str:
-    """Build the 调仓指令 block."""
-    lines = ["**调仓指令**"]
-    for order in ctx.orders:
-        if order.action == "hold":
-            continue
-        label = _asset_label(order.asset, ctx.asset_names)
-        current = ctx.current_weights.get(order.asset, 0.0)
-        target = ctx.target_weights.get(order.asset, 0.0)
-        action_cn = "卖出" if order.action == "sell" else "买入"
-        lines.append(
-            f"• {action_cn}：{label}　{current:.0%} → {target:.0%}"
-        )
-    return "\n\n".join(lines)
+def _weights_label(weights: dict[str, float], asset_names: dict[str, str]) -> str:
+    if not weights:
+        return "空仓"
+    return "、".join(
+        f"{_asset_label(asset, asset_names)} {weight:.0%}"
+        for asset, weight in weights.items()
+        if weight > 0
+    ) or "空仓"
 
 
-def _build_alpha_section(ctx: NotificationContext) -> str:
-    """Build the 调仓超额 block showing factor scores, benchmark returns, and alpha for all candidates."""
-    if not ctx.asset_factor_values and not ctx.benchmark_returns:
-        return ""
-
-    lines = ["**调仓依据（标的对比）**"]
-
-    # Collect all assets from factor values or benchmark returns
-    all_assets = list(
-        dict.fromkeys(
-            list(ctx.asset_factor_values or {})
-            + list(ctx.benchmark_returns or {})
+def _build_execution_section(ctx: NotificationContext, is_rebalance: bool) -> str:
+    """Separate the raw production signal from the executable target."""
+    production_target = (
+        ctx.production_signal.target if ctx.production_signal is not None else None
+    )
+    actual_target = _target_from_weights(ctx.target_weights)
+    lines = [f"**实际执行（{'调仓' if is_rebalance else '继续持有'}）**"]
+    lines.append(f"• 当前持仓：{_weights_label(ctx.current_weights, ctx.asset_names)}")
+    lines.append(
+        "• 生产策略原始目标："
+        + (
+            _asset_label(production_target, ctx.asset_names)
+            if production_target is not None
+            else "数据不足"
         )
     )
-    if not all_assets:
+    lines.append(
+        "• 实际交易目标："
+        + (
+            _asset_label(actual_target, ctx.asset_names)
+            if actual_target is not None
+            else "空仓"
+        )
+    )
+
+    if (
+        ctx.holding_days is not None
+        and ctx.rebalance_days is not None
+        and ctx.current_weights
+    ):
+        lines.append(
+            f"• 持有期：{ctx.holding_days}/{ctx.rebalance_days} 交易日"
+        )
+    if production_target is not None and production_target != actual_target:
+        lines.append("• 持有期约束：原始目标暂未执行")
+
+    if is_rebalance:
+        for order in ctx.orders:
+            if order.action == "hold":
+                continue
+            label = _asset_label(order.asset, ctx.asset_names)
+            current = ctx.current_weights.get(order.asset, 0.0)
+            target = ctx.target_weights.get(order.asset, 0.0)
+            action_cn = "卖出" if order.action == "sell" else "买入"
+            lines.append(f"• {action_cn}：{label}　{current:.0%} → {target:.0%}")
+    elif ctx.current_weights:
+        if ctx.position_return is None:
+            return_text = "待更新"
+        else:
+            return_text = _fmt_pct(ctx.position_return)
+        lines.append(f"• 当前持仓收益：**{return_text}**")
+    else:
+        lines.append("• 今日操作：无")
+
+    return "\n\n".join(lines)
+
+
+def _ranked_assets(signal: StrategySignalView) -> list[str]:
+    return sorted(signal.scores, key=signal.scores.get, reverse=True)
+
+
+def _build_strategy_block(
+    title: str,
+    signal: StrategySignalView,
+    asset_names: dict[str, str],
+) -> list[str]:
+    ranked = _ranked_assets(signal)
+    lines = [f"**{title} · {signal.strategy_name}**"]
+    if not ranked:
+        lines.append("• 无有效信号数据")
+    else:
+        for rank, asset in enumerate(ranked[:2], start=1):
+            confidence = signal.confidence.get(asset)
+            confidence_text = (
+                f"　|　相对强度 {confidence:.1%}"
+                if confidence is not None
+                else ""
+            )
+            lines.append(
+                f"• #{rank} {_asset_label(asset, asset_names)}"
+                f"　|　得分 {_fmt_pct(signal.scores[asset])}{confidence_text}"
+            )
+        if len(ranked) >= 2:
+            first_confidence = signal.confidence.get(ranked[0])
+            second_confidence = signal.confidence.get(ranked[1])
+            if first_confidence is not None and second_confidence is not None:
+                lead = first_confidence - second_confidence
+                lines.append(f"• Top1 领先：{lead * 100:.1f} 个百分点")
+
+    missing = [asset for asset in signal.expected_assets if asset not in signal.scores]
+    if missing:
+        missing_labels = "、".join(_asset_label(a, asset_names) for a in missing)
+        lines.append(
+            f"• ⚠️ 数据完整性：{len(signal.scores)}/{len(signal.expected_assets)}"
+            f"，缺少 {missing_labels}"
+        )
+    else:
+        lines.append(
+            f"• 数据完整性：{len(signal.scores)}/{len(signal.expected_assets)}"
+        )
+    return lines
+
+
+def _build_signal_comparison(ctx: NotificationContext) -> str:
+    """Build a symmetric production-versus-shadow ranking comparison."""
+    if ctx.production_signal is None and ctx.shadow_signal is None:
         return ""
 
-    # Determine factor names from the first asset
-    factor_names: list[str] = []
-    if ctx.asset_factor_values:
-        first = next(iter(ctx.asset_factor_values.values()))
-        factor_names = list(first.keys())
+    lines = ["**策略对照**"]
+    if ctx.production_signal is not None:
+        lines.extend(
+            _build_strategy_block("生产策略", ctx.production_signal, ctx.asset_names)
+        )
+    if ctx.shadow_signal is not None:
+        lines.extend(
+            _build_strategy_block("影子策略", ctx.shadow_signal, ctx.asset_names)
+        )
 
-    FACTOR_DISPLAY = {"momentum": "动量", "volatility": "波动率"}
+    if ctx.production_signal is not None and ctx.shadow_signal is not None:
+        production = ctx.production_signal
+        shadow = ctx.shadow_signal
+        lines.append("**核心差异**")
+        if production.target == shadow.target and production.target is not None:
+            lines.append(
+                f"• 两个策略原始目标一致：{_asset_label(production.target, ctx.asset_names)}"
+            )
+        else:
+            production_label = (
+                _asset_label(production.target, ctx.asset_names)
+                if production.target is not None
+                else "数据不足"
+            )
+            shadow_label = (
+                _asset_label(shadow.target, ctx.asset_names)
+                if shadow.target is not None
+                else "数据不足"
+            )
+            lines.append(
+                f"• 原始目标不同：生产 {production_label}　|　影子 {shadow_label}"
+            )
 
-    # Compute weighted return of selected targets for alpha calculation
-    target_return: float | None = None
-    if ctx.benchmark_returns:
-        total_w = 0.0
-        weighted_ret = 0.0
-        for asset, w in ctx.target_weights.items():
-            if w > 0 and asset in ctx.benchmark_returns:
-                weighted_ret += w * ctx.benchmark_returns[asset]
-                total_w += w
-        if total_w > 0:
-            target_return = weighted_ret / total_w
+        production_ranks = {
+            asset: rank
+            for rank, asset in enumerate(_ranked_assets(production), start=1)
+        }
+        shadow_ranks = {
+            asset: rank
+            for rank, asset in enumerate(_ranked_assets(shadow), start=1)
+        }
+        common_assets = [
+            asset
+            for asset in production.expected_assets
+            if asset in production_ranks and asset in shadow_ranks
+        ]
+        changed = [
+            asset
+            for asset in common_assets
+            if production_ranks[asset] != shadow_ranks[asset]
+        ]
+        if changed:
+            for asset in changed:
+                lines.append(
+                    f"• {_asset_label(asset, ctx.asset_names)}："
+                    f"生产 #{production_ranks[asset]} → 影子 #{shadow_ranks[asset]}"
+                )
+        elif common_assets:
+            lines.append("• 共同标的排序一致")
 
-    for asset in all_assets:
-        label = _asset_label(asset, ctx.asset_names)
-        target_w = ctx.target_weights.get(asset)
-        is_target = target_w is not None and target_w > 0
-        marker = "★" if is_target else "　"
+        lines.append("影子信号仅作观察，不改变生产策略交易")
 
-        parts = [f"{marker} {label}"]
-
-        # Factor values
-        if ctx.asset_factor_values and asset in ctx.asset_factor_values:
-            for fname in factor_names:
-                val = ctx.asset_factor_values[asset].get(fname)
-                if val is not None:
-                    display_name = FACTOR_DISPLAY.get(fname, fname)
-                    parts.append(f"{display_name} {_fmt_pct(val)}")
-
-        # Same-period benchmark return + alpha vs target
-        if asset in ctx.benchmark_returns:
-            ret = ctx.benchmark_returns[asset]
-            parts.append(f"同期 {_fmt_pct(ret)}")
-            if target_return is not None and not is_target:
-                alpha = ret - target_return
-                parts.append(f"超额 {_fmt_pct(alpha)}")
-
-        if ctx.signal_confidence and asset in ctx.signal_confidence:
-            parts.append(f"置信度 {ctx.signal_confidence[asset]:.1%}")
-
-        lines.append("• " + "　|　".join(parts))
-
-    lines.append("")
-    lines.append("★ = 调仓目标　|　超额 = 该标的同期收益 − 目标同期收益")
-
+    lines.append("相对强度为当日横截面 softmax，不代表上涨概率")
     return "\n\n".join(lines)
 
 
@@ -205,7 +292,7 @@ def _build_benchmark_section(ctx: NotificationContext) -> str:
     else:
         since = "—"
 
-    lines = [f"**同期对比**（自 {since} 开盘起）"]
+    lines = [f"**同期表现**（自 {since} 开盘起）"]
 
     position_ret = ctx.position_return or 0.0
 
@@ -231,26 +318,6 @@ def _build_ytd_line(ctx: NotificationContext) -> str:
     return f"**年初至今：** {_fmt_pct(ctx.ytd_return)}"
 
 
-def _build_signal_targets_section(ctx: NotificationContext) -> str:
-    """Show production and independently configured shadow targets."""
-    if ctx.old_signal_target is None and ctx.new_signal_target is None:
-        return ""
-
-    lines = ["**新旧信号**"]
-    if ctx.old_signal_target is not None:
-        lines.append(
-            "• 旧信号（原策略）："
-            f"{_asset_label(ctx.old_signal_target, ctx.asset_names)}"
-        )
-    if ctx.new_signal_target is not None:
-        lines.append(
-            f"• 新信号（{ctx.new_signal_name or '影子策略'}）："
-            f"{_asset_label(ctx.new_signal_target, ctx.asset_names)}"
-        )
-    lines.append("新信号仅作观察，不改变原策略交易")
-    return "\n\n".join(lines)
-
-
 def format_notification(ctx: NotificationContext) -> str:
     """Format a rich DingTalk markdown message from a NotificationContext.
 
@@ -264,23 +331,14 @@ def format_notification(ctx: NotificationContext) -> str:
         "基于当日收盘价，建议次日开盘调仓"
     )
 
-    if is_rebalance:
-        middle = _build_rebalance_section(ctx)
-    else:
-        middle = _build_position_section(ctx)
-
+    execution = _build_execution_section(ctx, is_rebalance)
+    comparison = _build_signal_comparison(ctx)
     benchmark = _build_benchmark_section(ctx)
-    # Factor scores and confidence are informational and are sent every day,
-    # including hold days; only the execution block changes with rebalance.
-    alpha = _build_alpha_section(ctx)
-    signal_targets = _build_signal_targets_section(ctx)
     ytd = _build_ytd_line(ctx)
 
-    parts = [header, "---", middle]
-    if alpha:
-        parts += ["---", alpha]
-    if signal_targets:
-        parts += ["---", signal_targets]
+    parts = [header, "---", execution]
+    if comparison:
+        parts += ["---", comparison]
     if benchmark:
         parts += ["---", benchmark]
     parts += ["---", ytd]
