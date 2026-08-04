@@ -134,8 +134,12 @@ def test_shadow_target_is_not_used_for_execution(monkeypatch):
 
     assert captured["target"] == {"510300.SH": 1.0}
     assert captured["current"] == {}
-    assert captured["context"].old_signal_target == "510300.SH"
-    assert captured["context"].new_signal_target == "518880.SH"
+    assert captured["context"].production_signal.target == "510300.SH"
+    assert captured["context"].shadow_signal.target == "518880.SH"
+    assert captured["context"].production_signal.scores
+    assert captured["context"].shadow_signal.scores
+    assert captured["context"].production_signal.confidence
+    assert captured["context"].shadow_signal.confidence
 
 
 def test_notification_only_works_on_holiday_without_state_write(monkeypatch):
