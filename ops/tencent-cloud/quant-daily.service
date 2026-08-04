@@ -21,6 +21,7 @@ ExecStart=/usr/bin/flock --nonblock /run/quantframework/daily.lock \
     /opt/QuantFramework/.venv/bin/python \
     -m scripts.run_daily_job \
     --config strategy/configs/quality_momentum_top1.yaml \
+    --shadow-config strategy/configs/quality_momentum_top1_ohlc_er.yaml \
     --attempts 3 \
     --retry-delay 600
 

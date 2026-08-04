@@ -67,6 +67,23 @@ uv run python -m data 510300.SH
 
 > **注意：** `run_daily.py` 运行时会自动同步数据并检查新鲜度，无需手动执行此步骤。首次使用时仍需手动同步以拉取全量历史。
 
+### 3.1 滚动 OHLC ER 参数流程
+
+滚动参数搜索与日常信号严格分开。使用研究配置执行搜索，审核生成的
+`quality_momentum_top1_ohlc_er.yaml` 后，日常任务只读取该版本化 checkpoint：
+
+```bash
+uv run python scripts/fit_rolling_ohlc_er.py \
+  --config strategy/configs/quality_momentum_top1_ohlc_er_research.yaml \
+  --template strategy/configs/quality_momentum_top1_ohlc_er.yaml \
+  --output strategy/configs/quality_momentum_top1_ohlc_er.yaml \
+  --as-of 2026-07-27
+```
+
+checkpoint 记录生效日、训练区间、过去 1008 个交易日历史长度、Top10 均值选择
+规则、`rebalance_days=5` 及后复权 OHLC 口径。`run_daily.py` 不做寻参、不写滚动缓存，影子信号只用于
+钉钉对照，不改变原策略的交易与持仓状态。
+
 ### 4. 运行回测
 
 ```bash
@@ -101,7 +118,9 @@ HTML report: experiments/20260413-001.html
 ### 5. 每日实盘运行
 
 ```bash
-uv run python run_daily.py --config strategy/configs/momentum_rotation.yaml
+uv run python run_daily.py \
+  --config strategy/configs/quality_momentum_top1.yaml \
+  --shadow-config strategy/configs/quality_momentum_top1_ohlc_er.yaml
 ```
 
 执行流程：计算因子 → 策略生成目标权重 → 对比当前持仓 → 钉钉推送调仓信号 → 保存新持仓。
@@ -109,8 +128,20 @@ uv run python run_daily.py --config strategy/configs/momentum_rotation.yaml
 当前持仓按策略保存在 `state/{strategy_name}_position.json`。
 
 交易日早盘运行时，程序使用最新完整交易日作为信号日，并按交易所日历计算下一开仓
-日；上交所休市日会直接跳过。腾讯云 Linux 服务器的 09:00 定时部署、失败重试和钉钉
+日；实盘模式在上交所休市日跳过，`--notification-only` 则仍使用所有标的的最新共同
+收盘日。腾讯云 Linux 服务器的 09:00 定时部署、失败重试和钉钉
 故障告警见 [`ops/tencent-cloud/README.md`](ops/tencent-cloud/README.md)。
+
+如果只想手动测试钉钉消息，不执行交易逻辑后的持仓保存、也不回填持仓状态：
+
+```bash
+uv run python run_daily.py \
+  --config strategy/configs/quality_momentum_top1.yaml \
+  --shadow-config strategy/configs/quality_momentum_top1_ohlc_er.yaml \
+  --notification-only
+```
+
+测试消息会明确标注“无需操作”，但仍会同步行情并按最新共同交易日生成完整信号。
 
 ### 6. 补全年初至今持仓状态
 

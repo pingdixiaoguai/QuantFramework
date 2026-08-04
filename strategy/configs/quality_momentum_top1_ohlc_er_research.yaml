@@ -1,0 +1,24 @@
+strategy_name: quality_momentum_top1_ohlc_er
+asset_pool:
+  - 510300.SH
+  - 159915.SZ
+  - 513100.SH
+  - 518880.SH
+start: "2013-07-01"
+window: 20
+history_days: 1008
+search_radius: 0.05
+search_step: 0.01
+top_k: 10
+optimizer_batch_size: 512
+rebalance_days: 5
+transaction_cost_rate: 0.0001
+seed:
+  effective_date: "2026-07-01"
+  training_start: "2022-05-05"
+  training_end: "2026-06-30"
+  weights:
+    close: 0.853
+    gap: 0.337
+    body: 0.029
+    range: 0.281

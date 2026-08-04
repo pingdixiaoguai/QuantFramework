@@ -11,8 +11,9 @@ class TestLoadBothFactors:
         assert "momentum" in facs
         assert "volatility" in facs
         assert "quality_momentum" in facs
+        assert "ohlc_quality_momentum" in facs
         assert "risk_adjusted_quality_momentum" in facs
-        assert len(facs) == 4
+        assert len(facs) == 5
         for name, fac in facs.items():
             assert "METADATA" in fac
             assert "compute" in fac

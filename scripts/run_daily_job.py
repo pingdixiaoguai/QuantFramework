@@ -19,6 +19,7 @@ from notification.dingtalk import DingTalkNotifier
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = Path("strategy/configs/quality_momentum_top1.yaml")
+DEFAULT_SHADOW_CONFIG = Path("strategy/configs/quality_momentum_top1_ohlc_er.yaml")
 
 
 def _send_failure_alert(
@@ -51,6 +52,7 @@ def _send_failure_alert(
 def run_job(
     config: Path,
     *,
+    shadow_config: Path | None = None,
     attempts: int = 3,
     retry_delay: float = 600,
 ) -> int:
@@ -66,6 +68,8 @@ def run_job(
         "--config",
         str(config),
     ]
+    if shadow_config is not None:
+        command.extend(["--shadow-config", str(shadow_config)])
     last_exit_code = 1
     failure_detail = "not started"
 
@@ -120,6 +124,15 @@ def main() -> None:
         help="Total attempts before sending the failure alert.",
     )
     parser.add_argument(
+        "--shadow-config",
+        type=Path,
+        default=None,
+        help=(
+            "Optional independent read-only strategy YAML used for notification "
+            "comparison."
+        ),
+    )
+    parser.add_argument(
         "--retry-delay",
         type=float,
         default=600,
@@ -129,6 +142,7 @@ def main() -> None:
     raise SystemExit(
         run_job(
             args.config,
+            shadow_config=args.shadow_config,
             attempts=args.attempts,
             retry_delay=args.retry_delay,
         )

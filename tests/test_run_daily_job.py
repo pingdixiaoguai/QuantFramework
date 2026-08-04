@@ -23,11 +23,20 @@ def test_run_job_returns_on_first_success_without_alert(monkeypatch):
         lambda *args: alerts.append(args),
     )
 
-    result = run_daily_job.run_job(Path("strategy.yaml"), retry_delay=0)
+    result = run_daily_job.run_job(
+        Path("strategy.yaml"),
+        shadow_config=run_daily_job.DEFAULT_SHADOW_CONFIG,
+        retry_delay=0,
+    )
 
     assert result == 0
     assert len(calls) == 1
-    assert calls[0][0][-2:] == ["--config", "strategy.yaml"]
+    assert calls[0][0][-4:] == [
+        "--config",
+        "strategy.yaml",
+        "--shadow-config",
+        str(run_daily_job.DEFAULT_SHADOW_CONFIG),
+    ]
     assert calls[0][1]["cwd"] == run_daily_job.PROJECT_ROOT
     assert calls[0][1]["check"] is False
     assert alerts == []

@@ -62,6 +62,10 @@ class NotificationContext:
     ytd_return: float | None          # YTD cumulative return
     asset_names: dict[str, str]       # asset → Chinese name
     asset_factor_values: dict[str, dict[str, float]] | None = None  # asset → factor → value
+    signal_confidence: dict[str, float] | None = None  # asset → production signal confidence
+    old_signal_target: str | None = None
+    new_signal_target: str | None = None
+    new_signal_name: str | None = None
 
 
 def _asset_label(asset: str, asset_names: dict[str, str]) -> str:
@@ -177,6 +181,9 @@ def _build_alpha_section(ctx: NotificationContext) -> str:
                 alpha = ret - target_return
                 parts.append(f"超额 {_fmt_pct(alpha)}")
 
+        if ctx.signal_confidence and asset in ctx.signal_confidence:
+            parts.append(f"置信度 {ctx.signal_confidence[asset]:.1%}")
+
         lines.append("• " + "　|　".join(parts))
 
     lines.append("")
@@ -224,6 +231,26 @@ def _build_ytd_line(ctx: NotificationContext) -> str:
     return f"**年初至今：** {_fmt_pct(ctx.ytd_return)}"
 
 
+def _build_signal_targets_section(ctx: NotificationContext) -> str:
+    """Show production and independently configured shadow targets."""
+    if ctx.old_signal_target is None and ctx.new_signal_target is None:
+        return ""
+
+    lines = ["**新旧信号**"]
+    if ctx.old_signal_target is not None:
+        lines.append(
+            "• 旧信号（原策略）："
+            f"{_asset_label(ctx.old_signal_target, ctx.asset_names)}"
+        )
+    if ctx.new_signal_target is not None:
+        lines.append(
+            f"• 新信号（{ctx.new_signal_name or '影子策略'}）："
+            f"{_asset_label(ctx.new_signal_target, ctx.asset_names)}"
+        )
+    lines.append("新信号仅作观察，不改变原策略交易")
+    return "\n\n".join(lines)
+
+
 def format_notification(ctx: NotificationContext) -> str:
     """Format a rich DingTalk markdown message from a NotificationContext.
 
@@ -243,12 +270,17 @@ def format_notification(ctx: NotificationContext) -> str:
         middle = _build_position_section(ctx)
 
     benchmark = _build_benchmark_section(ctx)
-    alpha = _build_alpha_section(ctx) if is_rebalance else ""
+    # Factor scores and confidence are informational and are sent every day,
+    # including hold days; only the execution block changes with rebalance.
+    alpha = _build_alpha_section(ctx)
+    signal_targets = _build_signal_targets_section(ctx)
     ytd = _build_ytd_line(ctx)
 
     parts = [header, "---", middle]
     if alpha:
         parts += ["---", alpha]
+    if signal_targets:
+        parts += ["---", signal_targets]
     if benchmark:
         parts += ["---", benchmark]
     parts += ["---", ytd]

@@ -2,4 +2,5 @@ factors:
   - module: factors.momentum
   - module: factors.volatility
   - module: factors.quality_momentum
+  - module: factors.ohlc_quality_momentum
   - module: factors.risk_adjusted_quality_momentum

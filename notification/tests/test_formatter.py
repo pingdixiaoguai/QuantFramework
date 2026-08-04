@@ -148,6 +148,23 @@ class TestFormatNotificationHold:
         # benchmark 159915.SZ = +2.44%, position = +0.89%, diff = +1.54% above
         assert "超出持仓" in msg or "↑" in msg or "↓" in msg
 
+    def test_shows_old_and_new_targets_without_raw_diagnostics(self):
+        msg = format_notification(
+            self._make_ctx(
+                signal_confidence={"159915.SZ": 0.40},
+                old_signal_target="510300.SH",
+                new_signal_target="159915.SZ",
+                new_signal_name="quality_momentum_top1_ohlc_er",
+            )
+        )
+        assert "新旧信号" in msg
+        assert "旧信号（原策略）：510300 沪深300" in msg
+        assert "新信号（quality_momentum_top1_ohlc_er）：159915 创业板" in msg
+        assert "新信号仅作观察" in msg
+        assert "新旧信号对照" not in msg
+        assert "旧ER" not in msg
+        assert "新ER" not in msg
+
 
 class TestFormatNotificationRebalance:
     """Rebalance path: orders present, show trade instructions."""
@@ -196,3 +213,21 @@ class TestFormatNotificationRebalance:
         msg = format_notification(self._make_ctx())
         assert "同期对比" in msg
         assert "年初至今" in msg
+
+    def test_shows_production_confidence_after_excess_on_rebalance_days(self):
+        ctx = self._make_ctx()
+        ctx.old_signal_target = "513100.SH"
+        ctx.new_signal_target = "513100.SH"
+        ctx.new_signal_name = "quality_momentum_top1_ohlc_er"
+        ctx.benchmark_returns["513100.SH"] = 0.01
+        ctx.signal_confidence = {
+            "159915.SZ": 0.30,
+            "513100.SH": 0.70,
+        }
+        msg = format_notification(ctx)
+        assert "调仓指令" in msg
+        assert "超额" in msg
+        assert "置信度 30.0%" in msg
+        assert "置信度 70.0%" in msg
+        assert "旧信号（原策略）：513100 纳指ETF" in msg
+        assert "新信号（quality_momentum_top1_ohlc_er）：513100 纳指ETF" in msg
