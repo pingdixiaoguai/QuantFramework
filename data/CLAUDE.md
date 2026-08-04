@@ -16,9 +16,6 @@ Output: `pd.DataFrame` with columns `[date, open, high, low, close, volume]`, so
 - Dedup policy: `drop_duplicates(subset=["date"], keep="first")` — existing history wins; incremental sync must not rewrite prior rows because the local HFQ baseline is fixed
 - Rate-limit handling: retries up to 3 times, sleeps 60s between attempts when error message contains `rate`/`40203`/`freq`/`exceed`
 - CLI entry: `python -m data` (see `__main__.py`)
-- Explicit-range CLI: `fetch_etf_data.py ASSET_CODE [--start YYYY-MM-DD] [--end YYYY-MM-DD]`; the start date defaults to `2013-01-01` and the end date defaults to today
-- Latest all-ETF snapshot CLI: `fetch_latest_etfs.py [--output PATH]`; it left-joins all listed `etf_basic` rows with the latest populated `fund_daily` trading date and writes one Parquet or CSV file
-- Latest ETF size CSV CLI: `fetch_latest_etf_sizes.py [--output PATH]`; it backfills each listed ETF's latest `fund_share` record, joins the latest close and fund category, normalizes money-ETF quote/share units by 100, and labels the result explicitly as estimated market size rather than official NAV-based size
 
 ## Pitfalls
 - `query()` returns an **empty** DataFrame (not an error) when the asset has no local file — callers must check `len(df) > 0` before indexing

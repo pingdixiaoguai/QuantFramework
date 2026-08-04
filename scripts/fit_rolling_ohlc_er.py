@@ -22,6 +22,23 @@ def _date(value: str) -> date:
     return date.today() if value.lower() in {"today", "latest"} else date.fromisoformat(value)
 
 
+def apply_checkpoint(output: dict, research: dict, state) -> dict:
+    """Write the complete research result into a strategy YAML mapping."""
+    weights = dict(zip(("close", "gap", "body", "range"), state.values, strict=True))
+    output["factors"][0].setdefault("params", {})["weights"] = weights
+    output["rebalance_days"] = int(research["rebalance_days"])
+    output["parameter_checkpoint"] = {
+        "effective_date": state.effective_date.isoformat(),
+        "training_start": state.training_start.isoformat(),
+        "training_end": state.training_end.isoformat(),
+        "history_days": int(research["history_days"]),
+        "rebalance_days": int(research["rebalance_days"]),
+        "selection": "prior-quarter walk-forward search; mean of training-Sharpe Top10",
+        "price_basis": "后复权 OHLC",
+    }
+    return output
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True, help="research YAML")
@@ -51,16 +68,7 @@ def main() -> None:
         research,
         args.state_dir,
     )
-    weights = dict(zip(("close", "gap", "body", "range"), state.values, strict=True))
-    output["factors"][0].setdefault("params", {})["weights"] = weights
-    output["parameter_checkpoint"] = {
-        "effective_date": state.effective_date.isoformat(),
-        "training_start": state.training_start.isoformat(),
-        "training_end": state.training_end.isoformat(),
-        "history_days": int(research["history_days"]),
-        "selection": "prior-quarter walk-forward search; mean of training-Sharpe Top10",
-        "price_basis": "后复权 OHLC",
-    }
+    apply_checkpoint(output, research, state)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as handle:
         yaml.safe_dump(output, handle, allow_unicode=True, sort_keys=False)

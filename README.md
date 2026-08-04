@@ -81,7 +81,7 @@ uv run python scripts/fit_rolling_ohlc_er.py \
 ```
 
 checkpoint 记录生效日、训练区间、过去 1008 个交易日历史长度、Top10 均值选择
-规则及后复权 OHLC 口径。`run_daily.py` 不做寻参、不写滚动缓存，影子信号只用于
+规则、`rebalance_days=5` 及后复权 OHLC 口径。`run_daily.py` 不做寻参、不写滚动缓存，影子信号只用于
 钉钉对照，不改变原策略的交易与持仓状态。
 
 ### 4. 运行回测

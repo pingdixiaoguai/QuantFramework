@@ -108,6 +108,8 @@ def test_enabled_dingtalk_configuration_error_is_not_swallowed(monkeypatch):
         raise ValueError("DingTalk webhook URL required")
 
     monkeypatch.setattr("run_daily.DingTalkNotifier", fail_notifier)
+    # This is a notifier-construction test, not a calendar/network test.
+    monkeypatch.setattr("run_daily._is_sse_trading_day", lambda _: True)
 
     with pytest.raises(ValueError, match="webhook URL required"):
         run(config)

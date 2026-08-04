@@ -205,7 +205,7 @@ def _simulate_candidate_returns(
     scores: np.ndarray,
     opens: np.ndarray,
     closes: np.ndarray,
-    min_hold_days: int,
+    rebalance_days: int,
     transaction_cost_rate: float,
 ) -> np.ndarray:
     """Vectorized Top1/open-execution simulation for a candidate batch."""
@@ -261,7 +261,7 @@ def _simulate_candidate_returns(
             0,
         )
         can_signal = (pending < 0) & (
-            (current < 0) | (holding_days >= min_hold_days)
+            (current < 0) | (holding_days >= rebalance_days)
         )
         if can_signal.any() and day_index + 1 < day_count:
             row = scores[:, day_index, :].copy()
@@ -331,7 +331,7 @@ def _select_top_k_mean(
             scores,
             opens[start_index:update_index],
             closes[start_index:update_index],
-            int(config["min_hold_days"]),
+            int(config["rebalance_days"]),
             float(config["transaction_cost_rate"]),
         )
         sharpes[batch_start:batch_end] = _annualized_sharpe(candidate_returns)

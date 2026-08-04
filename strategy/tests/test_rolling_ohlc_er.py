@@ -38,7 +38,7 @@ def _config() -> dict:
         "search_radius": 0.05,
         "search_step": 0.01,
         "top_k": 10,
-        "min_hold_days": 5,
+        "rebalance_days": 5,
         "transaction_cost_rate": 0.0001,
         "seed": {
             "effective_date": "2026-07-01",

@@ -20,7 +20,7 @@ factors:
         range: 0.281
 train_ratio: 0.7
 rebalance_rule: daily
-rebalance_days: 1
+rebalance_days: 5
 
 # Versioned, confirmed checkpoint.  The daily runner only reads this file;
 # parameter search is performed by the separate research workflow.
@@ -29,5 +29,6 @@ parameter_checkpoint:
   training_start: "2022-05-05"
   training_end: "2026-06-30"
   history_days: 1008
+  rebalance_days: 5
   selection: "prior-quarter walk-forward search; mean of training-Sharpe Top10"
   price_basis: "后复权 OHLC"
