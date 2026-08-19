@@ -5,7 +5,7 @@ import pytest
 from factors.registry import load_registered_factors
 
 
-class TestLoadBothFactors:
+class TestRegisteredFactors:
     def test_returns_momentum_and_volatility(self):
         facs = load_registered_factors()
         assert "momentum" in facs
@@ -13,7 +13,8 @@ class TestLoadBothFactors:
         assert "quality_momentum" in facs
         assert "ohlc_quality_momentum" in facs
         assert "risk_adjusted_quality_momentum" in facs
-        assert len(facs) == 5
+        assert "rsi" in facs
+        assert len(facs) == 6
         for name, fac in facs.items():
             assert "METADATA" in fac
             assert "compute" in fac
