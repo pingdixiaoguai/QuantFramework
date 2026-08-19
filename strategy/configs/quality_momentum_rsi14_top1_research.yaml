@@ -1,0 +1,21 @@
+strategy_name: quality_momentum_rsi14_top1_research
+strategy_class: strategy.composite_top1.CompositeTop1
+research_status: retrospective_shadow_only
+asset_pool:
+  - 510300.SH   # 沪深300 ETF
+  - 159915.SZ   # 创业板 ETF
+  - 513100.SH   # 纳斯达克 ETF
+  - 518880.SH   # 黄金 ETF
+start: "2013-07-01"
+end: "today"
+factors:
+  - name: quality_momentum
+    weight: 1.0
+    params: {window: 20}
+  - name: rsi
+    weight: 0.6
+    direction_flip: true
+    params: {window: 14}
+train_ratio: 0.7
+rebalance_rule: daily      # legacy field, kept for back-compat (engine ignores it)
+rebalance_days: 1

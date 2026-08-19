@@ -1,0 +1,8 @@
+check,value,detail
+official_engine_pointwise_reproduction,True,baseline and selected each match 3173 daily returns
+coarse_grid_trial_count,1776,all attempted configurations retained
+coarse_configs_dual_improvement_train_and_test,2,selection is sparse relative to the full search
+fine_weight_plateau,4,fine-grid weights with the exact selected path at rd=1
+rolling_36m_dual_improvement_rate,0.6810344827586207,79/116 windows
+cross_pool_dual_improvement_rate,0.75,3/4 pool perturbations
+selection_status,retrospective_shadow_only,the final candidate was selected after the first holdout candidate failed
