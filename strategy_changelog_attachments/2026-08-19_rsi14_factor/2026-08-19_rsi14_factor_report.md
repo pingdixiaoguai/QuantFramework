@@ -1,5 +1,9 @@
 # RSI14 因子与四 ETF 轮动策略研究
 
+> 后续资产专属权重与 5bp 成本选择见
+> [`2026-08-19_rsi14_asset_weights_report.md`](2026-08-19_rsi14_asset_weights_report.md)。
+> 后续候选降低了统一权重方案的换手，但同样只允许作为 shadow。
+
 ## 结论
 
 本研究完成了 RSI14 因子实现，并在当前四 ETF `quality_momentum_top1`

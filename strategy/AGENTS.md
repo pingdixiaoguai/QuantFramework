@@ -11,7 +11,9 @@ loader reads `strategy_class`; strategies consume the factor snapshot
 - `Top1` is the production decision rule for the 4ETF quality-momentum pool.
 - `CompositeTop1` is an opt-in Top-1 rule that combines configured
   cross-sectional factor ranks. `direction_flip` reverses a factor rank before
-  its configured weight is applied.
+  its configured weight is applied. A factor may declare per-asset
+  `asset_weights`; use `center_rank: true` with unequal weights so the weights
+  change factor sensitivity without adding an asset-specific score intercept.
 - `quality_momentum_top1_ohlc_er.yaml` is an independent, read-only shadow
   configuration using the registered `ohlc_quality_momentum` factor.
 - Its `parameter_checkpoint` records effective date, training range, history,

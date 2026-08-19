@@ -60,3 +60,45 @@ def test_factor_without_direction_flip_rewards_higher_values() -> None:
         "B.SH": {"quality_momentum": 0.8, "rsi": 40.0},
     })
     assert weights == {"A.SH": 1.0}
+
+
+def test_centering_does_not_change_a_uniform_weight_ranking() -> None:
+    values = {
+        "A.SH": {"quality_momentum": 0.9, "rsi": 80.0},
+        "B.SH": {"quality_momentum": 0.8, "rsi": 40.0},
+        "C.SH": {"quality_momentum": 0.3, "rsi": 60.0},
+        "D.SH": {"quality_momentum": 0.1, "rsi": 70.0},
+    }
+    uncentered = _strategy().generate_weights(values)
+    centered = _strategy([
+        {"name": "quality_momentum", "weight": 1.0},
+        {
+            "name": "rsi",
+            "weight": 0.6,
+            "direction_flip": True,
+            "center_rank": True,
+        },
+    ]).generate_weights(values)
+
+    assert centered == uncentered
+
+
+def test_asset_specific_weights_use_centered_rank_contributions() -> None:
+    strategy = _strategy([
+        {"name": "quality_momentum", "weight": 1.0},
+        {
+            "name": "rsi",
+            "weight": 0.0,
+            "asset_weights": {"B.SH": 0.9},
+            "direction_flip": True,
+            "center_rank": True,
+        },
+    ])
+    weights = strategy.generate_weights({
+        "A.SH": {"quality_momentum": 0.9, "rsi": 80.0},
+        "B.SH": {"quality_momentum": 0.8, "rsi": 40.0},
+        "C.SH": {"quality_momentum": 0.3, "rsi": 60.0},
+        "D.SH": {"quality_momentum": 0.1, "rsi": 70.0},
+    })
+
+    assert weights == {"B.SH": 1.0}

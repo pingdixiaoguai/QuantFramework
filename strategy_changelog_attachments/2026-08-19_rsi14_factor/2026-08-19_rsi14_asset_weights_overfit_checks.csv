@@ -1,0 +1,10 @@
+check,value,detail
+official_engine_pointwise_reproduction,True,selected matches 3173 official daily returns
+training_grid_trial_count,1024,test metrics were not used for selection
+training_eligible_count,12,non-uniform candidates passing the training gate
+holdout_dual_improvement_at_5bp,True,2022-09-01 through 2026-08-17 at one-way 5bp
+rolling_36m_dual_improvement_rate_at_5bp,0.5517241379310345,64/116 windows
+local_neighbors_dual_train_and_test_rate,0.16666666666666666,9/54 neighbors
+selected_mapping_full_rank_among_permutations,1,rank among 4 assignments of the same weights
+leave_one_asset_out_dual_improvement_rate,0.25,1/4 pools
+selection_status,cost_aware_quasi_oos_shadow_only,the holdout was seen in the prior uniform-weight research

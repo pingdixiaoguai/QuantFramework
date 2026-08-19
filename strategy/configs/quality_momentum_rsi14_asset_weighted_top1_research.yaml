@@ -1,0 +1,28 @@
+strategy_name: quality_momentum_rsi14_asset_weighted_top1_research
+strategy_class: strategy.composite_top1.CompositeTop1
+research_status: cost_aware_quasi_oos_shadow_only
+asset_pool:
+  - 510300.SH   # 沪深300 ETF
+  - 159915.SZ   # 创业板 ETF
+  - 513100.SH   # 纳斯达克 ETF
+  - 518880.SH   # 黄金 ETF
+start: "2013-07-01"
+end: "today"
+factors:
+  - name: quality_momentum
+    weight: 1.0
+    params: {window: 20}
+  - name: rsi
+    weight: 0.0
+    asset_weights:
+      510300.SH: 0.9
+      159915.SZ: 0.3
+      513100.SH: 0.3
+      518880.SH: 0.3
+    direction_flip: true
+    center_rank: true
+    params: {window: 14}
+train_ratio: 0.7
+rebalance_rule: daily      # legacy field, kept for back-compat (engine ignores it)
+rebalance_days: 2
+transaction_cost_rate: 0.0005  # one-way stress rate used by the selection gate
