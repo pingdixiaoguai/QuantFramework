@@ -5,3 +5,6 @@ factors:
   - module: factors.ohlc_quality_momentum
   - module: factors.risk_adjusted_quality_momentum
   - module: factors.rsi
+  - module: factors.drawdown_percentile
+  - module: factors.rebound_percentile
+  - module: factors.volume_percentile

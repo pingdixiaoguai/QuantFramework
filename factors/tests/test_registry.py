@@ -14,7 +14,10 @@ class TestRegisteredFactors:
         assert "ohlc_quality_momentum" in facs
         assert "risk_adjusted_quality_momentum" in facs
         assert "rsi" in facs
-        assert len(facs) == 6
+        assert "drawdown_percentile" in facs
+        assert "rebound_percentile" in facs
+        assert "volume_percentile" in facs
+        assert len(facs) == 9
         for name, fac in facs.items():
             assert "METADATA" in fac
             assert "compute" in fac
