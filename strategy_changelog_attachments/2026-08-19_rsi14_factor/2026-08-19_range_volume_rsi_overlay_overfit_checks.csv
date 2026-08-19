@@ -1,0 +1,14 @@
+check,value,detail
+official_engine_pointwise_reproduction,True,selected matches 2631 official daily returns
+training_grid_trial_count,1440,all four auxiliary signals are non-zero in every trial
+current_gate_count,110,candidates passing the current-strategy training gate
+current_and_matched_gate_count,23,candidates also passing the matched-rd attribution gate
+selected_target_diff_days_train,20,daily desired target differs from QM20 rd10
+selected_target_diff_days_test,1,one desired-target change did not alter realized returns
+test_return_diff_days_vs_matched_rd,0,zero realized holdout return differences versus QM20 rd10
+test_dual_vs_matched_rd,False,primary OOS signal-increment gate
+rolling_36m_dual_rate_vs_current,0.8045977011494253,70/87 windows
+rolling_36m_dual_rate_vs_matched,0.7931034482758621,69/87 windows
+local_neighbors_dual_train_test_vs_matched_rate,0.0625,local grid has 48 variants
+leave_one_out_dual_vs_matched_rate,0.75,3/4 pools
+selection_status,rejected_no_oos_signal_increment,double win versus current is attributable to rd=10 in the holdout

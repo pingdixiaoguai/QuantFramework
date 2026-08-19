@@ -1,0 +1,42 @@
+strategy_name: quality_momentum_range_volume_rsi_top1_research
+strategy_class: strategy.composite_top1.CompositeTop1
+research_status: rejected_no_oos_signal_increment
+research_evaluation_start: "2016-01-01"
+asset_pool:
+  - 510300.SH
+  - 159915.SZ
+  - 513100.SH
+  - 518880.SH
+start: "2013-07-01"
+end: "today"
+factors:
+  - name: quality_momentum
+    weight: 1.0
+    params: {window: 20}
+  - name: drawdown_percentile
+    weight: 0.25
+    score_mode: centered_value
+    center: 0.5
+    scale: 2.0
+    params: {window: 60, history: 504}
+  - name: rebound_percentile
+    weight: -0.25
+    score_mode: centered_value
+    center: 0.5
+    scale: 2.0
+    params: {window: 60, history: 504}
+  - name: volume_percentile
+    weight: 0.25
+    score_mode: centered_value
+    center: 0.5
+    scale: 2.0
+    params: {window: 60, history: 504}
+  - name: rsi
+    weight: -0.25
+    score_mode: centered_value
+    center: 50.0
+    scale: 0.02
+    params: {window: 14}
+train_ratio: 0.7
+rebalance_days: 10
+transaction_cost_rate: 0.0005

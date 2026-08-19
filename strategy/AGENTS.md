@@ -14,6 +14,8 @@ loader reads `strategy_class`; strategies consume the factor snapshot
   its configured weight is applied. A factor may declare per-asset
   `asset_weights`; use `center_rank: true` with unequal weights so the weights
   change factor sensitivity without adding an asset-specific score intercept.
+  `score_mode: centered_value` adds a normalized raw factor value instead of a
+  cross-sectional rank and requires explicit `center` and `scale` in YAML.
 - `quality_momentum_top1_ohlc_er.yaml` is an independent, read-only shadow
   configuration using the registered `ohlc_quality_momentum` factor.
 - Its `parameter_checkpoint` records effective date, training range, history,

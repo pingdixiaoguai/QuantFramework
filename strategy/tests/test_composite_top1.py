@@ -102,3 +102,35 @@ def test_asset_specific_weights_use_centered_rank_contributions() -> None:
     })
 
     assert weights == {"B.SH": 1.0}
+
+
+def test_centered_value_signal_can_adjust_primary_rank() -> None:
+    strategy = _strategy([
+        {"name": "quality_momentum", "weight": 1.0},
+        {
+            "name": "drawdown_percentile",
+            "weight": 1.0,
+            "score_mode": "centered_value",
+            "center": 0.5,
+            "scale": 2.0,
+        },
+    ])
+    weights = strategy.generate_weights({
+        "A.SH": {"quality_momentum": 0.9, "drawdown_percentile": 0.0},
+        "B.SH": {"quality_momentum": 0.8, "drawdown_percentile": 1.0},
+    })
+
+    assert weights == {"B.SH": 1.0}
+
+
+def test_unknown_score_mode_is_rejected() -> None:
+    strategy = _strategy([
+        {"name": "quality_momentum", "weight": 1.0, "score_mode": "raw"}
+    ])
+
+    try:
+        strategy.generate_weights({"A.SH": {"quality_momentum": 0.9}})
+    except ValueError as exc:
+        assert "unknown score_mode" in str(exc)
+    else:
+        raise AssertionError("unknown score_mode should fail")

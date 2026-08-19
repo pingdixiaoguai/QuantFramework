@@ -26,7 +26,23 @@ class CompositeTop1(BaseStrategy):
             weight = float(factor_config["weight"])
             asset_weights = factor_config.get("asset_weights", {})
             direction_flip = bool(factor_config.get("direction_flip", False))
+            score_mode = factor_config.get("score_mode", "rank")
             center_rank = bool(factor_config.get("center_rank", False))
+            if score_mode == "centered_value":
+                center = float(factor_config.get("center", 0.0))
+                scale = float(factor_config.get("scale", 1.0))
+                direction = -1.0 if direction_flip else 1.0
+                for asset in assets:
+                    asset_weight = float(asset_weights.get(asset, weight))
+                    total_scores[asset] += (
+                        asset_weight
+                        * direction
+                        * (factor_values[asset][name] - center)
+                        * scale
+                    )
+                continue
+            if score_mode != "rank":
+                raise ValueError(f"unknown score_mode: {score_mode!r}")
             values = sorted(
                 ((asset, factor_values[asset][name]) for asset in assets),
                 key=lambda item: item[1],

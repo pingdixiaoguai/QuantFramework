@@ -3,6 +3,9 @@
 > 后续资产专属权重与 5bp 成本选择见
 > [`2026-08-19_rsi14_asset_weights_report.md`](2026-08-19_rsi14_asset_weights_report.md)。
 > 后续候选降低了统一权重方案的换手，但同样只允许作为 shadow。
+> 回撤、低点涨幅、量能与 RSI14 的联合增量检验见
+> [`2026-08-19_range_volume_rsi_overlay_report.md`](2026-08-19_range_volume_rsi_overlay_report.md)；
+> 该候选因样本外没有信号增量而被否决。
 
 ## 结论
 
