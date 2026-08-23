@@ -36,4 +36,11 @@ def generate(
         output=str(output_path),
         **extra_kwargs,
     )
+    # QuantStats 0.0.81 emits ``<body onload="save()">`` without defining a
+    # global ``save`` function.  The report renders, but every open produces a
+    # browser console error.  Remove only that dead handler and leave the
+    # generated tables and inline SVGs byte-for-byte otherwise unchanged.
+    document = output_path.read_text(encoding="utf-8")
+    document = document.replace('<body onload="save()">', "<body>")
+    output_path.write_text(document, encoding="utf-8")
     return output_path

@@ -50,3 +50,19 @@ class TestBenchmarkTitle:
         generate(result, out)  # no benchmark_title
 
         assert "benchmark_title" not in captured["kwargs"]
+
+    def test_removes_undefined_quantstats_onload_handler(self, tmp_path, monkeypatch):
+        def fake_html(returns, benchmark=None, output=None, **kwargs):
+            Path(output).write_text(
+                '<html><body onload="save()"><p>report</p></body></html>',
+                encoding="utf-8",
+            )
+
+        monkeypatch.setattr("quantstats.reports.html", fake_html)
+        out = tmp_path / "report.html"
+
+        generate(_make_result(), out)
+
+        document = out.read_text(encoding="utf-8")
+        assert '<body onload="save()">' not in document
+        assert "<body><p>report</p>" in document

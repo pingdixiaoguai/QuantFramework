@@ -94,3 +94,34 @@ def test_final_alert_uses_plain_text_dingtalk_alert(monkeypatch):
     assert "quant-host" in messages[0]
     assert "exit code 1" in messages[0]
     assert "journalctl -u quant-daily.service" in messages[0]
+
+
+def test_formal_config_dispatches_composite_runner(monkeypatch, tmp_path):
+    calls = []
+    config = tmp_path / "formal.yaml"
+    config.write_text("strategy_mode: gold_raqm_w5\n", encoding="utf-8")
+    monkeypatch.setattr(
+        run_daily_job.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command)
+        or SimpleNamespace(returncode=0),
+    )
+
+    result = run_daily_job.run_job(config, retry_delay=0)
+
+    assert result == 0
+    assert calls[0][1].endswith("run_daily_momentum_defender.py")
+
+
+def test_formal_config_rejects_shadow_config(tmp_path):
+    import pytest
+
+    config = tmp_path / "formal.yaml"
+    config.write_text("strategy_mode: gold_raqm_w5\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unsupported"):
+        run_daily_job.run_job(
+            config,
+            shadow_config=Path("shadow.yaml"),
+            retry_delay=0,
+        )

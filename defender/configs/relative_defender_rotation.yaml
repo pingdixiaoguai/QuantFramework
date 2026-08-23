@@ -1,0 +1,54 @@
+strategy_name: relative_defender_rotation_2013_listing_aware
+formal_status: production_signal_frozen
+formal_promotion_date: "2026-08-22"
+evidence_status: retrospective_history_extension_not_oos
+asset_pool:
+  - 512890.SH
+  - 159545.SZ
+  - 513530.SH
+  - 515080.SH
+  - 510880.SH
+  - 563020.SH
+  - 511260.SH
+core_strategy:
+  name: relative_defender_champion
+  signal_asset: 512890.SH
+  parameters_changed: false
+rotation:
+  frequency: monthly
+  primary_signal_source: base_anchor
+  range_threshold: 0.20
+  reversal_lookback_days: 40
+  trend_lookback_days: 150
+  regime_lookback_days: 180
+  regime_return_ceiling: 0.05
+  selected_asset_weight: 1.00
+  warmup_low_scene_reversal: true
+  candidate_assets:
+    - 512890.SH
+    - 159545.SZ
+    - 513530.SH
+    - 515080.SH
+    - 510880.SH
+    - 563020.SH
+history_extension:
+  backtest_start: "2013-07-01"
+  pre_anchor_signal_asset: 510880.SH
+  formal_anchor_first_close: "2019-01-18"
+  formal_anchor_first_execution: "2019-01-21"
+  candidate_rule: listed_at_execution_and_ranking_eligible
+  unavailable_defensive_treatment: cash
+conservative_variant:
+  selected_asset_weight: 0.25
+defensive_asset: 511260.SH
+execution: previous_close_signal_month_first_open
+transaction_cost_rates:
+  equity_etfs: 0.0001
+  511260.SH: 0.00001
+evidence_boundary:
+  selection_date: "2026-08-22"
+  all_local_history_used_for_research: true
+  independent_out_of_sample: false
+  production_promotion_allowed: true
+  promotion_authority: explicit_user_instruction
+  strict_prospective_after: "2026-08-22"

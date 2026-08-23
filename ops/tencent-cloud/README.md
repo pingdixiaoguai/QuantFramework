@@ -1,7 +1,8 @@
 # 腾讯云 09:00 早盘信号部署
 
 适用于一台长期运行的 Linux CVM。任务在周一至周五 09:00（`Asia/Shanghai`）
-启动，以最新完整交易日行情计算 `quality_momentum_top1`，在钉钉提示当天目标持仓。
+启动，以最新完整交易日行情计算正式的`momentum_defender_c2_gold_raqm_w5_v1`，在钉钉
+提示当天目标持仓、基础C2状态和Gold覆盖诊断。
 代码还会查询上交所交易日历，法定休市日成功跳过且不发送信号。
 
 ## 运行语义
@@ -18,7 +19,7 @@
 这项任务不监听网络端口。安全组只需允许你的固定公网 IP 访问 SSH 22 端口，
 不需要开放 80、443 或数据库端口。建议使用 SSH 密钥登录。
 
-2 核、1GB 内存、40GB 云硬盘足够当前四个 ETF。先运行 `free -h`；如果 Swap 为
+2 核、1GB 内存、40GB 云硬盘足够当前11个ETF与全历史状态回放。先运行`free -h`；如果Swap为
 0，可额外配置 1GB Swap，降低首次安装 Python 依赖时被系统终止的概率。
 
 ## 2. 放置代码
@@ -41,7 +42,7 @@ cd /opt/QuantFramework
 
 ```text
 data/db/
-state/quality_momentum_top1_position.json
+state/momentum_defender_c2_gold_raqm_w5_v1_position.json
 ```
 
 行情目录可以重新同步，但持仓 JSON 必须迁移，否则服务器会把策略视为首次建仓，
@@ -49,7 +50,7 @@ state/quality_momentum_top1_position.json
 
 ```text
 /opt/QuantFramework/data/db/
-/opt/QuantFramework/state/quality_momentum_top1_position.json
+/opt/QuantFramework/state/momentum_defender_c2_gold_raqm_w5_v1_position.json
 ```
 
 ## 4. 安装

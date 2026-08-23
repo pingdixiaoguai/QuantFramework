@@ -1,0 +1,13 @@
+{
+  "strategy_id": "momentum_defender_c2_gold_raqm_w5_v1",
+  "formal_status": "production_signal_frozen",
+  "formal_promotion_date": "2026-08-23",
+  "promotion_authority": "explicit_user_instruction",
+  "strict_prospective_after": "2026-08-23",
+  "first_unobserved_execution_date": "2026-08-24",
+  "config_path": "strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml",
+  "research_report": "docs/research/2026-08-23_gold_raqm_w5_formal.md",
+  "validation_workflow": "research/DEVELOPMENT_VALIDATION.md",
+  "prospective_ledger_path": "state/momentum_defender_c2_gold_raqm_w5_v1_forward.jsonl",
+  "evidence_status": "retrospective_research_with_forward_validation_required"
+}

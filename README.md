@@ -115,6 +115,92 @@ Experiment log: experiments/20260413-001.yaml
 HTML report: experiments/20260413-001.html
 ```
 
+### 4.1 历史检查点：Momentum × Defender C2 frozen_v2
+
+原外部交接版 Momentum/Defender 融合研究检查点为
+`momentum_defender_c2_frozen_v2`。它不再执行寻参，创业板ETF波动分位数固定为
+q95；完整参数由
+[`research/configs/momentum_defender_c2_frozen_v2.yaml`](research/configs/momentum_defender_c2_frozen_v2.yaml)
+版本化保存。
+
+```bash
+uv run python -m research.run_momentum_defender_c2_frozen
+```
+
+标准HTML报告和逐日审计输出到
+`experiments/20260821_momentum_defender_c2_frozen_v2/`。冻结规则、数据依赖、复现检查点、
+过拟合边界由版本化配置和检查点审计共同记录。
+
+该历史版本是**冻结研究候选**，不是`run_daily.py`可直接执行的生产策略。原因是它还依赖
+外部Defender开盘切换交接接口和跨袖套状态；在完成生产状态持久化、实时Defender目标接入
+和独立前瞻验证前，不应把研究配置放入`strategy/configs/`冒充实盘配置。
+
+### 4.2 基础内嵌版本：Momentum × Defender main
+
+正式Gold策略的基础融合版本为`momentum_defender_c2_defender_main_b5e3419`。Defender
+实现来自 `Castle47/Defender` 的 main 提交
+`b5e34191a7d445521de330e998bfe0804d6ebd43`，核心代码已经放入本项目的
+`defender/` 包；运行和回测都直接读取本项目 `data/db/`，不再读取另一仓库或外部交付 CSV。
+
+生成标准 HTML 回测与审计文件：
+
+```bash
+uv run python -m research.run_momentum_defender_integrated
+```
+
+产物位于 `experiments/20260822_momentum_defender_main_integration/`。其中
+`momentum_defender_c2_main_vs_original_momentum.html` 是与原 Momentum 策略对比的
+QuantStats 报告，`daily_backtest.csv` 和 `target_weights.csv` 可逐日核对袖套、收益与权重。
+
+先做不发送、不写持仓的真实信号演练：
+
+```bash
+uv run python run_daily_momentum_defender.py --dry-run
+```
+
+确认后，生产运行使用：
+
+```bash
+uv run python run_daily_momentum_defender.py
+```
+
+`--notification-only` 会发送明确标记的钉钉测试消息但不写持仓；`--dry-run` 连钉钉也不会调用。
+该版本完成了实现接入与机械校验，但历史收益仍是回溯证据，正式启用后应继续记录独立前瞻信号。
+
+### 4.3 正式策略：C2 + Gold RAQM-W5
+
+自2026-08-23起，正式策略为`momentum_defender_c2_gold_raqm_w5_v1`。它保留完整C2，
+只在基础C2处于Defender时加入黄金覆盖：Gold和Defender整体NAV均计算注册的5日
+`risk_adjusted_quality_momentum`，差值严格高于2.20时下一开盘切黄金；黄金至少持有5个
+完整交易日，第6个开盘起若基础C2已恢复Momentum则切原Momentum Top1，否则差值降至
+0.60及以下时回Defender。
+
+正式配置：
+[`strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml`](strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml)。
+
+生成或验证正式回测检查点：
+
+```bash
+uv run python -m research.run_formal_gold_raqm_w5
+```
+
+生产运行前先演练：
+
+```bash
+uv run python run_daily_momentum_defender.py --dry-run
+```
+
+正式发送并持久化持仓：
+
+```bash
+uv run python run_daily_momentum_defender.py
+```
+
+旧基础C2仍可显式传入`strategy/configs/momentum_defender_c2_main.yaml`运行，但不再是默认正式
+入口。正式研究证据见[`docs/research/2026-08-23_gold_raqm_w5_formal.md`](docs/research/2026-08-23_gold_raqm_w5_formal.md)；
+所有后续策略开发必须执行[`research/DEVELOPMENT_VALIDATION.md`](research/DEVELOPMENT_VALIDATION.md)
+中的因果、过拟合和多重试验流程。
+
 ### 5. 每日实盘运行
 
 ```bash

@@ -15,3 +15,12 @@ change production trading or position persistence.
 
 `--notification-only` may run on weekends and holidays using the latest common
 priced date. It must not backfill or write production position state.
+
+`run_daily_momentum_defender.py` formats the composite strategy's sleeve state,
+slow gate, emergency cap, both inner sleeve targets, exact orders, and implied
+cash. Its `--dry-run` mode must call neither DingTalk nor position persistence;
+`--notification-only` may send a labelled test but must not write state.
+The same runner is the formal Gold RAQM-W5 entry point. Formal notifications
+must expose the base-C2 target, Gold and Defender factor values, their
+difference, frozen thresholds, Gold hard-hold count, and final executable
+allocation.

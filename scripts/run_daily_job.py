@@ -14,11 +14,15 @@ import sys
 import time
 from pathlib import Path
 
+import yaml
+
 from notification.dingtalk import DingTalkNotifier
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_CONFIG = Path("strategy/configs/quality_momentum_top1.yaml")
+DEFAULT_CONFIG = Path(
+    "strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml"
+)
 DEFAULT_SHADOW_CONFIG = Path("strategy/configs/quality_momentum_top1_ohlc_er.yaml")
 
 
@@ -62,9 +66,19 @@ def run_job(
     if retry_delay < 0:
         raise ValueError("retry_delay must be >= 0")
 
+    config_path = config if config.is_absolute() else PROJECT_ROOT / config
+    entrypoint = PROJECT_ROOT / "run_daily.py"
+    if config_path.exists():
+        loaded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        if isinstance(loaded, dict) and loaded.get("strategy_mode") == "gold_raqm_w5":
+            entrypoint = PROJECT_ROOT / "run_daily_momentum_defender.py"
+            if shadow_config is not None:
+                raise ValueError(
+                    "shadow_config is unsupported by the formal composite runner"
+                )
     command = [
         sys.executable,
-        str(PROJECT_ROOT / "run_daily.py"),
+        str(entrypoint),
         "--config",
         str(config),
     ]

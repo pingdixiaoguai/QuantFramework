@@ -1,0 +1,25 @@
+strategy_name: momentum_defender_c2_defender_main_b5e3419
+status: integrated_production_candidate
+defender_upstream:
+  repository: https://github.com/Castle47/Defender
+  branch: main
+  commit: b5e34191a7d445521de330e998bfe0804d6ebd43
+defender_strategy_id: relative_defender_rotation_2013_listing_aware
+momentum_config_path: strategy/configs/quality_momentum_top1.yaml
+asset_pool:
+  - 510300.SH
+  - 159915.SZ
+  - 513100.SH
+  - 518880.SH
+  - 512890.SH
+  - 159545.SZ
+  - 513530.SH
+  - 515080.SH
+  - 510880.SH
+  - 563020.SH
+  - 511260.SH
+execution:
+  signal_timing: previous_close_to_next_open
+  sleeve_min_hold_days: 30
+  emergency_override: true
+enable_dingtalk: true

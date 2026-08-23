@@ -1,0 +1,54 @@
+strategy:
+  id: c2_gold_min5_registered_raqm_w5_en220_ex060
+  status: frozen_shadow_candidate_not_promoted
+  selected_on: "2026-08-23"
+  base_strategy: momentum_defender_c2_defender_main_b5e3419
+  evidence_status: retrospective_two_parameter_search_not_oos
+
+factor:
+  name: risk_adjusted_quality_momentum
+  window: 5
+  vol_floor_annual: 0.08
+  comparison: gold_minus_defender_whole_nav
+
+mechanism:
+  only_escape_asset: 518880.SH
+  entry_difference: 2.20
+  exit_difference: 0.60
+  hard_min_gold_hold_days: 5
+  first_five_days_ignore_base_c2_momentum: true
+  after_five_days_base_c2_momentum_takes_precedence: true
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.5686623288517123
+  sharpe: 2.343230933446946
+  max_drawdown: -0.12965860415132147
+  development_sharpe: 2.373459606274628
+  validation_sharpe: 2.006948170312743
+  recent_sharpe: 3.1636161706676575
+  gold_entries: 20
+  gold_days: 111
+
+robustness:
+  parameter_neighborhood_candidates: 25
+  neighborhood_annual_improvement_rate: 0.96
+  neighborhood_annual_and_sharpe_improvement_rate: 0.60
+  positive_events: 14
+  negative_events: 6
+  top_two_positive_event_share: 0.2622173100268057
+  leave_one_event_min_annualized_return_252: 0.5579360568795431
+  leave_one_event_min_sharpe: 2.3156135092528602
+  pbo: 0.14654234654234655
+  block_bootstrap_return_positive_probability: 0.9942
+  block_bootstrap_sharpe_positive_probability: 0.9824
+  walk_forward_return_win_rate: 0.60
+  walk_forward_sharpe_win_rate: 0.40
+  year_block_reality_check_p_value: 0.6572
+  overfit_risk: moderate
+
+decision:
+  production_replacement: false
+  recommendation: forward_shadow_observation

@@ -1,0 +1,54 @@
+strategy:
+  id: momentum_defender_c2_frozen_v2
+  status: frozen_research_candidate
+  frozen_on: "2026-08-21"
+  research_cutoff: "2026-08-17"
+  supersedes: momentum_defender_c2_frozen_v1
+
+momentum:
+  config_path: strategy/configs/quality_momentum_top1.yaml
+
+defender:
+  deliverable_dir: defender/deliverable
+  switch_returns_file: relative_defender_rotation_switch_returns.csv
+
+slow_gate:
+  anchor_asset: 510300.SH
+  lookback: 40
+  risk_on_threshold: 0.025
+
+emergency_cap:
+  estimator: rogers_satchell
+  volatility_window: 10
+  annualization: 252
+  quantile_history: expanding_all_available_strict_lag
+  quantile_min_history: 20
+  cap_step: 0.20
+  trigger_operator: "<="
+  trigger_maximum: 0.80
+  asset_quantiles:
+    510300.SH: 0.70
+    159915.SZ: 0.95
+    513100.SH: 0.95
+    518880.SH: 0.90
+
+execution:
+  signal_timing: previous_close_to_next_open
+  min_hold_days: 30
+  emergency_override: true
+  initial_previous_sleeve: momentum
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-17"
+  observations: 1837
+  total_return: 19.73527956999302
+  annualized_return_252: 0.5157462663407029
+  annualized_volatility: 0.1978452897892701
+  sharpe: 2.1992360395422548
+  max_drawdown: -0.12791714516555497
+  alert_days: 223
+  emergency_entries: 10
+  defender_days: 1230
+  sleeve_switches: 43
+  daily_return_sha256_float64_le: eea13df7fc4edf7a5c00708658c7deb2b52b95ed0ce7a3274fa84dd8d907629f

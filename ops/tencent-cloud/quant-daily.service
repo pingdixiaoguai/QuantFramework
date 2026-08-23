@@ -2,7 +2,7 @@
 Description=QuantFramework 09:00 daily position signal on Tencent Cloud
 Wants=network-online.target
 After=network-online.target
-ConditionPathExists=/opt/QuantFramework/run_daily.py
+ConditionPathExists=/opt/QuantFramework/run_daily_momentum_defender.py
 ConditionPathExists=/opt/QuantFramework/.venv/bin/python
 
 [Service]
@@ -20,8 +20,7 @@ Nice=10
 ExecStart=/usr/bin/flock --nonblock /run/quantframework/daily.lock \
     /opt/QuantFramework/.venv/bin/python \
     -m scripts.run_daily_job \
-    --config strategy/configs/quality_momentum_top1.yaml \
-    --shadow-config strategy/configs/quality_momentum_top1_ohlc_er.yaml \
+    --config strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml \
     --attempts 3 \
     --retry-delay 600
 
