@@ -155,13 +155,16 @@ QuantStats 报告，`daily_backtest.csv` 和 `target_weights.csv` 可逐日核�
 先做不发送、不写持仓的真实信号演练：
 
 ```bash
-uv run python run_daily_momentum_defender.py --dry-run
+uv run python run_daily_momentum_defender.py \
+  --config strategy/configs/momentum_defender_c2_main.yaml \
+  --dry-run
 ```
 
-确认后，生产运行使用：
+如需显式运行这个历史基础版本，必须传入基础配置；无参数运行现在默认是正式Gold策略：
 
 ```bash
-uv run python run_daily_momentum_defender.py
+uv run python run_daily_momentum_defender.py \
+  --config strategy/configs/momentum_defender_c2_main.yaml
 ```
 
 `--notification-only` 会发送明确标记的钉钉测试消息但不写持仓；`--dry-run` 连钉钉也不会调用。
@@ -174,6 +177,15 @@ uv run python run_daily_momentum_defender.py
 `risk_adjusted_quality_momentum`，差值严格高于2.20时下一开盘切黄金；黄金至少持有5个
 完整交易日，第6个开盘起若基础C2已恢复Momentum则切原Momentum Top1，否则差值降至
 0.60及以下时回Defender。
+
+基础C2规则没有因正式晋升而改变：沪深300上一收盘可知的40日收益严格高于2.50%时慢门希望
+Momentum，否则希望Defender；普通袖套切换受30个交易日最短持有约束。emergency只检查
+上一收盘实际持有的Momentum ETF，使用10日Rogers–Satchell波动率和严格滞后的资产专用
+扩展分位（沪深300 q70、创业板 q95、纳指 q95、黄金 q90）；离散cap≤0.80时可打破Momentum
+持有锁立即进入Defender。所有收盘信号最早下一交易日开盘执行，股票ETF单边费用0.01%。
+
+正式历史检查点为2019-01-18至2026-08-21：年化56.87%、Sharpe 2.343、最大回撤
+-12.97%；Gold覆盖20次、111日。该结果是回溯检查点，不是独立样本外证明。
 
 正式配置：
 [`strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml`](strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml)。
@@ -196,12 +208,58 @@ uv run python run_daily_momentum_defender.py --dry-run
 uv run python run_daily_momentum_defender.py
 ```
 
+`run_daily_momentum_defender.py`的无参数默认配置就是上述正式Gold策略；生产状态和前瞻账本按
+`momentum_defender_c2_gold_raqm_w5_v1`隔离保存。除非明确回滚，不要在正式任务中传入基础C2
+配置。
+
 旧基础C2仍可显式传入`strategy/configs/momentum_defender_c2_main.yaml`运行，但不再是默认正式
 入口。正式研究证据见[`docs/research/2026-08-23_gold_raqm_w5_formal.md`](docs/research/2026-08-23_gold_raqm_w5_formal.md)；
 所有后续策略开发必须执行[`research/DEVELOPMENT_VALIDATION.md`](research/DEVELOPMENT_VALIDATION.md)
 中的因果、过拟合和多重试验流程。
 
+#### Defender badcase台账（策略变更必要环节）
+
+正式策略当前的历史薄弱环节统一记录在
+[`docs/research/momentum_defender_badcases.md`](docs/research/momentum_defender_badcases.md)。
+台账按实际`candidate=DEFENDER`的连续持仓切段；归因包含下一次切出的开盘腿，并把同期正式
+策略收益与原Momentum收益比较，绝对收益差严格超过1个百分点即列为badcase。每个案例必须
+说明基础C2为什么进入Defender、黄金覆盖是否回落到Defender、双方逐段实际持仓、收益差、
+市场背景和可复用的历史薄弱环节。
+
+任何正式策略的状态机、参数、标的池、Defender实现、费用、行情数据或回测截止日发生变化，
+都必须在生成正式回测之后重新执行：
+
+```bash
+uv run python -m research.generate_momentum_defender_badcases
+uv run python -m research.generate_momentum_defender_badcases --check
+```
+
+生成器会要求
+[`research/configs/momentum_defender_badcase_context.yaml`](research/configs/momentum_defender_badcase_context.yaml)
+与最新识别出的全部badcase逐项对应。新增、消失或起点变化的案例会使检查失败；必须人工复核并
+更新背景、原因、薄弱环节和证据来源，不能只重新生成收益数字。策略研究或正式变更在badcase
+文档未更新、`--check`未通过前视为未完成。
+
+#### 研究但未晋升：Top1桥接与四资产共同RAQM
+
+2026-08-24完成的两项后续研究均**没有修改正式策略**：
+
+- emergency-safe Top1 RAQM-W5桥接在回溯中可提高年化，但改善只来自极少数2019事件，
+  walk-forward和多重试验不支持，判定HIGH过拟合风险，完整结论见
+  [`docs/research/2026-08-24_top1_raqm_w5_bridge.md`](docs/research/2026-08-24_top1_raqm_w5_bridge.md)；
+- 把RAQM覆盖推广到四只Momentum ETF、保持共同公式/窗口但允许资产专用阈值后，严格全启用
+  回溯候选年化57.93%、Sharpe 2.346、MDD -12.97%，相对正式策略仅+1.06个百分点、
+  +0.003、持平。两阶段共测试656条唯一组合路径，Reality Check `p=0.943`、walk-forward
+  收益/Sharpe胜率均20%，判定HIGH过拟合风险，不晋升。
+
+四资产研究的版本化结论见
+[`docs/research/2026-08-24_all_asset_raqm_override.md`](docs/research/2026-08-24_all_asset_raqm_override.md)。
+正式配置仍只有Gold覆盖；不得把研究阈值写入`strategy/configs/`或用于钉钉生产信号。
+
 ### 5. 每日实盘运行
+
+本节的`run_daily.py`是原始Momentum通用入口，不会运行Momentum × Defender正式融合策略。
+正式融合策略的生产信号必须使用上文`run_daily_momentum_defender.py`。
 
 ```bash
 uv run python run_daily.py \

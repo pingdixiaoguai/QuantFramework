@@ -1,0 +1,216 @@
+strategy_id: momentum_defender_c2_gold_raqm_w5_v1
+badcase_threshold_absolute_return_gap: 0.01
+evidence_cutoff: "2026-08-21"
+
+asset_names:
+  510300.SH: 沪深300ETF
+  159915.SZ: 创业板ETF
+  513100.SH: 纳指ETF
+  518880.SH: 黄金ETF
+  510880.SH: 上证红利ETF
+  512890.SH: 红利低波ETF
+  159545.SZ: 恒生红利低波ETF
+  513530.SH: 港股通红利ETF
+  515080.SH: 中证红利ETF
+  563020.SH: 红利低波动ETF
+  511260.SH: 10年国债ETF
+  CASH: 现金
+
+cases:
+  "2019-01-18":
+    confidence: high
+    market_context: >-
+      2018年成长股深跌后，2019年初降准、信用扩张、科创板制度落地预期和中美磋商进展
+      共同推动风险偏好快速反转；这是政策、流动性和低仓位叠加的V形修复。
+    why_momentum_outpaced: >-
+      原Momentum先后参与纳指、沪深300，随后在2月19日至3月8日集中持有创业板；创业板
+      这一段贡献约+16.77%。Defender始终100%持有上证红利ETF，低贝塔红利无法跟上成长股
+      的估值修复。慢门2月12日已转强，但30日最短持有锁把回切推迟到3月8日。
+    weakness: 慢门反转后仍受30日Defender持有锁约束，容易错过罕见的V形成长行情。
+    sources:
+      - title: 人民银行2019年货币政策大事记
+        url: https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212550560783/index.html
+      - title: 2019年1月社会融资规模增量统计数据
+        url: https://www.ndrc.gov.cn/fggz/fgzh/gnjjjc/hbjr/201902/t20190227_976686.html
+      - title: 证监会发布科创板并试点注册制实施意见
+        url: https://www.csrc.gov.cn/csrc/c100028/c1001082/content.shtml
+
+  "2019-05-22":
+    confidence: high
+    market_context: >-
+      2019年6月黄金突破多年阻力，主要背景是美联储转鸽、利率和美元走弱，以及贸易与
+      地缘风险上升。
+    why_momentum_outpaced: >-
+      原Momentum在整个归因区间持续持有黄金并取得约+4.20%；正式策略的黄金覆盖在5月22日
+      因5日RAQM差值降到-0.395而退出，随后持有上证红利ETF与10年国债组合，区间收益约
+      -1.30%，直到6月10日才重新触发黄金。
+    weakness: 5日黄金退出指标在中期黄金趋势启动前发生短线冷却，退出后受基础Defender状态限制。
+    sources:
+      - title: World Gold Council：2019年6月黄金突破多年阻力
+        url: https://www.gold.org/goldhub/gold-focus/2019/06/gold-breaks-out-key-multi-year-resistance-level
+
+  "2019-11-20":
+    confidence: medium
+    market_context: >-
+      2019年末贸易风险阶段性缓和、全球流动性宽松，风险资产继续上行；美国科技股延续
+      2019年的强趋势，中国成长股也出现阶段性反弹。
+    why_momentum_outpaced: >-
+      原Momentum在纳指与创业板之间轮动，合计取得约+8.68%；Defender在红利低波、10年
+      国债之间切换，取得约+5.23%。这不是Defender亏损，而是低贝塔组合在普遍risk-on阶段
+      少赚。
+    weakness: 单一沪深300慢门处于risk-off时，可能同时错过海外科技和国内成长的温和共振。
+    sources:
+      - title: World Gold Council：2019年第四季度风险资产继续上行
+        url: https://www.gold.org/goldhub/research/gold-etfs-holdings-and-flows/2020/01
+      - title: Nasdaq：Nasdaq-100在2019年总回报约39%
+        url: https://www.nasdaq.com/docs/2020/03/19/Investing-Options-Enhanced-Index-Products.pdf
+
+  "2020-02-10":
+    confidence: high
+    market_context: >-
+      新冠疫情首先抬高中国资产波动，但美国科技股在2月19日前仍连续创历史新高，市场尚未
+      充分计入全球传播风险。
+    why_momentum_outpaced: >-
+      C2因纳指持仓的紧急波动率cap降到0.80而切入Defender；随后原Momentum继续持有纳指，
+      至2月19日上涨约+2.43%，切出归因日又转入创业板并上涨约+3.76%，全段合计+6.28%。
+      Defender持有20%红利低波ETF与80%十年国债，基本持平。
+    weakness: 跨市场风险不同步时，紧急波动率退出可能过早离开仍在上涨的海外科技资产。
+    sources:
+      - title: Nasdaq：2020年2月11日美股科技指数继续创新高
+        url: https://www.nasdaq.com/articles/daily-markets%3A-are-coronavirus-worries-behind-us-what-this-means-for-investors-2020-02-11
+      - title: Nasdaq：Nasdaq-100于2020年2月19日见阶段高点
+        url: https://www.nasdaq.com/docs/2020/03/19/Investing-Options-Enhanced-Index-Products.pdf
+
+  "2021-08-25":
+    confidence: low
+    market_context: >-
+      该区间并非持续单边行情：原Momentum前半段多次轮动且总体表现平淡，主要差距集中在
+      10月中下旬创业板的短期反弹。
+    why_momentum_outpaced: >-
+      Defender在8月底逐步降至100%十年国债，整个阶段约-0.12%；原Momentum多数子区间
+      也不强，但10月12日至26日持有创业板取得约+4.15%，把全段收益推到+2.67%。
+    weakness: 长时间停留在纯债防守时，对临近区间末端的成长股快速反弹较敏感；结论受结束日影响较大。
+    sources: []
+
+  "2021-12-07":
+    confidence: high
+    market_context: >-
+      2022年一季度俄乌战争、能源价格和高通胀提升避险需求，黄金成为股票与债券同时承压时
+      表现突出的流动性对冲资产。
+    why_momentum_outpaced: >-
+      原Momentum从2021年12月30日起连续45个交易日持有黄金并取得约+8.63%；Defender由
+      中证红利逐步切到100%十年国债，全段约+3.87%。黄金的地缘与通胀驱动显著强于债券。
+    weakness: 沪深300慢门无法表达“股票弱但黄金强”的跨资产状态；黄金覆盖直到区间末端才触发。
+    sources:
+      - title: World Gold Council：2022年一季度黄金、通胀与俄乌风险
+        url: https://www.gold.org/goldhub/research/gold-market-commentary-march-2022
+
+  "2022-08-02":
+    confidence: low
+    market_context: >-
+      这是仅3个归因交易日的短事件，宏观叙事解释力有限，更接近短线开盘跳空和切换时点差异。
+    why_momentum_outpaced: >-
+      原Momentum三日均持有纳指并上涨约+2.82%；Defender从40%红利低波/60%国债调整到
+      60%红利低波/40%国债，含切换腿收益约-0.71%。
+    weakness: 极短Defender阶段容易被单次海外市场跳涨放大，不宜据此单独调整长期参数。
+    sources: []
+
+  "2023-06-02":
+    confidence: high
+    market_context: >-
+      2023年上半年生成式AI成为美国大型科技股的新增长主线，同时通胀放缓和美联储加息周期
+      接近暂停，成长股估值与盈利预期共同修复。
+    why_momentum_outpaced: >-
+      原Momentum约34个交易日持有纳指并取得约+9.51%；Defender先持有十年国债，后调整为
+      60%港股通红利/40%国债，取得约+3.72%。中国慢门偏弱并不妨碍美国AI科技股独立上涨。
+    weakness: 以沪深300作为统一慢门时，会漏掉与中国市场低相关的海外科技独立趋势。
+    sources:
+      - title: Nasdaq：2023年AI、加息暂停与大型科技股表现
+        url: https://www.nasdaq.com/docs/nasdaq-generations-5-index-performance-and-fundamentals-review
+
+  "2024-03-14":
+    confidence: high
+    market_context: >-
+      2024年3月黄金连续创历史新高，美元走弱、风险与动量、央行持续购金和技术突破共同
+      推动行情。
+    why_momentum_outpaced: >-
+      正式黄金覆盖在3月14日退出后转为100%十年国债；原Momentum在3月22日重新选择黄金，
+      至4月1日贡献约+4.10%。Defender全段仅约+0.37%。
+    weakness: 黄金专用5日退出规则与原Momentum的再选择节奏不一致，可能在主升段前短暂离场。
+    sources:
+      - title: World Gold Council：2024年3月黄金上涨驱动
+        url: https://www.gold.org/goldhub/gold-focus/2024/03/you-asked-we-answered-whats-behind-golds-march-rally
+
+  "2024-06-20":
+    confidence: medium
+    market_context: >-
+      美国大型科技和AI资本开支主线在2024年中继续占优；同时黄金的结构性需求仍受到央行
+      购金和宏观不确定性支持。
+    why_momentum_outpaced: >-
+      原Momentum先持有纳指取得约+2.05%，随后三日黄金再贡献约+3.14%；Defender主要是
+      80%十年国债/20%港股通红利，区间约-0.52%。两条独立趋势叠加放大了差距。
+    weakness: 中国慢门偏弱时，统一Defender同时放弃纳指和黄金，存在跨资产机会成本叠加。
+    sources:
+      - title: Nasdaq：AI成为大型成长股的长期驱动
+        url: https://www.nasdaq.com/docs/nasdaq-generations-5-index-performance-and-fundamentals-review
+      - title: World Gold Council：央行购金延续至2024年
+        url: https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q1-2024/18704
+
+  "2025-01-21":
+    confidence: high
+    market_context: >-
+      2025年一季度黄金受关税担忧、地缘不确定性、美元走弱和ETF资金流入推动持续创高；
+      2月中国成长资产又受到DeepSeek带来的AI重估支持。
+    why_momentum_outpaced: >-
+      原Momentum约20日持有黄金并取得约+5.82%，随后在黄金与创业板间轮动；Defender持有
+      60%恒生红利低波/40%十年国债，取得约+2.31%。正式黄金覆盖1月21日因5日指标冷却退出。
+    weakness: 强中期黄金趋势中的5日退出噪声，叠加随后成长股反弹，会让低波红利/债券组合连续少赚。
+    sources:
+      - title: World Gold Council：2025年一季度黄金上涨驱动
+        url: https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q1-2025
+      - title: LSEG：DeepSeek与2025年2月中国科技股重估
+        url: https://www.lseg.com/en/insights/ftse-russell/what-drove-the-february-china-equity-rally
+
+  "2025-04-08":
+    confidence: high
+    market_context: >-
+      美国“对等关税”冲击全球风险资产并放大政策不确定性，黄金的避险属性与资金需求快速
+      上升。
+    why_momentum_outpaced: >-
+      C2因黄金持仓的波动率cap降到0.40而触发emergency，转入20%恒生红利低波/80%十年
+      国债；但原Momentum继续持有黄金并在6个交易日上涨约+6.51%。这里的高波动主要是向上
+      波动，风险cap把强势避险资产误判为应退出对象。
+    weakness: 对黄金使用无方向波动率紧急退出，可能在避险主升段反向降低保护能力。
+    sources:
+      - title: World Gold Council：2025年4月关税冲击市场
+        url: https://www.gold.org/goldhub/gold-focus/2025/04/weekly-markets-monitor-tariffs-spare-no-land
+
+  "2026-05-29":
+    confidence: high
+    market_context: >-
+      2026年5月至6月美国AI与存储芯片盈利超预期，Nasdaq-100盈利预期上修，科技股和半导体
+      再次成为主要上涨驱动。
+    why_momentum_outpaced: >-
+      C2因纳指持仓的emergency cap降到0.80而切入100%上证红利ETF；原Momentum继续持有
+      纳指至6月18日上涨约+2.35%，切出归因日转入创业板并上涨约+4.06%，全段合计+6.50%；
+      Defender约-1.41%。
+    weakness: 无方向波动率cap会把“盈利推动的上行波动”与下行风险混为一谈，提前退出强趋势。
+    sources:
+      - title: Nasdaq：2026年5月AI盈利与科技股再加速
+        url: https://www.nasdaq.com/docs/index/investment-insights-ai-earnings-equity-returns-portfolio-dynamics
+
+  "2026-08-17":
+    confidence: medium
+    market_context: >-
+      2026年8月黄金从上半年回撤中快速反弹，背景包括美联储预期转鸽、中国购金、美元走弱及
+      美国长期债务与流动性操作相关担忧。
+    why_momentum_outpaced: >-
+      正式黄金覆盖在8月17日因Gold-Defender RAQM5差值降到-0.021而回到20%上证红利/
+      80%十年国债；原Momentum仍持有黄金，截至8月21日上涨约+4.94%。该案例尚未完成退出，
+      结论会随后续交易日变化。
+    weakness: 活跃黄金趋势中，覆盖层退出与原Momentum继续持有发生冲突；开放事件必须持续更新。
+    sources:
+      - title: Axios：2026年8月黄金反弹、鸽派预期与中国购金
+        url: https://www.axios.com/2026/08/13/gold-inflation-rates-iran
+      - title: Reuters：2026年8月黄金恢复机构与央行需求
+        url: https://www.kitco.com/news/off-the-wire/2026-08-17/gold-shows-early-signs-reclaiming-safe-haven-appeal-after-iran-war

@@ -1,0 +1,55 @@
+experiment:
+  id: c2_gold_raqm_w5_top1_extreme_bridge
+  base_strategy: momentum_defender_c2_gold_raqm_w5_v1
+  evidence_status: retrospective_mechanism_test_not_oos
+  created_on: "2026-08-23"
+
+factor:
+  name: risk_adjusted_quality_momentum
+  window: 5
+  vol_floor_annual: 0.08
+  timing: previous_close_to_next_open
+  implementation: factors/risk_adjusted_quality_momentum.py
+
+formal_gold_baseline:
+  entry_difference: 2.20
+  exit_difference: 0.60
+  hard_min_hold_days: 5
+
+safety_invariants:
+  formal_gold_has_priority: true
+  require_slow_gate_risk_on: true
+  emergency_override_forbidden: true
+  bridge_follows_live_momentum_top1: true
+  bridge_exit_when_slow_gate_false: true
+
+pre_registered_direct_extension:
+  entry_minimum: 2.20
+  confirmation_days: 1
+  minimum_difference: null
+
+grid:
+  entry_minimums: [0.50, 0.80, 1.00, 1.20, 1.50, 1.80, 2.00, 2.20, 2.40, 2.60, 2.80, 2.95]
+  confirmation_days: [1, 2, 3, 4, 5]
+  minimum_differences: [null, -0.50, 0.00, 0.50, 1.00, 1.50, 2.00]
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+selection:
+  minimum_repeated_entries: 2
+  minimum_bridge_days: 10
+  core_metrics:
+    annualized_return_delta_minimum: 0.0
+    sharpe_delta_minimum: 0.0
+    max_drawdown_delta_minimum: -0.000000000001
+  no_automatic_production_replacement: true
+
+robustness:
+  cscv_blocks: 16
+  bootstrap_repetitions: 5000
+  reality_check_repetitions: 5000
+  cost_multipliers: [1, 2, 3, 5]

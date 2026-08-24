@@ -1,0 +1,78 @@
+experiment:
+  id: c2_all_momentum_asset_common_raqm_override
+  base_strategy: momentum_defender_c2_gold_raqm_w5_v1
+  objective: test_common_raqm_with_asset_specific_thresholds
+  evidence_status: staged_retrospective_search_not_oos
+  created_on: "2026-08-24"
+
+invariants:
+  base_c2_unchanged: true
+  slow_gate_unchanged: true
+  emergency_unchanged: true
+  execution_costs_unchanged: true
+  hard_min_hold_days: 5
+  common_formula_and_window_across_assets: true
+  asset_specific_entry_and_exit_thresholds: true
+
+factor_grid:
+  windows: [5, 10, 20]
+  efficiency_powers: [0.0, 0.5, 1.0]
+  vol_floor_annual: 0.08
+
+threshold_grid:
+  entry_differences: [0.50, 1.00, 1.50, 2.00, 2.20, 2.50, 3.00]
+  exit_differences: [-1.00, -0.50, 0.00, 0.50, 0.60, 1.00]
+
+staged_selection:
+  minimum_single_asset_entries: 2
+  minimum_single_asset_days: 10
+  policies_per_asset_per_spec: 2
+  single_asset_order: [development_sharpe, development_annualized_return_252]
+  combination_order: [development_sharpe, development_annualized_return_252]
+  include_disabled_option: true
+  pin_formal_gold_control: true
+
+# 第一阶段one-at-a-time结果暴露出的严格全启用局部空间。该网格是在看到第一阶段结果后
+# 追加，属于回溯二次搜索；必须计入全部候选和多重试验校正。
+local_refinement:
+  common_spec:
+    window: 5
+    efficiency_power: 1.0
+    vol_floor_annual: 0.08
+  policies:
+    510300.SH:
+      - {entry_difference: 2.50, exit_difference: 0.50}
+      - {entry_difference: 2.50, exit_difference: 0.60}
+      - {entry_difference: 2.50, exit_difference: 1.00}
+    159915.SZ:
+      - {entry_difference: 0.50, exit_difference: 0.00}
+      - {entry_difference: 3.00, exit_difference: 0.00}
+      - {entry_difference: 3.00, exit_difference: -1.00}
+      - {entry_difference: 3.00, exit_difference: 0.50}
+      - {entry_difference: 3.00, exit_difference: 0.60}
+    513100.SH:
+      - {entry_difference: 2.00, exit_difference: 0.50}
+      - {entry_difference: 2.00, exit_difference: 0.60}
+      - {entry_difference: 2.00, exit_difference: 1.00}
+      - {entry_difference: 3.00, exit_difference: 0.00}
+      - {entry_difference: 3.00, exit_difference: 0.50}
+      - {entry_difference: 3.00, exit_difference: 0.60}
+    518880.SH:
+      - {entry_difference: 2.20, exit_difference: 0.50}
+      - {entry_difference: 2.20, exit_difference: 0.60}
+      - {entry_difference: 2.20, exit_difference: 1.00}
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+robustness:
+  cscv_blocks: 16
+  bootstrap_repetitions: 5000
+  reality_check_repetitions: 5000
+  cost_multipliers: [1, 2, 3, 5]
+
+decision:
+  no_automatic_production_replacement: true
