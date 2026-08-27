@@ -1,0 +1,231 @@
+strategy_id: momentum_defender_w40_qm40_threshold_v5
+evidence_cutoff: "2026-08-26"
+top_n: 10
+
+asset_names:
+  510300.SH: 沪深300ETF
+  159915.SZ: 创业板ETF
+  513100.SH: 纳指ETF
+  518880.SH: 黄金ETF
+  510880.SH: 上证红利ETF
+  512890.SH: 红利低波ETF
+  513530.SH: 港股通红利ETF
+  515080.SH: 中证红利ETF
+  515450.SH: 红利低波50ETF
+  513630.SH: 港股低波红利ETF
+  511260.SH: 10年国债ETF
+  CASH: 现金
+
+cases:
+  "2013-05-28":
+    confidence: high
+    summary_reason: 早期资产池不完整与成长ETF反复轮转，W40仍在历史暖机期
+    volume_context: >-
+      峰值日20日涨幅约17.17%、量比1.27倍、Z60为0.80；因样本不足252日，长期成交量分位
+      无法计算，台账明确标为历史不足而不强行分类。
+    market_context: >-
+      2013年正式区间刚开始时只有沪深300和创业板具备完整20日历史，纳指与黄金随后才上市。
+      国内成长资产波动较大，新增资产又持续改变横截面排名。
+    why_fell: >-
+      策略从5月末到年底在创业板、纳指、沪深300和黄金之间多次轮转；创业板最初17日下跌
+      11.24%，12月2日又单日下跌9.92%。W40历史尚未达到最低要求，基础状态只能保持Momentum，
+      整段最大回撤29.38%。
+    weakness: >-
+      固定2013起点会真实暴露资产陆续上市、因子与门控暖机以及小样本横截面轮转风险。
+    sources: []
+
+  "2015-01-06":
+    confidence: high
+    summary_reason: 沪深300强趋势后遭遇融资监管冲击，W40因中期仍上涨而未切换
+    volume_context: >-
+      峰值日沪深300ETF量比1.68倍、Z60为2.22、252日100%分位，20日上涨15.97%，属于强放量
+      趋势高潮。
+    market_context: >-
+      2014年末至2015年初A股快速上涨并伴随融资交易升温，1月中旬监管检查与去杠杆预期触发
+      大盘股剧烈回撤。
+    why_fell: >-
+      策略先连续持有沪深300ETF，十日亏损10.63%，其中1月19日单日接近-10%；随后黄金小幅
+      对冲，月底切创业板后再跌。510300的40日收益此前仍为正，W40没有风险关闭信号。
+    weakness: >-
+      只观察中期下跌幅度无法识别强趋势末端的监管或杠杆突变，五日轮转约束会保留集中暴露。
+    sources: []
+
+  "2015-06-04":
+    confidence: high
+    summary_reason: 2015杠杆牛市破裂，Momentum、红利Defender与黄金连续错配
+    volume_context: >-
+      峰值日创业板ETF量比1.57倍、Z60为2.33并处于252日100%分位，20日上涨38.42%，是典型
+      高量加速阶段。
+    market_context: >-
+      2015年6月A股杠杆牛市见顶后进入多轮去杠杆和流动性冲击；成长、宽基与红利权益先后大跌，
+      2016年初熔断再造成第二轮损失。
+    why_fell: >-
+      策略先在创业板和沪深300上受损，6月23日切Defender后上证红利ETF继续下跌17.35%；此后
+      黄金、Defender和Momentum多次切换，2016年1月再次受创。峰谷最大回撤48.63%，直到
+      2019年2月才恢复前高。
+    weakness: >-
+      系统性流动性危机中红利仍是权益，黄金也可能阶段性走弱；多袖套连续错配会形成多年水下期。
+    sources: []
+
+  "2024-10-09":
+    confidence: high
+    summary_reason: 政策刺激预期落空后的暴涨反转，W40单锚仍为0
+    volume_context: >-
+      这是最典型的放量冲顶：创业板ETF单日上涨19.98%、5日上涨68.75%，成交量达到前20日
+      中位数11.87倍和前252日100%分位。量能代表政策行情、节后补涨和追涨资金同时集中，
+      随后刺激细节低于预期时，同一批拥挤资金反向退出，放大了次日跌幅；这里量价加速与反转
+      有清晰事件链，但仍是事后归因。
+    market_context: >-
+      9月24日一揽子政策推动A股在国庆休市前后急涨；10月8日复市时追涨情绪与政策预期已经
+      很高，但发改委发布会缺少市场期待的新增财政细节。10月9日资金集中止盈，创业板指数
+      单日下跌10.59%，创当时纪录。
+    why_fell: >-
+      正式策略在10月8日刚经历创业板ETF单日上涨19.98%并创净值新高，随后仍100%持有创业板。
+      10月9日正式收益-16.28%，七个交易日合计-25.50%。整个下跌段510300的40日收益仍为正，
+      W40下跌幅度和分位都固定为0，顶层门控没有风险关闭证据。
+    weakness: >-
+      Top-1在政策驱动的抛物线式上涨后承受100%反转风险；510300单锚无法识别创业板自身尾部。
+    sources:
+      - title: 路透：刺激细节不足后中国股市急跌，创业板创纪录单日跌幅
+        url: https://www.investing.com/news/economy-news/china-stocks-fall-sharply-set-to-snap-winning-streak-3654504
+      - title: 中国政府网：央行9月24日宣布创设支持资本市场的政策工具
+        url: https://english.www.gov.cn/news/202409/24/content_WS66f22d00c6d0868f4e8eb322.html
+
+  "2025-10-20":
+    confidence: high
+    related_defender_badcase: BC-04
+    summary_reason: 多资产连续错配，最终由恢复Momentum后的黄金闪崩形成谷底
+    volume_context: >-
+      黄金ETF在峰值日上涨3.50%、20日上涨20.76%，成交量为20日中位数3.29倍、处于252日
+      99.2%分位，符合纪录价格附近的拥挤避险与趋势追逐。10月获利了结先打破趋势，次年1月底
+      Warsh提名、美元走强和保证金上调又触发第二轮去杠杆；量能提示拥挤，但跨三个月谷底并非
+      由峰值日成交量单独造成。
+    market_context: >-
+      这是多阶段水下期，不应只贴一个宏观标签。黄金在2025年10月20日创纪录后出现五年多来
+      最大单日回落，主要是获利了结和美元走强；2026年1月30日至2月2日又因Kevin Warsh获提名
+      为下任美联储主席、美元走强及CME提高贵金属保证金而发生第二轮急跌。
+    why_fell: >-
+      策略先后在黄金、纳指和创业板上受损，11月24日至1月6日切入Defender后仍未恢复前高；
+      1月7日恢复Momentum，随后再次持有黄金。最终两日黄金腿约-16.8%，把尚未修复的水下净值
+      压至-23.93%。这段同时包含旧台账BC-06的Defender机会成本，但谷底由恢复Momentum后的
+      黄金闪崩直接形成。
+    weakness: >-
+      长水下期内多资产连续错配会叠加；510300 W40无法管理黄金自身的拥挤交易、美元和保证金冲击。
+    sources:
+      - title: 路透：2025年10月黄金创纪录后出现五年多来最大跌幅
+        url: https://www.marketscreener.com/news/gold-extends-fall-as-investors-book-profits-ahead-of-us-inflation-data-ce7d5ddbd98ef526
+      - title: 路透：Warsh提名、强美元引发2026年2月大宗商品抛售
+        url: https://www.investing.com/news/commodities-news/slump-in-commodities-rattles-global-markets-4477829
+      - title: 路透：CME提高保证金加剧贵金属自由落体
+        url: https://au.marketscreener.com/news/gold-silver-extend-free-fall-as-cme-margin-hike-fuels-selling-pressure-ce7e5bdddc81ff26
+
+  "2020-02-14":
+    confidence: high
+    summary_reason: 新冠全球流动性冲击，Momentum先跌、切Defender后仍继续承压
+    volume_context: >-
+      纳指ETF峰值日上涨5.69%、20日上涨30.38%，量比1.99倍、Z=2.27，属于趋势加速放量。
+      但其252日分位仅84.9%，弱于其他冲顶案例；真正使走势反转的是随后疫情向韩国、意大利和
+      伊朗扩散以及3月现金挤兑。因此本案说明放量可以标记高敏感度持仓，却不能预知外生催化剂。
+    market_context: >-
+      新冠疫情从中国扩散到韩国、意大利和伊朗后，2月下旬全球风险资产进入无差别抛售；3月
+      现金需求上升，股票、黄金与部分债券同时承压。中国春节后首个交易日也曾因疫情担忧蒸发
+      约3930亿美元市值，显示这一阶段并非单一市场冲击。
+    why_fell: >-
+      正式策略先持有纳指和创业板，再于2月28日切黄金；三段Momentum合计承受约14%的连续损失。
+      3月2日W40达到55.16%后切Defender，但新规则100%持有上证红利ETF，Defender段继续
+      下跌10.75%，净值到3月23日才触底。
+    weakness: >-
+      收盘慢门控只能在冲击发生后切换；系统性流动性危机中黄金、低波权益和债券也会短期同跌。
+    sources:
+      - title: 路透：疫情全球扩散令美股六连跌并进入历史最快回调
+        url: https://www.investing.com/news/stock-market-news/wall-street-slips-into-correction-territory-on-alarm-over-coronavirus-2095869
+      - title: 路透：中国春节后复市因疫情担忧蒸发3930亿美元
+        url: https://www.investing.com/news/stock-market-news/investors-brace-for-ugly-start-to-postholiday-trade-in-china-2073969
+      - title: 渣打：2020年3月出现卖出赢家资产筹集现金的无差别抛售
+        url: https://www.sc.com/en/uploads/sites/66/content/docs/pvb-market-watch-still-trying-to-price-the-crisis-13-march-2020.pdf
+
+  "2020-09-04":
+    confidence: high
+    related_defender_badcase: BC-02
+    summary_reason: 2020年科技股急跌叠加2021年收益率上升的二次成长股冲击
+    volume_context: >-
+      纳指ETF峰值前20日已上涨34.03%，峰值日量比4.15倍、Z=2.70、252日分位94.8%，峰前5日
+      最大量比更达5.05倍，是疫情后科技股拥挤交易的量价加速。最初两日急跌与这一结构一致；
+      但半年后的第二个谷底又叠加财政刺激、通胀预期和美债收益率上升，不能把整段都归因于9月放量。
+    market_context: >-
+      本段有两个主要冲击。2020年9月高估值科技股在创纪录上涨后急跌，纳指两日跌幅为3月以来
+      最差；2021年2月至3月，1.9万亿美元财政刺激与复苏预期推动长期美债收益率上升，纳指进入
+      10%技术性回调，成长股再次承压。
+    why_fell: >-
+      峰后最初两日100%纳指ETF即亏15.48%，决定了回撤的大部分深度。随后Defender和多次Momentum
+      轮动一度修复，但2021年2月再次持有纳指、3月持有沪深300时继续受损，3月9日再切Defender，
+      最终在3月10日形成-19.76%谷底。长达207日的水下期是两个冲击和多次切换的复合结果。
+    weakness: >-
+      既无实际持有资产的紧急退出，也无法用单一宏观叙事解释跨半年连续错配；初始集中损失后恢复很慢。
+    sources:
+      - title: 路透：2020年9月科技股抛售令纳指录得3月以来最差两日
+        url: https://www.marketscreener.com/quote/stock/MICROSOFT-CORPORATION-4835/news/Microsoft-REFILE-US-STOCKS-Tech-rout-deepens-Nasdaq-set-for-worst-two-day-fall-since-March-31232616/
+      - title: 路透：2021年3月收益率上升推动纳指进入回调
+        url: https://www.investing.com/news/stock-market-news/nasdaq-drops-at-open-as-us-stimulus-fuels-inflation-jitters-2439814
+      - title: 美联储会议纪要：长期真实收益率与通胀补偿共同上升
+        url: https://www.federalreserve.gov/monetarypolicy/fomcminutes20210317.htm
+
+  "2020-07-14":
+    confidence: high
+    summary_reason: 创业板调整后切黄金，黄金随后再现七年多最大单日跌幅
+    volume_context: >-
+      创业板ETF峰值前20日上涨32.23%，峰值日量比约1.50倍、Z=2.13，处于强放量临界值。
+      它反映快速上涨后的参与度扩张，但随后政策可能收紧和中美关系变化才是回调催化；策略又切向
+      黄金并遭遇另一类利率/美元反转，所以峰值量能只解释第一段创业板损失。
+    market_context: >-
+      中国股市在强劲上涨后因政策可能边际收紧、中美关系恶化而快速调整，7月16日创业板跌5.9%。
+      策略随后转向黄金，但8月11日美元和美债收益率上升、全球股票走强触发黄金七年多来最大
+      单日跌幅，形成第二次冲击。
+    why_fell: >-
+      创业板ETF九日亏9.46%，切换黄金后虽先短暂上涨，但到8月12日黄金段又亏3.98%。510300
+      的40日收益在峰值到谷底始终为正，W40分位为0，顶层状态全程保持Momentum。
+    weakness: >-
+      从一项高波动资产切到另一项高波动避险资产并不等于降风险，单锚门控对两者的独立反转均失明。
+    sources:
+      - title: 路透：政策收紧担忧令创业板2020年7月16日下跌5.9%
+        url: https://economia.uol.com.br/noticias/reuters/2020/07/16/mercado-acionario-da-china-despenca-com-preocupacoes-de-aperto-da-politica-monetaria.htm
+      - title: 路透：美元和收益率上升令黄金延续七年多来最大单日跌幅
+        url: https://economictimes.indiatimes.com/markets/commodities/news/gold-slumps-below-1900-as-u-s-dollar-yields-rise/articleshow/77501669.cms
+
+  "2019-03-13":
+    confidence: high
+    summary_reason: 创业板涨后回调、Top-1反复轮动，随后遭遇中美关税升级
+    volume_context: >-
+      创业板ETF峰值日量比2.02倍、Z=2.77并位于252日100%分位，前20日上涨32.71%。背景是
+      2019年初宽松、贸易协议预期、零售资金与杠杆交易回归；放量对应散户参与和趋势拥挤。
+      之后的大股东减持、获利了结及5月关税突变依次打断行情，形成多阶段而非单日见顶。
+    market_context: >-
+      2019年初A股在宽松和贸易协议预期下快速上涨，零售资金与杠杆交易明显回归。3月13日，
+      大股东减持、贸易协议不确定性和前期涨幅后的止盈令创业板单日下跌4.5%；5月初美国突然
+      宣布提高对华关税，全球风险偏好再次恶化。
+    why_fell: >-
+      前十日创业板ETF亏8.25%，随后在纳指与沪深300间多次切换，5月6日关税冲击又使纳指ETF
+      单日亏2.85%。谷底开盘前510300的40日收益仍为正，所以W40为0；5月6日收盘信息最早只能
+      在5月7日开盘生效，届时策略才以73.02%分位切入Defender。
+    weakness: >-
+      Top-1短持有期轮动在震荡中会累积小亏，且收盘后门控无法提前规避当日突发新闻和跳空。
+    sources:
+      - title: 路透：2019年3月13日创业板因减持与贸易谨慎下跌4.5%
+        url: https://www.brecorder.com/news/480510/china-stocks-drop-on-brexit-worries-trade-deal-caution
+      - title: 路透：2019年5月关税威胁令中国股市创三年多最大跌幅
+        url: https://finance.yahoo.com/news/china-stocks-fall-most-over-073925684.html
+
+  "2020-01-20":
+    confidence: high
+    summary_reason: 春节休市期间疫情升级，创业板复市跳空且上一收盘信号无法预知
+    volume_context: >-
+      峰值日没有明显放量，最终损失来自春节休市期间疫情升级和复市跳空，属于信息在不可交易
+      时段累积的外生冲击，要求峰值日必须放量会漏掉这种风险。
+    market_context: >-
+      新冠疫情在春节期间升级，中国市场延长休市；2月3日复市时积累风险一次性计价。
+    why_fell: >-
+      正式策略在休市前持有成长资产，复市跳空发生时W40仍只能看到此前收盘，黄金逃生也尚无
+      Defender资格，无法提前规避。
+    weakness: >-
+      交易所长假和突发事件构成上一收盘模型无法消除的隔夜跳空风险。
+    sources: []

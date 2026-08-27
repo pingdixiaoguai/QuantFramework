@@ -1,0 +1,35 @@
+strategy_name: three_factor_trend_top1_research
+strategy_class: strategy.top1.Top1
+research_checkpoint:
+  status: shadow_only_not_production
+  search_script: research/three_factor_trend_search.py
+  train_end: "2022-09-02"
+  selection_rule: train_only_plateau_representative
+asset_pool:
+  - 510300.SH   # 沪深300 ETF
+  - 159915.SZ   # 创业板 ETF
+  - 513100.SH   # 纳斯达克 ETF
+  - 518880.SH   # 黄金 ETF
+start: "2013-07-01"
+end: "today"
+factors:
+  - name: three_factor_trend
+    weight: 1.0
+    params:
+      momentum_window: 20
+      er_window: 20
+      er_power: 0.75
+      linearity_window: 10
+      linearity_offset: 0.5
+      linearity_power: 1.0
+      volatility_window: 20
+      volatility_quantile: 0.80
+      volatility_history: 252
+      quantile_min_history: 60
+      low_vol_shape: exponential
+      low_vol_power: 0.50
+      low_vol_floor: 0.25
+      low_vol_cap: 2.0
+train_ratio: 0.7
+rebalance_rule: daily      # legacy field, kept for back-compat (engine ignores it)
+rebalance_days: 5

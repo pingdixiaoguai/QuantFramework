@@ -1,0 +1,88 @@
+experiment:
+  id: conditioned_defender_range_escape_focused_stability_v1
+  created_on: "2026-08-27"
+  evidence_status: retrospective_post_screen_focused_stability_not_independent_oos
+  evaluation_start: "2019-01-18"
+  evidence_cutoff: "2026-08-26"
+  baseline_strategy_id: momentum_defender_w40_qm40_threshold_v5
+  broad_output: experiments/20260827_conditioned_defender_range_escape_2019
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-26"]
+  complete_pool: ["2024-02-06", "2026-08-26"]
+
+families:
+  selected_minimum_hold:
+    center:
+      anchor_mode: selected_defender
+      range_window: 40
+      upper_threshold: 0.95
+      momentum_weight: 0.20
+      quality_window: 10
+      absolute_floor: 0.000
+      relative_floor: 0.005
+      hold_policy: minimum_until_fail
+      hold_days: 7
+    gate_surface:
+      quality_windows: [5, 7, 10, 12, 15, 20, 30, 40]
+      absolute_floors: [-0.005, 0.000, 0.005, 0.010]
+      relative_floors: [-0.005, 0.000, 0.0025, 0.005, 0.0075, 0.010, 0.015, 0.020, 0.030]
+    local_cube:
+      quality_windows: [7, 10, 12]
+      absolute_floors: [-0.005, 0.000, 0.005]
+      relative_floors: [0.0025, 0.005, 0.0075]
+      hold_days: [5, 7, 10]
+      momentum_weights: [0.15, 0.20, 0.25]
+    range_surface:
+      range_windows: [20, 30, 40, 50, 60]
+      upper_thresholds: [0.80, 0.90, 0.95, 0.975, 1.00]
+
+  fixed_pulse:
+    center:
+      anchor_mode: fixed_512890
+      range_window: 40
+      upper_threshold: 0.95
+      momentum_weight: 0.10
+      quality_window: 40
+      absolute_floor: null
+      relative_floor: 0.020
+      hold_policy: fixed_pulse_rearm
+      hold_days: 7
+    gate_surface:
+      quality_windows: [20, 30, 40, 50, 60]
+      absolute_floors: [null, 0.000, 0.005, 0.010]
+      relative_floors: [0.005, 0.010, 0.015, 0.020, 0.025, 0.030, 0.040]
+    local_cube:
+      quality_windows: [30, 40, 50]
+      absolute_floors: [null, 0.000, 0.005]
+      relative_floors: [0.015, 0.020, 0.025]
+      hold_days: [5, 7, 10]
+      momentum_weights: [0.05, 0.10, 0.15]
+    range_surface:
+      range_windows: [20, 30, 40, 50, 60]
+      upper_thresholds: [0.80, 0.90, 0.95, 0.975, 1.00]
+
+robust_selection:
+  require_development_dual: true
+  require_validation_dual: true
+  require_recent_dual: true
+  require_full_dual: true
+  maximum_mdd_worsening: 0.005
+  minimum_escape_entries: 5
+  minimum_one_factor_full_dual_rate: 0.60
+  minimum_one_factor_validation_dual_rate: 0.60
+  minimum_one_factor_recent_dual_rate: 0.50
+  minimum_covered_neighbor_axes: 6
+  require_neighbor_q25_dual_positive: true
+  no_automatic_production_replacement: true
+
+overfit_checks:
+  cscv_blocks: 12
+  paired_block_bootstrap_block: 20
+  paired_block_bootstrap_repetitions: 5000
+  yearly_reality_check_repetitions: 5000
+  random_seed: 20260827
+  rolling_windows: [252, 504]
+  transaction_cost_multipliers: [1.0, 3.0, 10.0]

@@ -1,0 +1,2 @@
+selected,all_gates_passed,eligible_DV_count,all_segment_triple_count,full_sharpe_delta,full_annual_delta,full_top10_delta,rolling36_lead,same_window_wins
+P14_04,False,8,5,0.08950765639796932,0.0163828068340659,0.004737999832356177,0.8288288288288288,7

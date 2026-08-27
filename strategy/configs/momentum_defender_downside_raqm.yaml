@@ -1,0 +1,96 @@
+strategy_name: momentum_defender_downside_raqm_weighted_v1
+strategy_mode: downside_raqm
+formal_status: superseded_rollback_checkpoint
+superseded_by: momentum_defender_w40_loss_excluding_extremes_v1
+formal_promotion_date: "2026-08-25"
+promotion_authority: explicit_user_instruction
+evidence_status: retrospective_robust_candidate_promoted_by_explicit_user_instruction
+
+base_strategy:
+  momentum_config_path: strategy/configs/quality_momentum_top1.yaml
+  defender_strategy_id: relative_defender_rotation_2013_listing_aware
+  defender_upstream_commit: b5e34191a7d445521de330e998bfe0804d6ebd43
+
+momentum_factor:
+  name: quality_momentum
+  version: "2.0.0"
+  window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  rebalance_days: 5
+
+regime_gate:
+  anchor_asset: 510300.SH
+  formula: downside_regularized_raqm
+  horizons: [30, 40]
+  weights: [0.25, 0.75]
+  volatility_floor_annual: 0.08
+  winsor_limit: 3.0
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+  defender_entry_percentile: 0.55
+  momentum_recovery_percentile: 0.20
+
+state_policy:
+  momentum_lock_days: 30
+  defender_lock_days: 30
+  defender_entry_confirmation_days: 3
+  momentum_recovery_confirmation_days: 1
+  emergency_override: false
+
+overlays:
+  gold: disabled
+  rapid_reversal: disabled
+  held_asset_emergency: disabled
+
+asset_pool:
+  - 510300.SH
+  - 159915.SZ
+  - 513100.SH
+  - 518880.SH
+  - 512890.SH
+  - 159545.SZ
+  - 513530.SH
+  - 515080.SH
+  - 510880.SH
+  - 563020.SH
+  - 511260.SH
+
+execution:
+  signal_timing: previous_close_to_next_open
+  momentum_etf_one_way_cost: 0.0001
+  defender_equity_etf_one_way_cost: 0.0001
+  defender_bond_etf_one_way_cost: 0.00001
+  untradable_switch: retain_previous_candidate
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  total_return: 19.185536813814853
+  cagr_calendar: 0.48556575625620324
+  annualized_return_252: 0.5088174407913155
+  annualized_volatility: 0.2582994989170446
+  sharpe: 1.721256857272472
+  max_drawdown: -0.25504107542942467
+  defender_entries: 17
+  defender_days: 739
+  sleeve_switches: 33
+  candidate_switches: 134
+  daily_return_sha256_float64_le: f83166623f8749c77404a35f6559839ed3c59f60f6438501ab5c28b59ae6e687
+
+validation:
+  parameter_neighborhood_count: 16
+  parameter_neighborhood_annualized_q25: 0.4973916973866922
+  parameter_neighborhood_sharpe_q25: 1.690499916259064
+  reality_check_p_value: 0.1742
+  fixed_leave_one_year_min_annualized_return_252: 0.4597744766603271
+  leave_one_event_min_annualized_return_252: 0.46973718432006906
+  three_x_cost_annualized_return_252: 0.49748586912677917
+  historical_defender_episodes_reviewed: 17
+  historical_badcases_over_1pp: 2
+  evidence_limit: retrospective_selection_not_independent_oos
+  promotion_decision: explicit_user_instruction
+
+enable_dingtalk: true
+prospective_ledger_path: state/momentum_defender_downside_raqm_weighted_v1_forward.jsonl

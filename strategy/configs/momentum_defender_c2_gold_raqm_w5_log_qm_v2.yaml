@@ -1,0 +1,46 @@
+strategy_name: momentum_defender_c2_gold_raqm_w5_log_qm_v2
+strategy_mode: gold_raqm_w5
+formal_status: historical_rollback_frozen
+formal_promotion_date: "2026-08-24"
+promotion_authority: explicit_user_instruction
+evidence_status: superseded_by_absolute_stability_raw_gold_v3
+
+base_strategy:
+  id: momentum_defender_c2_log_qm_existing_switch_v2
+  momentum_config_path: strategy/configs/quality_momentum_top1.yaml
+  defender_strategy_id: relative_defender_rotation_2013_listing_aware
+  defender_upstream_commit: b5e34191a7d445521de330e998bfe0804d6ebd43
+
+momentum_factor:
+  name: quality_momentum
+  version: "2.0.0"
+  window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+
+gold_override:
+  asset: 518880.SH
+  factor: risk_adjusted_quality_momentum
+  window: 5
+  vol_floor_annual: 0.08
+  winsor_limit: 3.0
+  defender_curve: whole_continuous_hold_net_nav
+  entry_difference: 2.20
+  exit_difference: 0.60
+  hard_min_hold_days: 5
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  total_return: 17.19661447771532
+  annualized_return_252: 0.4875452837947196
+  annualized_volatility: 0.20324854236663964
+  sharpe: 2.053739839183525
+  max_drawdown: -0.1696425571422827
+  gold_entries: 20
+  gold_days: 109
+  switches: 145
+  daily_return_sha256_float64_le: 8d19bde826801acf8dda9de67939281e9e8d3408cd618cf61ffebe9beda79040
+
+prospective_ledger_path: state/momentum_defender_c2_gold_raqm_w5_log_qm_v2_forward.jsonl

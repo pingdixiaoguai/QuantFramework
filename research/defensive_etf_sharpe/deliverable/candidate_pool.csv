@@ -1,0 +1,5 @@
+asset,name,short_name,sleeve,baseline_weight,first_date,last_date,rows
+512890.SH,华泰柏瑞中证红利低波动ETF,红利低波ETF,dividend_low_vol_equity,0.35,2019-01-18,2026-08-05,1828
+511260.SH,国泰上证10年期国债ETF,10年国债ETF,sovereign_bond,0.4,2017-08-24,2026-08-05,2170
+511360.SH,海富通中证短融ETF,短融ETF,short_credit_bond,0.15,2020-09-25,2026-08-05,1418
+511880.SH,银华日利ETF,银华日利,money_market_cash,0.1,2013-04-18,2026-08-05,3232

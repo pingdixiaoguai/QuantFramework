@@ -1,0 +1,123 @@
+strategy_id: momentum_defender_selected_asset_draqm_v1
+status: research_candidate_not_production
+selected_on: "2026-08-24"
+selection_status: post_v3_final_local_plateau_representative
+requested_asset_interpretation: 510330 interpreted as existing 510300.SH
+
+frozen_layers:
+  momentum_factor: quality_momentum
+  momentum_factor_version: "2.0.0"
+  momentum_window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  momentum_assets: [510300.SH, 159915.SZ, 513100.SH, 518880.SH]
+  defender: relative_defender_rotation_2013_listing_aware
+  gold_override: disabled
+  emergency_override: disabled
+
+factor:
+  formula: downside_regularized_raqm
+  volatility_floor_annual: 0.08
+  winsor_limit: 3.0
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+  asset_policies:
+    510300.SH:
+      horizons: [30, 40]
+      weights: [0.25, 0.75]
+      defender_entry_percentile: 0.35
+      momentum_recovery_percentile: 0.25
+      defender_entry_confirmation_days: 1
+      momentum_recovery_confirmation_days: 1
+    518880.SH:
+      horizons: [20, 40]
+      weights: [0.25, 0.75]
+      defender_entry_percentile: 0.45
+      momentum_recovery_percentile: 0.00
+      defender_entry_confirmation_days: 5
+      momentum_recovery_confirmation_days: 1
+    159915.SZ: disabled
+    513100.SH: disabled
+
+state_policy:
+  momentum_lock_days: 20
+  defender_lock_days: 23
+  recovery_mode: sticky_entry_asset
+  other_momentum_assets_gated: false
+
+execution:
+  signal_timing: previous_close_to_next_open
+  costs: inherited_exact_asset_interfaces
+  untradable_switch: retain_previous_candidate
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  total_return: 16.114300291080667
+  cagr_calendar: 0.45361862577241374
+  annualized_return_252: 0.47511142372107007
+  annualized_volatility: 0.2612338482395741
+  sharpe: 1.618316868697767
+  max_drawdown: -0.25504107542942467
+  defender_entries: 11
+  defender_days: 523
+  sleeve_switches: 22
+  candidate_switches: 131
+  daily_return_sha256_float64_le: 88fa4fe2f562c0758adaeca82a90af229e2ec303836428a04fab5657fe2be046
+
+parameter_stability:
+  lock_neighborhood_count: 6
+  lock_neighborhood_annualized_45pct_pass_rate: 1.0
+  lock_neighborhood_annualized_q25: 0.468666
+  lock_neighborhood_sharpe_q25: 1.600765
+  fixed_leave_year_min_annualized_return_252: 0.4154893864978886
+  fixed_leave_year_min_sharpe: 1.5810284804628794
+  three_x_cost_annualized_return_252: 0.4642485300035095
+  three_x_cost_sharpe: 1.590063551977071
+
+global_overfit_audit:
+  candidate_ids: 25101
+  global_unique_paths: 3766
+  cscv_pbo: 0.3203463203463203
+  reality_check_p_vs_momentum: 0.0864
+  reality_check_p_vs_universal_anchor: 0.9882
+  walk_forward_return_win_rate_vs_momentum: 1.0
+  walk_forward_sharpe_win_rate_vs_momentum: 1.0
+  walk_forward_return_win_rate_vs_universal_anchor: 0.2
+  walk_forward_sharpe_win_rate_vs_universal_anchor: 0.2
+
+trigger_evidence:
+  510300.SH:
+    defender_entries: 9
+    positive_events_vs_momentum: 8
+    negative_events_vs_momentum: 1
+    total_log_excess_vs_momentum: 0.5136002248382286
+  518880.SH:
+    defender_entries: 2
+    positive_events_vs_momentum: 2
+    negative_events_vs_momentum: 0
+    total_log_excess_vs_momentum: 0.1922908482843619
+    warning: only_two_historical_events_high_parameter_uncertainty
+
+comparison:
+  log_qm_momentum:
+    annualized_return_252: 0.33924986545694136
+    sharpe: 1.193282924017386
+    max_drawdown: -0.2550410754294248
+  universal_510300_draqm:
+    annualized_return_252: 0.5088174407913155
+    sharpe: 1.721256857272472
+    max_drawdown: -0.25504107542942467
+
+latest_checkpoint_state:
+  date: "2026-08-21"
+  risk_on: true
+  momentum_top1: 518880.SH
+  target: 518880.SH
+
+decision:
+  beats_log_qm_momentum: true
+  beats_universal_510300_draqm: false
+  automatic_production_promotion: false
+  recommendation: retain_as_mechanism_specific_research_candidate

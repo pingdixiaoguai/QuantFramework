@@ -1,0 +1,16 @@
+{
+  "strategy_id": "momentum_defender_downside_raqm_weighted_v1",
+  "formal_status": "superseded_rollback_checkpoint",
+  "formal_promotion_date": "2026-08-25",
+  "promotion_authority": "explicit_user_instruction",
+  "strict_prospective_after": "2026-08-25",
+  "first_unobserved_execution_date": "2026-08-26",
+  "config_path": "strategy/configs/momentum_defender_downside_raqm.yaml",
+  "superseded_by": "momentum_defender_w40_loss_excluding_extremes_v1",
+  "rollback_config_path": "strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml",
+  "research_config_path": "research/configs/momentum_defender_downside_raqm_selected.yaml",
+  "research_report": "docs/research/2026-08-24_downside_raqm_momentum_defender.md",
+  "validation_workflow": "research/DEVELOPMENT_VALIDATION.md",
+  "prospective_ledger_path": "state/momentum_defender_downside_raqm_weighted_v1_forward.jsonl",
+  "evidence_status": "retrospective_robust_candidate_promoted_by_explicit_user_instruction"
+}

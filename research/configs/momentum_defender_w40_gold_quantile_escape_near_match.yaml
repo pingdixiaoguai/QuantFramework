@@ -1,0 +1,105 @@
+strategy_id: momentum_defender_w40_gold_quantile_escape_near_match_v1
+status: rejected_target_not_met
+base_strategy_id: momentum_defender_w40_reversal_full_equity_v1
+comparison_strategy_id: momentum_defender_w40_gold_qm20_escape_candidate_v1
+selected_on: "2026-08-25"
+evidence_status: staged_retrospective_dynamic_threshold_search_not_oos
+
+dynamic_threshold:
+  history_window: 500
+  minimum_history: 252
+  strict_lag: true
+  metric: quality_momentum
+  metric_version: "2.0.0"
+  metric_window: 20
+  entry_formula: Q_A_QM20_current_top1_minus_Q_C_QM20_defender
+  exit_formula: Q_B_QM20_current_top1_minus_Q_C_QM20_defender
+  common_defender_c: 0.60
+
+asset_policies:
+  510300.SH: disabled
+  159915.SZ: disabled
+  513100.SH: disabled
+  518880.SH:
+    entry_a: 0.70
+    exit_b: 0.10
+
+fixed_execution_rules:
+  defender_eligibility_days: 5
+  top1_hard_hold_days: 5
+  after_hard_hold: current_top1_policy_then_normal_momentum_rotation
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.5469422125485286
+  annualized_volatility: 0.26196290365630087
+  sharpe: 1.7962986749972454
+  max_drawdown: -0.2550410754294248
+  escape_entries: 20
+  lock_break_entries: 15
+  escape_days: 244
+  daily_return_sha256_float64_le: 98e27862d0679e28496e379a9e410368a6f1b84d677a7b5a4d03fdcab8a89f93
+
+ordinary_checkpoint:
+  annualized_return_252: 0.46438298438569237
+  sharpe: 1.9599781423090936
+  max_drawdown: -0.1976349126248511
+
+fixed_gold_comparison:
+  annualized_return_252: 0.5494050665025538
+  sharpe: 1.7985360551074376
+  annualized_delta: -0.0024628539540252348
+  sharpe_delta: -0.0022373801101922552
+  matched_or_better_both: false
+  near_match_surface:
+    common_defender_c: 0.60
+    gold_entry_a: 0.70
+    gold_exit_b: 0.30
+    annualized_return_252: 0.5493245648078524
+    sharpe: 1.7997689896182807
+
+parameter_stability:
+  gold_abc_neighborhood_count: 18
+  full_annualized_return_q25: 0.534762
+  full_sharpe_q25: 1.766825
+  ordinary_annualized_return_q25: 0.454475
+  ordinary_sharpe_q25: 1.926274
+  joint_policy_neighborhood_count: 13
+  joint_dual_improvement_pass_rate: 0.5384615384615384
+
+robustness:
+  single_asset_parameter_ids: 700
+  combination_ids: 1792
+  unique_combination_paths: 708
+  current_research_unique_paths: 961
+  global_unique_paths: 1526
+  joint_full_cscv_pbo: 0.06060606060606061
+  joint_ordinary_cscv_pbo: 0.010822510822510822
+  family_reality_check_p_value: 0.7676
+  global_full_reality_check_p_value: 0.871
+  global_ordinary_reality_check_p_value: 0.9854
+  bootstrap_annualized_delta_positive_probability: 0.8308
+  bootstrap_sharpe_delta_positive_probability: 0.8698
+  bootstrap_annualized_delta_95pct: [-0.03797860608374699, 0.1271860832033953]
+  bootstrap_sharpe_delta_95pct: [-0.07031335315811281, 0.3781339650905418]
+  leave_one_event_min_annualized_return_252: 0.5166950047204535
+  leave_one_event_min_sharpe: 1.724747239777293
+  three_x_cost_annualized_return_252: 0.5321841116081816
+  three_x_cost_sharpe: 1.7599950712851704
+  calendar_year_return_not_below_fixed_rate: 0.875
+  calendar_year_sharpe_not_below_fixed_rate: 0.875
+  leave_one_year_annualized_not_below_fixed_rate: 0.125
+  leave_one_year_sharpe_not_below_fixed_rate: 0.125
+
+decision:
+  matched_or_better_than_fixed_gold_candidate: false
+  production_replacement: false
+  reason: >-
+    The rolling-quantile rule nearly matches the fixed Gold candidate and has
+    an interpretable post-warmup path, but it is slightly worse on both selected
+    point metrics, loses the two useful 2019 escapes during quantile warmup, and
+    does not improve global multiple-testing evidence. Keep fixed Gold X/Y as
+    the stronger research candidate.
+

@@ -1,0 +1,58 @@
+strategy:
+  id: momentum_defender_c2_gold_override_w5_060_m040_h7
+  status: research_checkpoint_rejected_for_production
+  selected_on: "2026-08-23"
+  base_strategy: momentum_defender_c2_defender_main_b5e3419
+  evidence_status: retrospective_parameter_search_not_oos
+
+metric:
+  name: risk_adjusted_return
+  definition: trailing_return_divided_by_annualized_daily_volatility
+  window: 5
+  comparison: gold_metric_minus_defender_whole_nav_metric
+
+overlay:
+  active_only_when_base_c2_is_defender: true
+  entry_operator: ">"
+  entry_threshold: 0.60
+  exit_operator: "<="
+  exit_threshold: -0.40
+  min_gold_hold_days: 7
+  may_bypass_510300_slow_gate: true
+  may_bypass_c2_30_day_lock: true
+  base_c2_momentum_takes_precedence: true
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.5526338528051198
+  sharpe: 2.300662998430327
+  max_drawdown: -0.12791714516555497
+  development_sharpe: 2.3585625766197076
+  validation_sharpe: 1.92519822905737
+  recent_sharpe: 3.1427747963748125
+  gold_override_entries: 9
+  gold_override_days: 228
+  switches: 113
+
+baseline_checkpoint:
+  annualized_return_252: 0.5137156174935427
+  sharpe: 2.1988451646897165
+  max_drawdown: -0.1279171451655552
+
+decision:
+  production_replacement: false
+  reason: high_overfit_risk_after_multiple_testing_and_walk_forward
+
+overfit_audit:
+  unique_candidates: 3834
+  cscv_pbo: 0.2595182595182595
+  cscv_median_test_rank_percentile: 0.8129890453834115
+  year_block_reality_check_p_value: 0.9754
+  block_bootstrap_return_positive_probability: 0.9372
+  block_bootstrap_sharpe_positive_probability: 0.8838
+  walk_forward_return_win_rate: 0.0
+  walk_forward_sharpe_win_rate: 0.0
+  neighborhood_all_three_nonworsening_rate: 0.3645833333333333
+  assessment: high

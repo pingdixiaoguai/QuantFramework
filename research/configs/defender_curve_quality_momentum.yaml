@@ -1,0 +1,34 @@
+strategy:
+  id: defender_curve_quality_momentum_top1
+  status: research_candidate
+  created_on: "2026-08-23"
+  evidence_status: retrospective_not_oos
+
+candidates:
+  momentum_etfs:
+    - 510300.SH
+    - 159915.SZ
+    - 513100.SH
+    - 518880.SH
+  defender:
+    representation: whole_continuous_hold_net_nav
+    source_column: nav_if_held
+    source_strategy: relative_defender_rotation_2013_listing_aware
+
+factor:
+  name: quality_momentum
+  window: 20
+  formula: 20_day_return_times_kaufman_efficiency_ratio
+
+execution:
+  signal_timing: previous_close_to_next_open
+  etf_one_way_cost: 0.0001
+  variants:
+    - id: direct_daily_top1
+      rebalance_days: 1
+    - id: same_as_production_hold
+      rebalance_days: 5
+
+report_sample:
+  start: "2019-01-18"
+  end: "2026-08-21"

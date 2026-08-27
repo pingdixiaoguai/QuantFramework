@@ -1,0 +1,65 @@
+experiment:
+  id: momentum_defender_defender_range_escape_2019_v1
+  created_on: "2026-08-27"
+  evidence_status: retrospective_occam_range_escape_audit_not_independent_oos
+  evaluation_start: "2019-01-18"
+  evidence_cutoff: "2026-08-26"
+  baseline_strategy_id: momentum_defender_w40_qm40_threshold_v5
+  hypothesis: >-
+    When the Defender anchor is near the top of its trailing range, moving a
+    small part of the formal Defender allocation into the already-frozen
+    Momentum Top-1 may improve annualized return and Sharpe without changing
+    any formal v5 state, selector, factor, or Gold parameter.
+
+frozen_layers:
+  formal_strategy: momentum_defender_w40_qm40_threshold_v5
+  momentum_top1: formal_v5_schedule
+  defender_selector: monthly_lowest_qm40
+  w40_gate: frozen_formal_v5
+  qm40_recovery_threshold: 0.0075
+  gold_escape: frozen_formal_v5
+  execution_timing: previous_close_to_next_open
+  equity_etf_one_way_cost: 0.0001
+
+supplied_mechanism:
+  candidate_id: range_escape_a512890_continuous_w40_lo0.10_hi0.95_step0.20
+  anchor_mode: fixed_512890
+  policy: continuous_grid
+  range_window: 40
+  lower_threshold: 0.10
+  upper_threshold: 0.95
+  position_step: 0.20
+  restart_weight: 1.00
+
+occam_sensitivity:
+  anchor_modes: [fixed_512890, selected_defender]
+  policies: [continuous_grid, defender_episode_grid, binary_partial]
+  range_windows: [30, 40, 50]
+  lower_threshold: 0.10
+  upper_thresholds: [0.90, 0.95, 1.00]
+  position_steps: [0.10, 0.20]
+  interpretation: >-
+    This is a local sensitivity audit around the supplied rule, not an
+    authorization to optimize the frozen production strategy on the same data.
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-26"]
+  complete_pool: ["2024-02-06", "2026-08-26"]
+
+selection:
+  require_full_annualized_improvement: true
+  require_full_sharpe_improvement: true
+  require_development_and_validation_dual_improvement: true
+  maximum_mdd_worsening: 0.005
+  no_automatic_production_replacement: true
+
+overfit_checks:
+  cscv_blocks: 12
+  paired_block_bootstrap_block: 20
+  paired_block_bootstrap_repetitions: 5000
+  yearly_reality_check_repetitions: 5000
+  random_seed: 20260827
+  rolling_windows: [252, 504]
+  transaction_cost_multipliers: [1.0, 3.0, 10.0]

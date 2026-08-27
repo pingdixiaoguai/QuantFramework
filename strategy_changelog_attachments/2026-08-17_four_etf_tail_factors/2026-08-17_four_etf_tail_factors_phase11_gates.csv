@@ -1,0 +1,9 @@
+gate,value,passed
+local all-segment triple pass rate >=30%,0.25925925925925924,False
+center all-segment triple,True,True
+center 5bp Sharpe positive,0.056347333092946705,True
+center 5bp annual positive,0.019593923764546606,True
+center maxDD no worse -1pp,0.002905625316025451,True
+center rolling36 lead >=60%,0.5405405405405406,False
+center same-window wins >=7,4,False
+target invariants,True,True

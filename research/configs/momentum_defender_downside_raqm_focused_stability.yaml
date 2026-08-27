@@ -1,0 +1,85 @@
+experiment:
+  id: momentum_defender_downside_raqm_focused_stability_v2
+  created_on: "2026-08-24"
+  evidence_status: post_v1_focused_retrospective_stability_audit_not_oos
+  predecessor: momentum_defender_downside_raqm_v1
+  reason: >-
+    V1 candidates above the 45% annualized hurdle were concentrated at X=40.
+    This separately versioned audit resolves the 30-50 day horizon and 25-30
+    day lock neighborhoods and treats adjacent horizons as parameter neighbors.
+
+frozen_layers:
+  momentum_factor: quality_momentum
+  momentum_factor_version: "2.0.0"
+  momentum_window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  defender: relative_defender_rotation_2013_listing_aware
+  gold_override: disabled
+  emergency_override: disabled
+
+factor:
+  anchor_asset: 510300.SH
+  formula: downside_regularized_raqm
+  volatility_floor_annual: 0.08
+  winsor_limit: 3.0
+  percentile_history_modes:
+    expanding_strict_lag: null
+    rolling_504_strict_lag: 504
+  percentile_min_history: 252
+  profiles:
+    w30: {horizons: [30], weights: [1.0]}
+    w35: {horizons: [35], weights: [1.0]}
+    w40: {horizons: [40], weights: [1.0]}
+    w45: {horizons: [45], weights: [1.0]}
+    w50: {horizons: [50], weights: [1.0]}
+
+state_search:
+  defender_entry_percentiles: [0.55, 0.60, 0.65, 0.70]
+  defender_exit_percentiles: [0.20, 0.30, 0.40, 0.50]
+  minimum_hysteresis_gap: 0.10
+  momentum_lock_days: [25, 27, 29, 30]
+  defender_lock_days: [25, 27, 29, 30]
+  defender_entry_confirmation_days: [1, 2, 3]
+  momentum_recovery_confirmation_days: [1, 2, 3]
+  initial_state: momentum
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+  calendar_years: [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
+
+selection:
+  hard_full_annualized_return_floor: 0.45
+  minimum_defender_entries: 3
+  minimum_defender_days: 60
+  validation_annualized_return_floor: 0.25
+  recent_annualized_return_floor: 0.25
+  validation_sharpe_floor: 1.0
+  recent_sharpe_floor: 1.0
+  neighborhood_annualized_pass_rate_floor: 0.60
+  neighborhood_include_adjacent_profiles: true
+  neighborhood_definition: >-
+    Same percentile history and confirmation counts; X, entry, exit, Momentum
+    lock and Defender lock may each move by one adjacent grid step.
+  rank_rule: >-
+    Maximize the cross-window neighborhood annualized pass rate, then
+    neighborhood Sharpe q25, minimum segment Sharpe, and full Sharpe.
+
+overfit_checks:
+  cscv_blocks: 12
+  paired_block_bootstrap_block: 20
+  paired_block_bootstrap_repetitions: 5000
+  yearly_reality_check_repetitions: 5000
+  random_seed: 20260824
+  top_positive_event_deletions: [1, 2, 3]
+  friction_cost_multipliers: [1.0, 2.0, 3.0]
+
+decision:
+  no_automatic_production_replacement: true
+  require_explicit_user_promotion: true
+  full_annualized_return_below_45pct_is_failure: true
+  all_switch_features_must_have_horizon_at_least_20: true
+  both_sleeve_locks_must_be_between_20_and_30_days: true

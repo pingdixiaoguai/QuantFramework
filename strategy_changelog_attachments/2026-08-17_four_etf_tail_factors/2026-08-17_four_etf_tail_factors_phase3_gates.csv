@@ -1,0 +1,11 @@
+gate,value,passed
+D/V/T/FULL 1bp Sharpe nonnegative,D=0.0030;V=0.1566;T_pseudo_oos=0.0297;FULL=0.0521,True
+FULL 5bp Sharpe nonnegative,0.042914035310043896,True
+FULL top10 mean improves >=1pp,0.01900671970379389,True
+FULL worst drawdown improves >=0.5pp,0.021544648023361868,True
+baseline top10 same-window wins >=7,8,True
+candidate top10 no worse than baseline worst -2pp,0.021544648023361868,True
+rolling36 Sharpe lead >=60%,0.7837837837837838,True
+neighborhood half pass Sharpe+Top10,6/6,True
+FULL not dominated by PRICE_ONLY,full_sh=0.0521;price_sh=-0.0735;full_dd=0.0190;price_dd=0.0165,True
+Tushare-only creates nonzero effect,sharpe_delta=-0.0302;top10_delta=0.0116,True

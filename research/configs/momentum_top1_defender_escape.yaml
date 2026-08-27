@@ -1,0 +1,45 @@
+experiment:
+  id: c2_unified_momentum_top1_defender_escape
+  base_strategy: momentum_defender_c2_defender_main_b5e3419
+  evidence_status: retrospective_small_grid_not_oos
+  created_on: "2026-08-23"
+
+pre_registered:
+  metric: quality_momentum
+  window: 20
+  entry_difference: 0.0
+  exit_difference: 0.0
+  absolute_minimum: 0.0
+  min_escape_hold_days: 1
+
+grid:
+  return:
+    windows: [10, 20, 40]
+    entry_differences: [0.0, 0.02, 0.05]
+    exit_differences: [0.0, -0.02]
+    min_escape_hold_days: [1, 5, 10]
+  quality_momentum:
+    windows: [10, 20, 40]
+    entry_differences: [0.0, 0.005, 0.01]
+    exit_differences: [0.0, -0.005]
+    min_escape_hold_days: [1, 5, 10]
+  risk_adjusted_return:
+    windows: [10, 20, 40]
+    entry_differences: [0.0, 0.25, 0.50]
+    exit_differences: [0.0, -0.25]
+    min_escape_hold_days: [1, 5, 10]
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+selection:
+  minimum_escape_entries: 5
+  minimum_escape_days: 40
+  balanced_tolerances:
+    annualized_return_delta: -0.03
+    sharpe_delta: -0.15
+    max_drawdown_delta: -0.03
+  no_automatic_production_replacement: true

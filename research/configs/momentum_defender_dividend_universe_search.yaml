@@ -1,0 +1,81 @@
+research_id: momentum_defender_dividend_universe_v1
+status: retrospective_research_only
+decision_date: "2026-08-26"
+baseline_strategy: momentum_defender_w40_gold_qm20_escape_v1
+formal_cutoff: "2026-08-21"
+
+screen:
+  snapshot_date: "2026-08-25"
+  name_or_index_regex: "红利|股息|高息|高股息"
+  minimum_size_yi: 30.0
+  liquidity_window_sessions: 60
+  minimum_median_daily_amount_yi: 1.0
+  size_method: fund_share_times_close
+  liquidity_source: tushare_fund_daily_amount_thousand_yuan
+  evidence_limit: current_screen_is_not_point_in_time_historical_eligibility
+
+baseline_pool:
+  - 512890.SH
+  - 159545.SZ
+  - 513530.SH
+  - 515080.SH
+  - 510880.SH
+  - 563020.SH
+
+selected_research_pool:
+  - 512890.SH
+  - 513530.SH
+  - 515080.SH
+  - 510880.SH
+  - 515450.SH
+  - 513630.SH
+
+selected_changes:
+  remove:
+    - asset: 159545.SZ
+      reason: smaller_and_less_liquid_than_513630_hk_low_vol_dividend_alternative
+    - asset: 563020.SH
+      reason: exact_index_duplicate_of_larger_more_liquid_512890
+  add:
+    - asset: 515450.SH
+      reason: large_active_longer_history_distinct_a_share_large_cap_dividend_low_vol_exposure
+    - asset: 513630.SH
+      reason: larger_more_liquid_hk_low_vol_dividend_exposure
+
+screened_assets:
+  - {asset: 512890.SH, name: 华泰柏瑞中证红利低波动ETF, index: 中证红利低波, size_yi: 332.832, avg60_amount_yi: 9.065, median60_amount_yi: 8.699}
+  - {asset: 510880.SH, name: 华泰柏瑞上证红利ETF, index: 上证红利, size_yi: 200.285, avg60_amount_yi: 8.213, median60_amount_yi: 7.779}
+  - {asset: 515450.SH, name: 南方标普中国A股大盘红利低波50ETF, index: 标普中国A股大盘红利低波50, size_yi: 199.351, avg60_amount_yi: 2.483, median60_amount_yi: 2.224}
+  - {asset: 515180.SH, name: 易方达中证红利ETF, index: 中证红利, size_yi: 184.290, avg60_amount_yi: 4.271, median60_amount_yi: 4.219}
+  - {asset: 563020.SH, name: 易方达中证红利低波动ETF, index: 中证红利低波, size_yi: 128.097, avg60_amount_yi: 3.102, median60_amount_yi: 2.994}
+  - {asset: 513630.SH, name: 摩根标普港股通低波红利ETF, index: 标普港股通低波红利, size_yi: 120.450, avg60_amount_yi: 4.049, median60_amount_yi: 3.533}
+  - {asset: 515080.SH, name: 招商中证红利ETF, index: 中证红利, size_yi: 113.336, avg60_amount_yi: 4.061, median60_amount_yi: 3.936}
+  - {asset: 159307.SZ, name: 博时中证红利低波动100ETF, index: 中证红利低波100, size_yi: 73.542, avg60_amount_yi: 1.207, median60_amount_yi: 1.043}
+  - {asset: 159545.SZ, name: 易方达恒生港股通高股息低波动ETF, index: 港股通高股息低波动, size_yi: 70.003, avg60_amount_yi: 1.374, median60_amount_yi: 1.206}
+  - {asset: 159549.SZ, name: 天弘中证红利低波动100ETF, index: 中证红利低波100, size_yi: 56.768, avg60_amount_yi: 0.168, median60_amount_yi: 0.085}
+  - {asset: 515100.SH, name: 景顺长城中证红利低波动100ETF, index: 中证红利低波100, size_yi: 52.460, avg60_amount_yi: 1.583, median60_amount_yi: 1.488}
+  - {asset: 513530.SH, name: 华泰柏瑞中证港股通高股息投资ETF, index: 中证港股通高股息, size_yi: 45.618, avg60_amount_yi: 2.226, median60_amount_yi: 2.269}
+  - {asset: 515300.SH, name: 嘉实沪深300红利低波动ETF, index: 300红利LV, size_yi: 44.742, avg60_amount_yi: 1.157, median60_amount_yi: 1.032}
+  - {asset: 159691.SZ, name: 工银瑞信中证港股通高股息精选ETF, index: 中证港股通高息精选CNY, size_yi: 44.408, avg60_amount_yi: 2.175, median60_amount_yi: 1.978}
+  - {asset: 513920.SH, name: 华安恒生港股通中国央企红利ETF, index: 恒生港股通中国央企红利, size_yi: 40.449, avg60_amount_yi: 1.455, median60_amount_yi: 1.247}
+  - {asset: 513690.SH, name: 博时恒生港股通高股息率ETF, index: 恒生港股通高股息率, size_yi: 36.963, avg60_amount_yi: 2.039, median60_amount_yi: 1.688}
+  - {asset: 520990.SH, name: 景顺长城中证国新港股通央企红利ETF, index: 国新港股通央企红利, size_yi: 34.005, avg60_amount_yi: 1.365, median60_amount_yi: 1.332}
+  - {asset: 562060.SH, name: 华宝标普中国A股红利机会ETF, index: 标普中国A股红利机会, size_yi: 31.358, avg60_amount_yi: 0.513, median60_amount_yi: 0.446}
+  - {asset: 513910.SH, name: 华夏中证港股通央企红利ETF, index: 港股通央企红利, size_yi: 31.169, avg60_amount_yi: 1.798, median60_amount_yi: 1.637}
+  - {asset: 513950.SH, name: 富国恒生港股通高股息低波动ETF, index: 港股通高股息低波动, size_yi: 30.824, avg60_amount_yi: 0.583, median60_amount_yi: 0.442}
+
+segments:
+  development: ["2019-01-18", "2022-12-31"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+validation:
+  bootstrap_block_sessions: 20
+  bootstrap_repetitions: 5000
+  reality_check_repetitions: 5000
+  cscv_blocks: 16
+  defender_cost_multipliers: [1.0, 3.0]
+  random_seed: 20260826
+  promotion_allowed: false
+

@@ -1,0 +1,106 @@
+strategy_id: momentum_defender_w40_gold_qm20_escape_candidate_v1
+status: research_candidate_not_production
+base_strategy_id: momentum_defender_w40_reversal_full_equity_v1
+selected_on: "2026-08-25"
+evidence_status: staged_retrospective_fixed_formal_strategy_not_oos
+
+fixed_mechanism:
+  metric: quality_momentum
+  metric_version: "2.0.0"
+  metric_window: 20
+  metric_convention: log_return_times_log_path_efficiency
+  comparison: current_momentum_top1_minus_continuous_formal_defender_nav
+  defender_eligibility_days: 5
+  top1_hard_hold_days: 5
+  after_hard_hold: >-
+    Use the current Momentum Top1 ETF's own Y. Return to Defender only when
+    base W40 remains Defender and the difference is below Y; otherwise use the
+    normal Momentum rotation.
+
+asset_policies:
+  510300.SH: disabled
+  159915.SZ: disabled
+  513100.SH: disabled
+  518880.SH:
+    entry_x: 0.005
+    exit_y: -0.020
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.5494050665025538
+  annualized_volatility: 0.2626181900328814
+  sharpe: 1.7985360551074376
+  max_drawdown: -0.2550410754294248
+  escape_entries: 22
+  lock_break_entries: 17
+  escape_days: 272
+  daily_return_sha256_float64_le: 705e71fda4edf0f04df9d75de64fab709fadda93e2b19ac9a4e87c3953207b23
+
+formal_baseline:
+  annualized_return_252: 0.504947394699677
+  sharpe: 1.6757275161840877
+  max_drawdown: -0.2550410754294248
+
+ordinary_checkpoint:
+  annualized_return_252: 0.46861285105581274
+  sharpe: 1.9637965916596336
+  max_drawdown: -0.197634912624851
+
+staged_search:
+  single_asset_parameter_ids: 548
+  combination_ids: 625
+  unique_combination_paths: 104
+  all_current_unique_paths: 286
+  strict_full_dual_improvement_combinations: 277
+  selected_enabled_assets: 1
+
+neighborhood:
+  joint_substitution_count: 17
+  full_annualized_return_q25: 0.5305554477616585
+  full_sharpe_q25: 1.7492688016048785
+  full_annualized_delta_q25: 0.02560805306198155
+  full_sharpe_delta_q25: 0.07354128542079086
+  full_dual_improvement_pass_rate: 0.9411764705882353
+  gold_xy_count: 9
+  gold_xy_full_annualized_return_q25: 0.534337
+  gold_xy_full_sharpe_q25: 1.755567
+  identical_path_y_plateau: [-0.020, -0.015, -0.010]
+
+robustness:
+  joint_full_cscv_pbo: 0.45021645021645024
+  joint_ordinary_cscv_pbo: 0.1774891774891775
+  family_reality_check_p_value: 0.57
+  global_unique_paths: 569
+  global_full_reality_check_p_value: 0.835
+  global_ordinary_reality_check_p_value: 0.978
+  bootstrap_annualized_delta_positive_probability: 0.841
+  bootstrap_sharpe_delta_positive_probability: 0.8692
+  bootstrap_annualized_delta_95pct: [-0.03754060613468483, 0.13166056294800704]
+  bootstrap_sharpe_delta_95pct: [-0.07683568251892245, 0.3704610027334018]
+  event_count: 22
+  positive_events: 11
+  negative_events: 11
+  top_two_positive_event_share: 0.49984804336845834
+  leave_one_event_min_annualized_return_252: 0.5191097027351075
+  leave_one_event_min_sharpe: 1.727154516108024
+  fixed_candidate_leave_one_year_annualized_win_rate: 1.0
+  fixed_candidate_leave_one_year_sharpe_win_rate: 1.0
+  calendar_year_return_win_rate: 0.50
+  calendar_year_sharpe_win_rate: 0.50
+  staged_walk_forward_return_win_rate: 0.40
+  staged_walk_forward_sharpe_win_rate: 0.40
+  three_x_cost_annualized_return_252: 0.5343713641129699
+  three_x_cost_sharpe: 1.7616761879987548
+
+decision:
+  strict_full_dual_improvement_passed: true
+  production_replacement: false
+  reason: >-
+    Gold-only X/Y is a simple, locally stable candidate that improves full and
+    ordinary annualized return and Sharpe. However bootstrap intervals cross
+    zero, global multiple-testing correction is not significant, and staged
+    walk-forward reselection is only 40%. Preserve as a research candidate and
+    require explicit user promotion.
+

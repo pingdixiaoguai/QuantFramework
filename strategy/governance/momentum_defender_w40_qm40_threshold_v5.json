@@ -1,0 +1,16 @@
+{
+  "strategy_id": "momentum_defender_w40_qm40_threshold_v5",
+  "formal_status": "production_signal_frozen",
+  "formal_promotion_date": "2026-08-27",
+  "promotion_authority": "explicit_user_instruction",
+  "strict_prospective_after": "2026-08-26",
+  "first_unobserved_execution_date": "2026-08-27",
+  "config_path": "strategy/configs/momentum_defender_w40_gold_escape.yaml",
+  "rollback_config_path": "experiments/20260826_momentum_defender_w40_qm40_signed_exit_v4_formal/strategy_config.yaml",
+  "research_config_path": "research/configs/qm40_recovery_threshold_search_2019.yaml",
+  "research_report": "docs/research/2026-08-26_qm40_recovery_threshold_search_2019.md",
+  "formal_promotion_report": "docs/research/2026-08-27_qm40_recovery_threshold_v5_formal_promotion.md",
+  "validation_workflow": "research/DEVELOPMENT_VALIDATION.md",
+  "prospective_ledger_path": "state/momentum_defender_w40_qm40_threshold_v5_forward.jsonl",
+  "evidence_status": "retrospective_qm40_threshold_0075_promoted_by_explicit_user_instruction"
+}

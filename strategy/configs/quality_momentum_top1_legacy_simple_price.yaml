@@ -1,0 +1,17 @@
+strategy_name: quality_momentum_top1_legacy_simple_price
+strategy_class: strategy.top1.Top1
+asset_pool:
+  - 510300.SH
+  - 159915.SZ
+  - 513100.SH
+  - 518880.SH
+start: "2013-01-01"
+end: "today"
+factors:
+  - name: legacy_quality_momentum
+    weight: 1.0
+    params: {window: 20}
+train_ratio: 0.7
+rebalance_mode: min_hold
+rebalance_days: 5
+transaction_cost_rate: 0.0001

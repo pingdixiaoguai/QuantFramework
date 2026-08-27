@@ -113,6 +113,99 @@ def test_formal_config_dispatches_composite_runner(monkeypatch, tmp_path):
     assert calls[0][1].endswith("run_daily_momentum_defender.py")
 
 
+def test_downside_raqm_config_dispatches_composite_runner(monkeypatch, tmp_path):
+    calls = []
+    config = tmp_path / "formal.yaml"
+    config.write_text("strategy_mode: downside_raqm\n", encoding="utf-8")
+    monkeypatch.setattr(
+        run_daily_job.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command)
+        or SimpleNamespace(returncode=0),
+    )
+
+    result = run_daily_job.run_job(config, retry_delay=0)
+
+    assert result == 0
+    assert calls[0][1].endswith("run_daily_momentum_defender.py")
+
+
+def test_w40_loss_config_dispatches_composite_runner(monkeypatch, tmp_path):
+    calls = []
+    config = tmp_path / "formal.yaml"
+    config.write_text("strategy_mode: w40_loss\n", encoding="utf-8")
+    monkeypatch.setattr(
+        run_daily_job.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command)
+        or SimpleNamespace(returncode=0),
+    )
+    assert run_daily_job.run_job(config, retry_delay=0) == 0
+    assert calls[0][1].endswith("run_daily_momentum_defender.py")
+
+
+def test_w40_full_equity_config_dispatches_composite_runner(monkeypatch, tmp_path):
+    calls = []
+    config = tmp_path / "formal.yaml"
+    config.write_text(
+        "strategy_mode: w40_reversal_full_equity\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        run_daily_job.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command)
+        or SimpleNamespace(returncode=0),
+    )
+    assert run_daily_job.run_job(config, retry_delay=0) == 0
+    assert calls[0][1].endswith("run_daily_momentum_defender.py")
+
+
+def test_w40_gold_escape_config_dispatches_composite_runner(monkeypatch, tmp_path):
+    calls = []
+    config = tmp_path / "formal.yaml"
+    config.write_text("strategy_mode: w40_gold_qm20_escape\n", encoding="utf-8")
+    monkeypatch.setattr(
+        run_daily_job.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command)
+        or SimpleNamespace(returncode=0),
+    )
+    assert run_daily_job.run_job(config, retry_delay=0) == 0
+    assert calls[0][1].endswith("run_daily_momentum_defender.py")
+
+
+def test_w40_qm40_signed_exit_config_dispatches_composite_runner(
+    monkeypatch, tmp_path
+):
+    calls = []
+    config = tmp_path / "formal.yaml"
+    config.write_text("strategy_mode: w40_qm40_signed_exit\n", encoding="utf-8")
+    monkeypatch.setattr(
+        run_daily_job.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command)
+        or SimpleNamespace(returncode=0),
+    )
+    assert run_daily_job.run_job(config, retry_delay=0) == 0
+    assert calls[0][1].endswith("run_daily_momentum_defender.py")
+
+
+def test_w40_qm40_threshold_config_dispatches_composite_runner(
+    monkeypatch, tmp_path
+):
+    calls = []
+    config = tmp_path / "formal.yaml"
+    config.write_text("strategy_mode: w40_qm40_threshold\n", encoding="utf-8")
+    monkeypatch.setattr(
+        run_daily_job.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command)
+        or SimpleNamespace(returncode=0),
+    )
+    assert run_daily_job.run_job(config, retry_delay=0) == 0
+    assert calls[0][1].endswith("run_daily_momentum_defender.py")
+
+
 def test_formal_config_rejects_shadow_config(tmp_path):
     import pytest
 

@@ -1,0 +1,107 @@
+strategy_id: momentum_defender_gold_exception_including_extremes_v1
+status: research_candidate_not_production
+selected_on: "2026-08-25"
+selection_objective: including_extremes
+
+mechanism:
+  base_state: independent_510300_gate_never_mutated_by_gold
+  gold_overlay_active_only_when_top1_is_518880: true
+  non_gold_top1_uses_base_state: true
+  gold_top1_exit_resets_gold_state: true
+
+anchor_policy:
+  asset: 510300.SH
+  score:
+    horizons: [30, 40]
+    weights: [0.25, 0.75]
+  defender_entry_percentile: 0.55
+  momentum_recovery_percentile: 0.30
+  defender_entry_confirmation_days: 3
+  momentum_recovery_confirmation_days: 1
+
+gold_policy:
+  asset: 518880.SH
+  score:
+    horizons: [30, 40]
+    weights: [0.50, 0.50]
+  defender_entry_percentile: 0.40
+  momentum_recovery_percentile: 0.00
+  defender_entry_confirmation_days: 1
+  momentum_recovery_confirmation_days: 3
+  override_mode: gold_bidirectional
+
+state_policy:
+  momentum_lock_days: 30
+  defender_lock_days: 30
+  all_locks_are_multiples_of_five: true
+  gold_overlay_has_no_additional_hold_lock: true
+
+factor_defaults:
+  formula: downside_regularized_raqm
+  volatility_floor_annual: 0.08
+  winsor_limit: 3.0
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  total_return: 18.583928525047416
+  cagr_calendar: 0.4796571452669327
+  annualized_return_252: 0.5025813619865311
+  annualized_volatility: 0.26119350581000284
+  sharpe: 1.6892326497859425
+  max_drawdown: -0.25504107542942456
+  base_defender_entries: 17
+  effective_defender_days: 488
+  sleeve_switches: 84
+  candidate_switches: 179
+  daily_return_sha256_float64_le: 3841425ea834cc095ef51c3b1af3a806eb5a3c58c469a07689a5e8e805658d1e
+
+ordinary_regime_metrics:
+  annualized_return_252: 0.4260124232418019
+  sharpe: 1.845300722458642
+  max_drawdown: -0.22010700976689124
+
+stability:
+  lock_neighborhood_count: 4
+  lock_neighborhood_full_annualized_q25: 0.496819
+  lock_neighborhood_full_sharpe_q25: 1.670886
+  lock_neighborhood_ordinary_annualized_q25: 0.419879
+  lock_neighborhood_ordinary_sharpe_q25: 1.818177
+  fixed_leave_year_min_annualized_return_252: 0.443421
+  fixed_leave_year_min_sharpe: 1.598822
+  leave_one_event_min_annualized_return_252: 0.47841705091948183
+  leave_one_event_min_sharpe: 1.6229532805027107
+  three_x_cost_annualized_return_252: 0.4889759643480531
+  three_x_cost_sharpe: 1.6545531167643766
+
+family_audit:
+  anchor_candidates: 72
+  gold_pair_candidates: 8400
+  joint_candidates: 4851
+  unique_paths: 6205
+  cscv_pbo: 0.44155844155844154
+  reality_check_p: 0.0294
+  walk_forward_return_win_rate: 0.6
+  walk_forward_sharpe_win_rate: 0.6
+
+cross_round_global_audit:
+  candidate_ids: 68678
+  global_unique_paths: 18800
+  cscv_pbo: 0.40476190476190477
+  reality_check_p: 0.0836
+  walk_forward_return_win_rate: 0.4
+  walk_forward_sharpe_win_rate: 0.4
+
+comparison:
+  universal_gate_annualized_return_252: 0.5088174407913155
+  universal_gate_sharpe: 1.721256857272472
+  gold_overlay_days: 314
+  gold_overlay_log_excess_on_override_days: 0.038534
+
+decision:
+  beats_momentum: true
+  beats_universal_gate: false
+  automatic_production_promotion: false

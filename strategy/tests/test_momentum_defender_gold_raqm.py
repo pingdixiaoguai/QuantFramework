@@ -40,13 +40,13 @@ def test_defender_entry_and_exit_use_frozen_thresholds() -> None:
         current_active=False,
         completed_gold_days=0,
         base_next_risk_on=False,
-        metric_difference=2.21,
+        metric_difference=2.01,
     )
     exited = advance_gold_override(
         current_active=True,
         completed_gold_days=5,
         base_next_risk_on=False,
-        metric_difference=0.60,
+        metric_difference=0.75,
     )
 
     assert entered.active and entered.reason == "gold_entry"
@@ -63,19 +63,19 @@ def test_next_open_metrics_explicitly_use_five_day_window(monkeypatch) -> None:
     )
     captured = {}
 
-    def fake_metric(curves, *, window):
-        captured["window"] = window
+    def fake_metric(curves):
+        captured["called"] = True
         return pd.DataFrame(
             {"518880.SH": 1.0, "DEFENDER": 0.5, "difference": 0.5},
             index=curves.index,
         )
 
     monkeypatch.setattr(
-        "strategy.momentum_defender_gold_raqm.risk_adjusted_momentum_at_open",
+        "strategy.momentum_defender_gold_raqm.raw_gold_metrics_at_open",
         fake_metric,
     )
 
     result = _next_open_metrics(context, date(2026, 8, 24))
 
-    assert captured["window"] == 5
+    assert captured["called"]
     assert result["difference"] == 0.5

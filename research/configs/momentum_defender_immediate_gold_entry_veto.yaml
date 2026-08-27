@@ -1,0 +1,27 @@
+research_id: momentum_defender_immediate_gold_entry_veto_v1
+status: retrospective_research_only
+baseline_strategy: momentum_defender_w40_gold_qm20_escape_v2
+cutoff: "2026-08-26"
+
+mechanism:
+  base_w40_transition: unchanged_enters_defender_and_starts_lock
+  executable_defender_entry_requires_gold_not_qualified: true
+  applies_only_on_base_w40_defender_entry: true
+  gold_top1_required: true
+  gold_minus_continuous_defender_qm20_strictly_above: 0.005
+  immediate_gold_hard_hold_sessions: 5
+  after_hard_hold_exit_below: -0.020
+  after_hard_hold_exit_if_top1_not_gold: true
+  post_escape_return_defender_requalification_sessions: 5
+
+segments:
+  development: ["2013-01-01", "2025-12-31"]
+  validation_2026: ["2026-01-01", "2026-08-26"]
+  full: ["2013-01-01", "2026-08-26"]
+
+validation:
+  paired_block_bootstrap_block_sessions: 20
+  paired_block_bootstrap_repetitions: 5000
+  random_seed: 20260826
+  promotion_allowed: false
+  evidence_limit: binary_mechanism_selected_after_observing_2025_missed_gold_event

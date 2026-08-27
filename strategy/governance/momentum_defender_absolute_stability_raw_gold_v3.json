@@ -1,0 +1,16 @@
+{
+  "strategy_id": "momentum_defender_absolute_stability_raw_gold_v3",
+  "formal_status": "superseded_rollback_checkpoint",
+  "formal_promotion_date": "2026-08-24",
+  "promotion_authority": "explicit_user_instruction",
+  "strict_prospective_after": "2026-08-24",
+  "first_unobserved_execution_date": "2026-08-25",
+  "config_snapshot_path": "experiments/20260824_momentum_defender_absolute_stability_raw_gold_v3_formal/strategy_config.yaml",
+  "superseded_by": "momentum_defender_confirmation_bridge_raw_gold_v4",
+  "rollback_config_path": "strategy/configs/momentum_defender_c2_gold_raqm_w5_log_qm_v2.yaml",
+  "switch_research": "docs/research/2026-08-24_log_qm_robust_strategy_selection.md",
+  "gold_research": "docs/research/2026-08-24_gold_raqm_raw_stability_focused.md",
+  "validation_workflow": "research/DEVELOPMENT_VALIDATION.md",
+  "prospective_ledger_path": "state/momentum_defender_absolute_stability_raw_gold_v3_forward.jsonl",
+  "evidence_status": "retrospective_candidate_promoted_by_explicit_user_instruction"
+}

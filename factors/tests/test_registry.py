@@ -11,13 +11,15 @@ class TestRegisteredFactors:
         assert "momentum" in facs
         assert "volatility" in facs
         assert "quality_momentum" in facs
+        assert "legacy_quality_momentum" in facs
+        assert "three_factor_trend" in facs
         assert "ohlc_quality_momentum" in facs
         assert "risk_adjusted_quality_momentum" in facs
         assert "rsi" in facs
         assert "drawdown_percentile" in facs
         assert "rebound_percentile" in facs
         assert "volume_percentile" in facs
-        assert len(facs) == 9
+        assert len(facs) == 11
         for name, fac in facs.items():
             assert "METADATA" in fac
             assert "compute" in fac

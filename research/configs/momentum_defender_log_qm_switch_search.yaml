@@ -1,0 +1,115 @@
+experiment:
+  id: momentum_defender_log_qm_switch_robust_search_v1
+  created_on: "2026-08-24"
+  evidence_status: preregistered_retrospective_search_not_independent_oos
+  baseline_strategy: momentum_defender_c2_gold_raqm_w5_v1
+  hypothesis: >-
+    After fixing Momentum to log-return momentum times log-path Kaufman ER,
+    a low-dimensional and causally lagged switching rule can improve the
+    annualized-return, Sharpe, and maximum-drawdown trade-off without relying
+    on isolated full-sample parameter peaks.
+
+frozen_momentum:
+  factor: quality_momentum
+  factor_version: "2.0.0"
+  window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  rebalance_mode: min_hold
+  rebalance_days: 5
+  searchable: false
+
+fixed_layers:
+  defender_strategy_id: relative_defender_rotation_2013_listing_aware
+  gold_override: risk_adjusted_quality_momentum_w5_entry_2.20_exit_0.60_hard_hold_5
+  signal_timing: previous_close_to_next_open
+  equity_etf_one_way_cost: 0.0001
+  bond_etf_one_way_cost: 0.00001
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+slow_gate_stage:
+  return_modes: [simple, log]
+  lookbacks: [20, 40, 60, 80, 120]
+  thresholds: [-0.025, 0.0, 0.025, 0.05, 0.075, 0.10]
+  min_hold_days: [20, 30, 40, 60]
+  top_development_candidates_for_joint_stage: 6
+  fixed_emergency:
+    volatility_estimator: rogers_satchell
+    volatility_window: 10
+    quantile_history: expanding_strict_lag
+    quantile_scheme: current_asset_specific
+    cap_trigger_maximum: 0.80
+
+emergency_joint_stage:
+  volatility_estimators: [rogers_satchell, close_log_std]
+  volatility_windows: [5, 10, 20, 40]
+  quantile_histories: [expanding_strict_lag, rolling_504_strict_lag]
+  quantile_schemes:
+    common_q70:
+      510300.SH: 0.70
+      159915.SZ: 0.70
+      513100.SH: 0.70
+      518880.SH: 0.70
+    common_q80:
+      510300.SH: 0.80
+      159915.SZ: 0.80
+      513100.SH: 0.80
+      518880.SH: 0.80
+    common_q90:
+      510300.SH: 0.90
+      159915.SZ: 0.90
+      513100.SH: 0.90
+      518880.SH: 0.90
+    common_q95:
+      510300.SH: 0.95
+      159915.SZ: 0.95
+      513100.SH: 0.95
+      518880.SH: 0.95
+    current_asset_specific:
+      510300.SH: 0.70
+      159915.SZ: 0.95
+      513100.SH: 0.95
+      518880.SH: 0.90
+  cap_trigger_maximums: [0.60, 0.80]
+  include_no_emergency: true
+  cap_step: 0.20
+  quantile_min_history: 20
+  rolling_history: 504
+
+selection:
+  selection_period: development
+  minimum_defender_entries: 3
+  minimum_defender_days: 60
+  maximum_development_mdd_worsening: 0.02
+  primary_pool: development_pareto_frontier
+  rank_rule: maximize_minimum_metric_percentile_then_mean_percentile
+  metric_priority: [annualized_return_252, sharpe, max_drawdown]
+  full_sample_metrics_for_selection: false
+  validation_used_for_selection: false
+
+validation_gates:
+  validation_annualized_delta_floor: -0.03
+  validation_sharpe_delta_floor: -0.10
+  validation_mdd_delta_floor: -0.03
+  recent_annualized_delta_floor: -0.03
+  recent_sharpe_delta_floor: -0.10
+  recent_mdd_delta_floor: -0.03
+  minimum_nonnegative_metric_deltas_each_holdout: 2
+
+overfit_checks:
+  cscv_blocks: 12
+  paired_block_bootstrap_block: 20
+  paired_block_bootstrap_repetitions: 5000
+  yearly_reality_check_repetitions: 5000
+  random_seed: 20260824
+  friction_cost_multipliers: [1.0, 2.0, 3.0]
+
+decision:
+  no_automatic_production_replacement: true
+  require_explicit_user_promotion: true
+  reject_isolated_full_sample_peak: true

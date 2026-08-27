@@ -1,0 +1,34 @@
+experiment:
+  id: c2_gold_min5_registered_risk_adjusted_momentum
+  base_strategy: momentum_defender_c2_defender_main_b5e3419
+  evidence_status: retrospective_two_parameter_search_not_oos
+  created_on: "2026-08-23"
+
+fixed_mechanism:
+  factor: risk_adjusted_quality_momentum
+  window: 20
+  vol_floor_annual: 0.08
+  only_escape_asset: 518880.SH
+  hard_min_gold_hold_days: 5
+  first_five_days_ignore_base_c2_momentum: true
+  after_five_days_base_c2_momentum_takes_precedence: true
+
+threshold_grid:
+  entry_start: 0.0
+  entry_end: 1.9
+  entry_step: 0.05
+  exit_start: -2.1
+  exit_end: 0.5
+  exit_step: 0.05
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+selection:
+  minimum_gold_entries: 3
+  minimum_gold_days: 40
+  balanced_objective: annual_rank_plus_sharpe_rank
+  no_automatic_production_replacement: true

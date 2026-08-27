@@ -1,0 +1,69 @@
+strategy_id: momentum_defender_w40_loss_excluding_extremes_v1
+status: research_candidate_not_production
+selected_on: "2026-08-25"
+evidence_status: preregistered_retrospective_dual_objective_search_not_oos
+
+factor:
+  anchor_asset: 510300.SH
+  formula: max_negative_40_day_log_return
+  window: 40
+  path_efficiency: disabled
+  volatility_adjustment: disabled
+  volatility_floor: disabled
+  winsor_clip: disabled
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+  zero_loss_percentile: 0.0
+  timing: previous_close_to_next_open
+
+state_policy:
+  defender_entry_percentile: 0.55
+  momentum_recovery_percentile: 0.40
+  defender_entry_confirmation_days: 1
+  momentum_recovery_confirmation_days: 1
+  momentum_lock_days: 30
+  defender_lock_days: 30
+  emergency_override: false
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.4931576798797761
+  annualized_volatility: 0.24894040508841608
+  sharpe: 1.734495846849511
+  max_drawdown: -0.2550410754294248
+  ordinary_annualized_return_252: 0.42443206406823153
+  ordinary_sharpe: 1.967144449345798
+  ordinary_max_drawdown: -0.15859401028404319
+  defender_entries: 20
+  defender_days: 870
+  sleeve_switches: 39
+  candidate_switches: 125
+  daily_return_sha256_float64_le: 1ec2fcef5d4646e62af8a98a5377184e92845620b47193d7737423e2c9a9fc39
+
+robustness:
+  candidate_ids: 1242
+  current_family_unique_paths: 820
+  neighborhood_count: 96
+  neighborhood_ordinary_annualized_q25: 0.3660757854194676
+  neighborhood_ordinary_sharpe_q25: 1.7502941586877903
+  cscv_pbo_ordinary: 0.18181818181818182
+  current_family_reality_p_value_ordinary: 0.8814
+  exhaustive_candidate_ids: 73386
+  exhaustive_unique_paths: 42816
+  exhaustive_reality_p_value_ordinary: 0.9932
+  bootstrap_annualized_delta_ci: [-0.08726176141465432, 0.04549955666959756]
+  bootstrap_sharpe_delta_ci: [-0.14853732927985605, 0.1931564855044424]
+  leave_one_event_min_annualized_return_252: 0.47874404887907396
+  three_x_cost_annualized_return_252: 0.4825167982160552
+
+decision:
+  beats_weighted_formal_on_annualized_return: false
+  beats_weighted_formal_on_sharpe: true
+  beats_weighted_formal_on_ordinary_annualized_return: false
+  beats_weighted_formal_on_ordinary_sharpe: true
+  parameter_neighborhood_is_broadly_stable: false
+  statistically_superior_after_global_multiple_testing: false
+  automatic_production_promotion: false
+  requires_explicit_user_promotion: true

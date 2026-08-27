@@ -1,0 +1,68 @@
+strategy_id: gold_raqm_raw_w5_entry3_exit1_v1
+status: research_candidate_not_production
+selected_on: "2026-08-24"
+selection_goal: minimum_parameter_gold_override_across_two_base_states
+
+factor:
+  name: raw_risk_adjusted_quality_momentum
+  window: 5
+  return_convention: log_return
+  efficiency_ratio_convention: log_path
+  volatility: sample_log_return_std_times_sqrt_window
+  volatility_floor_annual: null
+  winsor_limit: null
+
+state_rule:
+  entry_difference_operator: ">"
+  entry_difference: 3.0
+  exit_difference_operator: "<="
+  exit_difference: 1.0
+  hard_min_hold_days: 5
+  base_momentum_after_hard_hold_takes_precedence: true
+
+parameter_count:
+  searched_numeric_parameters: 3
+  parameters: [window, entry_difference, exit_difference]
+  fixed_not_searched: [hard_min_hold_days]
+  removed_parameters: [volatility_floor_annual, winsor_limit]
+
+formal_base_checkpoint:
+  gold_entries: 21
+  annualized_return_252: 0.4833369199856459
+  sharpe: 2.041315261579707
+  max_drawdown: -0.14268668823244834
+
+stability_base_checkpoint:
+  gold_entries: 16
+  annualized_return_252: 0.4578118270236464
+  sharpe: 2.160324470201795
+  max_drawdown: -0.16767473118279574
+
+robustness:
+  candidate_ids: 8256
+  formal_unique_paths: 2620
+  stability_unique_paths: 2200
+  robust_eligible_candidates: 147
+  raw_robust_eligible_candidates: 19
+  formal_pbo: 0.35714285714285715
+  stability_pbo: 0.3116883116883117
+  formal_walk_forward_return_win_rate: 0.80
+  formal_walk_forward_sharpe_win_rate: 0.60
+  stability_walk_forward_return_win_rate: 0.80
+  stability_walk_forward_sharpe_win_rate: 0.60
+  formal_reality_check_p_value: 0.8872
+  stability_reality_check_p_value: 0.8378
+  formal_deflated_sharpe_excess_probability: 0.7449781347346072
+  stability_deflated_sharpe_excess_probability: 0.6115945904779834
+  selected_neighborhood_candidates: 21
+  selected_neighborhood_robust_eligible: 7
+
+decision:
+  recommended_role: parsimonious_gold_research_candidate
+  statistically_superior_after_multiple_testing: false
+  automatic_production_promotion: false
+  rationale: >-
+    Removing both regularizers is feasible and the raw family contains a broad
+    robust threshold neighborhood. The selected rule improves both no-Gold
+    bases, but family-wide Reality Checks are not significant after 8,256
+    attempted parameter IDs.

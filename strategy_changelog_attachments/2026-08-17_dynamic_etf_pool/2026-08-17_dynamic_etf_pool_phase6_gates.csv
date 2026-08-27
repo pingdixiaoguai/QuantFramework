@@ -1,0 +1,7 @@
+gate,value,passed
+D/V/T Sharpe deltas nonnegative,D=-0.0060;V=-0.1217;T=0.1747,False
+full 1bp Sharpe delta >= +0.05,0.01717205144800804,False
+full 5bp Sharpe direction positive,0.020481524033780785,True
+full maxDD deterioration <= 3pp,-0.02150781772313859,True
+rolling36 lead share >= 60%,0.3783783783783784,False
+satellite holding days >= 200,562,True

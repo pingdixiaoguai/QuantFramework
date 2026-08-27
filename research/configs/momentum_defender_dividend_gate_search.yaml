@@ -1,0 +1,32 @@
+experiment:
+  id: momentum_defender_dividend_primary_gate_search
+  generated_from: momentum_defender_c2_defender_main_b5e3419
+  evidence_status: retrospective_parameter_search_not_oos
+
+literal_strategy:
+  lookback: 40
+  slow_return_threshold: 0.025
+  defender_primary_minimum: 0.80
+  min_hold_days: 30
+  exit_modes:
+    - entry_only
+    - conjunction
+
+grid:
+  lookbacks: [20, 30, 40, 50, 60, 80, 120]
+  slow_return_thresholds: [-0.05, -0.025, 0.0, 0.025, 0.05, 0.075, 0.10]
+  defender_primary_minimums: [0.20, 0.40, 0.60, 0.80, 1.00]
+  min_hold_days: [10, 20, 30, 40, 60]
+  exit_modes: [entry_only, conjunction]
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+selection:
+  minimum_defender_entries: 5
+  primary_metric: worst_split_sharpe
+  tie_breakers: [full_sharpe, full_annualized_return_252]
+  promotion_rule: must_not_claim_oos_or_replace_production_without_user_decision

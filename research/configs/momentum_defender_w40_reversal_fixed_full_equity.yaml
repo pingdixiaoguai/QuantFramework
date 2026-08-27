@@ -1,0 +1,121 @@
+strategy_id: momentum_defender_w40_reversal_fixed_full_equity_v1
+status: research_candidate_not_production
+selected_on: "2026-08-25"
+evidence_status: retrospective_fixed_w40_gate_not_independent_oos
+
+frozen_layers:
+  momentum_strategy: quality_momentum_top1
+  momentum_factor_version: "2.0.0"
+  top_gate_strategy_id: momentum_defender_w40_loss_excluding_extremes_v1
+  gate_formula: max_negative_40_day_log_return
+  gate_entry_percentile: 0.55
+  gate_recovery_percentile: 0.40
+  gate_entry_confirmation_days: 1
+  gate_recovery_confirmation_days: 1
+  gate_momentum_lock_days: 30
+  gate_defender_lock_days: 30
+
+defender_selector:
+  frequency: monthly
+  score: trailing_log_return
+  lookback_sessions: 40
+  direction: lowest
+  candidate_assets:
+    - 512890.SH
+    - 159545.SZ
+    - 513530.SH
+    - 515080.SH
+    - 510880.SH
+    - 563020.SH
+  listing_and_execution_aware: true
+  unavailable_switch: retain_previous_asset
+
+position_policy:
+  family: fixed_weight
+  selected_dividend_equity_weight: 1.00
+  government_bond_511260_weight: 0.00
+  dynamic_state: disabled
+  fitted_policy_fields: 1
+  removed_legacy_core_fields: 18
+
+execution:
+  signal_timing: previous_close_to_next_open
+  dividend_etf_one_way_cost: 0.0001
+  government_bond_etf_one_way_cost: 0.00001
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.504947394699677
+  annualized_volatility: 0.26481892204559704
+  sharpe: 1.6757275161840877
+  max_drawdown: -0.2550410754294248
+  daily_return_sha256_float64_le: 4d4f2db08a58aa7c6cbb459d64ae5676dd6905213f338702a362d5f4bfa2c5d6
+
+ordinary_selection_checkpoint:
+  observations: 1641
+  annualized_return_252: 0.4490016871478668
+  sharpe: 1.8724536609899871
+  max_drawdown: -0.1976349126248511
+
+formal_w40_baseline:
+  annualized_return_252: 0.4931576798797761
+  sharpe: 1.734495846849511
+  max_drawdown: -0.2550410754294248
+  ordinary_annualized_return_252: 0.42443206406823153
+  ordinary_sharpe: 1.967144449345798
+  ordinary_max_drawdown: -0.15859401028404319
+
+same_selector_frozen_champion:
+  fitted_policy_fields: 18
+  annualized_return_252: 0.4869379293677014
+  sharpe: 1.716595037228237
+  max_drawdown: -0.25504107542942467
+  defender_standalone_annualized_return_252: 0.241254
+  defender_standalone_sharpe: 2.216246
+  defender_standalone_max_drawdown: -0.113629
+
+selected_defender_standalone:
+  annualized_return_252: 0.167284
+  sharpe: 0.956800
+  max_drawdown: -0.229857
+
+validation:
+  stage1_candidate_ids: 48
+  stage2_candidate_ids: 122
+  global_unique_return_paths: 168
+  global_full_reality_check_p_value: 0.8584
+  global_ordinary_reality_check_p_value: 0.7176
+  global_full_cscv_pbo: 0.6103896103896104
+  global_ordinary_cscv_pbo: 0.7229437229437229
+  bootstrap_vs_formal_annualized_delta_95pct:
+    - -0.07921780823375259
+    - 0.11097717005839992
+  bootstrap_vs_formal_sharpe_delta_95pct:
+    - -0.3396252080340191
+    - 0.1814427314532348
+  defender_events: 20
+  positive_events: 10
+  negative_events: 10
+  top_two_positive_event_share: 0.4959348632833437
+  leave_one_event_min_annualized_return_252: 0.480340255029849
+  leave_one_event_min_sharpe: 1.62194591547025
+  leave_one_year_min_annualized_return_252: 0.44561006400590797
+  leave_one_year_min_sharpe: 1.6150944673017367
+  leave_one_year_return_beats_formal_rate: 0.75
+  leave_one_year_sharpe_beats_formal_rate: 0.25
+  calendar_year_return_win_rate: 0.50
+  calendar_year_sharpe_win_rate: 0.50
+  three_x_cost_annualized_return_252: 0.49296003255457754
+  three_x_cost_sharpe: 1.645838209868841
+
+decision:
+  production_replacement: false
+  strict_dual_objective_passed: false
+  interpretation: >-
+    This is the simplest annualized-return endpoint. It raises historical
+    annualized return but lowers Sharpe and weakens ordinary-regime drawdown
+    versus the current formal W40 strategy. Use only as a frozen shadow if the
+    user explicitly prefers simplicity and return over Sharpe.
+

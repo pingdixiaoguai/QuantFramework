@@ -1,0 +1,92 @@
+experiment:
+  id: current_strategy_occam_robustness_audit_v1
+  created_on: "2026-08-26"
+  evidence_status: retrospective_audit_not_independent_oos
+  baseline_strategy_id: momentum_defender_w40_gold_qm20_escape_v3
+  evaluation_start: "2013-01-01"
+  evidence_cutoff: "2026-08-26"
+  expected_formal_return_hash: 2e746404983f979dd638c982e3d0e9cfdc571c038f8333f04ce8de2f9016af88
+  report_title: 当前正式策略奥卡姆与参数稳健性复核（2013主样本）
+  objective: >-
+    Audit the frozen production strategy for causal correctness, removable
+    complexity, parameter plateaus, and non-overfit alternatives. This audit
+    must not automatically change the production configuration.
+
+frozen_layers:
+  momentum_assets: [510300.SH, 159915.SZ, 513100.SH, 518880.SH]
+  momentum_metric: log_return_times_log_path_efficiency
+  defender_strategy_id: dividend_w40_reversal_full_equity_v2
+  defender_assets:
+    - 512890.SH
+    - 513530.SH
+    - 515080.SH
+    - 510880.SH
+    - 515450.SH
+    - 513630.SH
+  transaction_cost_rate_equity_etf: 0.0001
+  transaction_cost_rate_bond_etf: 0.00001
+  execution_timing: previous_close_to_next_open
+
+periods:
+  early: ["2013-02-04", "2018-12-31"]
+  middle: ["2019-01-01", "2022-12-31"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-26"]
+  momentum_common_start: "2014-01-02"
+
+mechanism_ablations:
+  - current_v3
+  - v2_no_immediate_gold_veto
+  - w40_monthly_dividend_no_gold_escape
+  - pure_log_qm20
+  - w40_direct_gold
+  - w40_direct_510880
+  - w40_direct_cash
+
+w40_stress_grid:
+  windows: [30, 40, 50]
+  percentile_histories: [378, 504, 756]
+  percentile_min_history: 252
+  entry_percentiles: [0.50, 0.55, 0.60]
+  recovery_percentiles: [0.35, 0.40, 0.45]
+  symmetric_locks: [25, 30]
+  entry_confirmation_days: 1
+  recovery_confirmation_days: 1
+  gold_overlay: frozen_current_v3
+
+w40_window_scan:
+  windows: [20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]
+  percentile_history: 504
+  percentile_min_history: 252
+  entry_percentile: 0.55
+  recovery_percentile: 0.40
+  symmetric_lock: 30
+
+momentum_window_scan:
+  windows: [10, 15, 20, 25, 30, 40, 60, 80, 120]
+  common_start: "2014-01-02"
+  rebalance_days: 5
+  implementation: vectorized_schedule_with_exact_w20_parity_check
+
+momentum_hold_scan:
+  rebalance_days: [2, 3, 5, 7, 10]
+  momentum_window: 20
+
+gold_threshold_scan:
+  entry_x: [0.000, 0.005, 0.010]
+  exit_y: [-0.020, -0.010, 0.000, 0.005]
+  immediate_entry_veto: [false, true]
+  invalid_rule: skip_when_y_above_x
+
+overfit_checks:
+  cscv_blocks: 12
+  paired_block_bootstrap_block: 20
+  paired_block_bootstrap_repetitions: 5000
+  yearly_reality_check_repetitions: 5000
+  random_seed: 20260826
+
+decision:
+  no_automatic_production_replacement: true
+  do_not_combine_post_hoc_winners: true
+  require_material_dual_improvement: true
+  require_independent_forward_evidence_for_parameter_change: true

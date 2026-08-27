@@ -20,7 +20,7 @@ Nice=10
 ExecStart=/usr/bin/flock --nonblock /run/quantframework/daily.lock \
     /opt/QuantFramework/.venv/bin/python \
     -m scripts.run_daily_job \
-    --config strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml \
+    --config strategy/configs/momentum_defender_w40_gold_escape.yaml \
     --attempts 3 \
     --retry-delay 600
 

@@ -2,6 +2,8 @@ factors:
   - module: factors.momentum
   - module: factors.volatility
   - module: factors.quality_momentum
+  - module: factors.legacy_quality_momentum
+  - module: factors.three_factor_trend
   - module: factors.ohlc_quality_momentum
   - module: factors.risk_adjusted_quality_momentum
   - module: factors.rsi

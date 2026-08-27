@@ -1,0 +1,41 @@
+experiment:
+  id: conditioned_defender_range_escape_qm_ensemble_v1
+  created_on: "2026-08-27"
+  evidence_status: retrospective_post_axis_ensemble_stability_not_independent_oos
+  evaluation_start: "2019-01-18"
+  evidence_cutoff: "2026-08-26"
+  baseline_strategy_id: momentum_defender_w40_qm40_threshold_v5
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-26"]
+  complete_pool: ["2024-02-06", "2026-08-26"]
+
+frozen_structure:
+  anchor_mode: fixed_512890
+  range_window: 40
+  upper_threshold: 0.95
+  momentum_weight: 0.15
+  absolute_floor: 0.000
+  hold_policy: fixed_pulse_rearm
+  hold_days: 5
+
+profiles:
+  local3: [38, 40, 42]
+  prior3: [35, 40, 45]
+  wide3: [30, 40, 50]
+  local7: [37, 38, 39, 40, 41, 42, 43]
+  local9: [37, 38, 39, 40, 41, 42, 43, 44, 45]
+aggregations: [mean, median, minimum]
+relative_floors: [0.015, 0.020, 0.0225, 0.025, 0.0275, 0.030, 0.035]
+
+selection:
+  require_development_dual: true
+  require_validation_dual: true
+  require_recent_dual: true
+  require_full_dual: true
+  minimum_escape_entries: 5
+  prefer_fewer_windows: true
+  prefer_mean_then_median_then_minimum: true
+  no_automatic_production_replacement: true

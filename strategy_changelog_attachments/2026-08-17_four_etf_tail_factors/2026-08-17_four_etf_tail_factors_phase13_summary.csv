@@ -1,0 +1,2 @@
+surface_points,all_segment_triple_points,local_pass_rate,center_all_gates_passed,center_full_sharpe_delta,center_full_annual_delta,center_full_top10_delta,event_days
+27,4,0.14814814814814814,False,0.05890793281635953,0.019628401999805645,0.010901922014728893,19

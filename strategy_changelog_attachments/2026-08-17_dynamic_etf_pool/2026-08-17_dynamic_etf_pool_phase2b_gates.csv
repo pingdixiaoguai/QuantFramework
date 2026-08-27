@@ -1,0 +1,7 @@
+posthoc_config,gate,value,passed
+ALIGN_TOP3|QM20|w0.15|n2_ivol|beat_best|gold_veto|rd5,D/V/T Sharpe nonnegative and at least two >= +0.05,D=0.0262;V=0.0702;T=0.1869,True
+ALIGN_TOP3|QM20|w0.15|n2_ivol|beat_best|gold_veto|rd5,full 1bp Sharpe delta >= +0.05,0.09284969013085465,True
+ALIGN_TOP3|QM20|w0.15|n2_ivol|beat_best|gold_veto|rd5,full 5bp Sharpe direction positive,0.09802677027245954,True
+ALIGN_TOP3|QM20|w0.15|n2_ivol|beat_best|gold_veto|rd5,full maxDD deterioration <= 3pp,-0.00838634347985645,True
+ALIGN_TOP3|QM20|w0.15|n2_ivol|beat_best|gold_veto|rd5,rolling36 lead share >= 60%,0.9099099099099099,True
+ALIGN_TOP3|QM20|w0.15|n2_ivol|beat_best|gold_veto|rd5,satellite holding days >= 200,672,True

@@ -1,0 +1,38 @@
+experiment:
+  id: c2_asset_specific_top1_escape_search
+  base_strategy: momentum_defender_c2_defender_main_b5e3419
+  objective: maximize_full_sample_annualized_return
+  evidence_status: staged_retrospective_search_not_oos
+  created_on: "2026-08-23"
+
+single_asset_policy_grid:
+  risk_adjusted_return:
+    windows: [5, 10, 20]
+    entry_differences: [0.50, 0.60, 0.75, 1.00]
+    exit_differences: [0.0, -0.20, -0.40]
+    min_hold_days: [1, 5, 7, 10]
+  return:
+    windows: [10, 20, 40]
+    entry_differences: [0.02, 0.05, 0.10]
+    exit_differences: [0.0, -0.02]
+    min_hold_days: [5, 10]
+  quality_momentum:
+    windows: [10, 20, 40]
+    entry_differences: [0.005, 0.01, 0.02]
+    exit_differences: [0.0, -0.005]
+    min_hold_days: [5, 10]
+
+staged_selection:
+  minimum_single_asset_entries: 2
+  minimum_single_asset_days: 20
+  policies_per_asset: 3
+  include_disabled_option: true
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+decision:
+  no_automatic_production_replacement: true

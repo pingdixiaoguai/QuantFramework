@@ -1,0 +1,84 @@
+strategy_id: momentum_defender_w40_top1_qm20_escape_candidate_v1
+status: rejected_research_candidate
+base_strategy_id: momentum_defender_w40_reversal_full_equity_v1
+selected_on: "2026-08-25"
+evidence_status: preregistered_retrospective_fixed_formal_strategy_not_oos
+
+mechanism:
+  metric: quality_momentum
+  metric_version: "2.0.0"
+  metric_window: 20
+  metric_convention: log_return_times_log_path_efficiency
+  comparison: momentum_top1_minus_continuous_formal_defender_nav
+  defender_eligibility_days: 5
+  entry_difference_x: 0.06
+  top1_hard_hold_days: 5
+  exit_difference_y: 0.02
+  after_hard_hold: >-
+    If base W40 remains Defender and the difference is below Y, return to
+    Defender; otherwise delegate to the normal Momentum Top1 rotation.
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.49971397790619565
+  annualized_volatility: 0.2672039948286523
+  sharpe: 1.6500597822657899
+  max_drawdown: -0.25504107542942467
+  escape_entries: 11
+  lock_break_entries: 8
+  escape_days: 91
+  daily_return_sha256_float64_le: e3965f85597e2c27749ff560fef3332618ec560881aac6f0d77615a339f8a9bc
+
+formal_baseline:
+  annualized_return_252: 0.504947394699677
+  sharpe: 1.6757275161840877
+  max_drawdown: -0.2550410754294248
+
+ordinary_checkpoint:
+  annualized_return_252: 0.43773652719525535
+  sharpe: 1.8196066128816875
+  max_drawdown: -0.21385638903094983
+
+selection_audit:
+  candidate_ids: 137
+  unique_paths: 116
+  candidates_improving_full_annualized_return: 0
+  candidates_improving_full_sharpe: 0
+  candidates_improving_both: 0
+  selected_neighborhood_count: 9
+  neighborhood_full_annualized_q25: 0.47727386529224725
+  neighborhood_full_sharpe_q25: 1.5894310742523845
+  neighborhood_dual_improvement_pass_rate: 0.0
+
+overfit_audit:
+  family_full_cscv_pbo: 0.05844155844155844
+  family_ordinary_cscv_pbo: 0.006493506493506494
+  family_full_reality_check_p_value: 0.9898
+  family_ordinary_reality_check_p_value: 0.9964
+  global_unique_paths_including_prior_position_research: 284
+  global_full_cscv_pbo: 0.6385281385281385
+  global_full_reality_check_p_value: 1.0
+  global_ordinary_reality_check_p_value: 1.0
+  walk_forward_return_win_rate: 0.20
+  walk_forward_sharpe_win_rate: 0.20
+  leave_one_year_return_win_rate: 0.25
+  leave_one_year_sharpe_win_rate: 0.125
+  bootstrap_annualized_delta_95pct: [-0.04498348324024261, 0.03369361447497443]
+  bootstrap_sharpe_delta_95pct: [-0.1445823077930343, 0.07869546079905064]
+  event_count: 11
+  positive_events: 7
+  negative_events: 4
+  top_two_positive_event_share: 0.5891875673390649
+  three_x_cost_annualized_return_252: 0.4863023268676163
+  three_x_cost_sharpe: 1.6167258078028917
+
+decision:
+  strict_full_dual_improvement_passed: false
+  production_replacement: false
+  reason: >-
+    No tested X/Y path improved either full-sample annualized return or Sharpe.
+    The robust fallback X=0.06/Y=0.02 also degraded ordinary-regime metrics and
+    had zero dual-improvement neighbors. Keep the formal strategy unchanged.
+

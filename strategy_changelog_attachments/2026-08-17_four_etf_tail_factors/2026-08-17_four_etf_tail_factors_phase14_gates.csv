@@ -1,0 +1,18 @@
+gate,value,passed
+D sharpe positive,0.12683999805827129,True
+D annual positive,0.02317478222335767,True
+D top10 positive,0.004738075548338105,True
+V sharpe positive,0.09689083271198207,True
+V annual positive,0.02322650755156097,True
+V top10 positive,0.0062056383897338835,True
+T sharpe positive,0.04553623004355001,True
+T annual positive,-0.001932670700255823,False
+T top10 positive,0.007015906566713692,True
+FULL sharpe positive,0.08950765639796932,True
+FULL annual positive,0.0163828068340659,True
+FULL top10 positive,0.004737999832356177,True
+5bp Sharpe positive,0.08988452587658924,True
+5bp annual positive,0.017154769586914753,True
+maxDD no worse -1pp,0.01326371929127712,True
+rolling36 lead >=60%,0.8288288288288288,True
+same-window wins >=7,7.0,True

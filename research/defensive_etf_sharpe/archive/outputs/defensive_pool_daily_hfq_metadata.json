@@ -1,0 +1,91 @@
+{
+  "as_of": "2026-08-06",
+  "frequency": "daily",
+  "price_basis": "local HFQ close",
+  "return_definition": "close_t / close_t-1 - 1",
+  "correlation_method": "Pearson; every matrix cell uses all actual overlapping daily returns for that pair",
+  "assets": [
+    {
+      "code": "510880.SH",
+      "name": "华泰柏瑞上证红利ETF",
+      "sleeve": "红利"
+    },
+    {
+      "code": "512890.SH",
+      "name": "华泰柏瑞中证红利低波动ETF",
+      "sleeve": "红利低波"
+    },
+    {
+      "code": "515450.SH",
+      "name": "南方标普中国A股大盘红利低波50ETF",
+      "sleeve": "红利低波"
+    },
+    {
+      "code": "511010.SH",
+      "name": "国泰上证5年期国债ETF",
+      "sleeve": "5年国债"
+    },
+    {
+      "code": "511260.SH",
+      "name": "国泰上证10年期国债ETF",
+      "sleeve": "10年国债"
+    },
+    {
+      "code": "511090.SH",
+      "name": "鹏扬中债-30年期国债ETF",
+      "sleeve": "30年国债"
+    },
+    {
+      "code": "511360.SH",
+      "name": "海富通中证短融ETF",
+      "sleeve": "短融信用债"
+    },
+    {
+      "code": "511880.SH",
+      "name": "银华日利ETF",
+      "sleeve": "货币现金"
+    }
+  ],
+  "price_coverage": {
+    "510880.SH": {
+      "start": "2013-01-07",
+      "end": "2026-08-05",
+      "daily_return_observations": 3298
+    },
+    "512890.SH": {
+      "start": "2019-01-21",
+      "end": "2026-08-05",
+      "daily_return_observations": 1827
+    },
+    "515450.SH": {
+      "start": "2020-02-27",
+      "end": "2026-08-05",
+      "daily_return_observations": 1563
+    },
+    "511010.SH": {
+      "start": "2013-03-26",
+      "end": "2026-08-05",
+      "daily_return_observations": 3247
+    },
+    "511260.SH": {
+      "start": "2017-08-25",
+      "end": "2026-08-05",
+      "daily_return_observations": 2169
+    },
+    "511090.SH": {
+      "start": "2023-06-14",
+      "end": "2026-08-05",
+      "daily_return_observations": 762
+    },
+    "511360.SH": {
+      "start": "2020-09-28",
+      "end": "2026-08-05",
+      "daily_return_observations": 1417
+    },
+    "511880.SH": {
+      "start": "2013-04-19",
+      "end": "2026-08-05",
+      "daily_return_observations": 3231
+    }
+  }
+}

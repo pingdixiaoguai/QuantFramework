@@ -1,0 +1,68 @@
+strategy_id: momentum_defender_relative_gold_overlay_including_extremes_v1
+status: research_candidate_not_production
+selected_on: "2026-08-25"
+evidence_status: preregistered_retrospective_relative_overlay_search_not_oos
+
+base:
+  config: research/configs/momentum_defender_downside_raqm_selected.yaml
+  policy: frozen_universal_510300_gate
+  base_state_mutated: false
+
+factor:
+  formula: signed_regularized_raqm
+  compared_curves: [518880.SH, DEFENDER]
+  horizons: [20]
+  weights: [1.0]
+  volatility_floor_annual: 0.08
+  winsor_limit: 3.0
+  gold_health_threshold: 0.0
+  timing: previous_close_to_next_open
+
+overlay:
+  active_only_when_momentum_top1: 518880.SH
+  entry_difference: 0.30
+  exit_difference: -0.20
+  entry_confirmation_days: 5
+  exit_confirmation_days: 1
+  minimum_gold_hold_days: 5
+  override_mode: gold_exemption_only
+  reset_when_gold_leaves_top1: true
+  weak_gold_bypasses_hold: true
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.5118414118661248
+  annualized_volatility: 0.2607948188849269
+  sharpe: 1.7149969613318243
+  max_drawdown: -0.25504107542942445
+  ordinary_annualized_return_252: 0.43227563471133834
+  ordinary_sharpe: 1.8700767389620927
+  gold_entries: 16
+  gold_allowed_days: 117
+  override_days: 70
+  candidate_switches: 147
+  daily_return_sha256_float64_le: e9b117d5a5b61b4cffb04b08cf1f3821201b86acb1560c23549f7ff276a73802
+
+robustness:
+  candidate_ids: 7140
+  current_family_unique_paths: 2762
+  full_neighborhood_count: 72
+  full_neighborhood_annualized_q25: 0.4984844860881692
+  full_neighborhood_sharpe_q25: 1.6814947239657287
+  current_family_reality_p_value: 0.9738
+  exhaustive_prior_and_current_candidate_ids: 75818
+  exhaustive_global_unique_paths: 21562
+  exhaustive_global_reality_p_value: 0.992
+  bootstrap_annualized_delta_ci: [-0.031218089229877483, 0.04441439333991229]
+  bootstrap_sharpe_delta_ci: [-0.09780257994271241, 0.08729244689041175]
+  leave_one_event_min_annualized_return_252: 0.49862557548036257
+  three_x_cost_annualized_return_252: 0.4996780622562693
+
+decision:
+  beats_frozen_universal_on_annualized_return: true
+  beats_frozen_universal_on_sharpe: false
+  statistically_superior_after_global_multiple_testing: false
+  automatic_production_promotion: false
+  requires_explicit_user_promotion: true

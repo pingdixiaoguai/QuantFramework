@@ -21,7 +21,7 @@ from notification.dingtalk import DingTalkNotifier
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = Path(
-    "strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml"
+    "strategy/configs/momentum_defender_w40_gold_escape.yaml"
 )
 DEFAULT_SHADOW_CONFIG = Path("strategy/configs/quality_momentum_top1_ohlc_er.yaml")
 
@@ -70,7 +70,18 @@ def run_job(
     entrypoint = PROJECT_ROOT / "run_daily.py"
     if config_path.exists():
         loaded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-        if isinstance(loaded, dict) and loaded.get("strategy_mode") == "gold_raqm_w5":
+        composite_modes = {
+            "gold_raqm_w5",
+            "absolute_stability_raw_gold",
+            "confirmation_bridge_raw_gold",
+            "downside_raqm",
+            "w40_loss",
+            "w40_reversal_full_equity",
+            "w40_gold_qm20_escape",
+            "w40_qm40_signed_exit",
+            "w40_qm40_threshold",
+        }
+        if isinstance(loaded, dict) and loaded.get("strategy_mode") in composite_modes:
             entrypoint = PROJECT_ROOT / "run_daily_momentum_defender.py"
             if shadow_config is not None:
                 raise ValueError(

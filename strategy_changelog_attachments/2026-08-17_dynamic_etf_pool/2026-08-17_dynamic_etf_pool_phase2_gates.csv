@@ -1,0 +1,7 @@
+selected_config,gate,value,passed
+P60_TOP5|QM20|w0.25|n2|beat_best|corrnone|rd5,D/V/T Sharpe nonnegative and at least two >= +0.05,D=0.0720;V=0.0253;T=-0.2491,False
+P60_TOP5|QM20|w0.25|n2|beat_best|corrnone|rd5,full 1bp Sharpe delta >= +0.05,-0.03054948172077987,False
+P60_TOP5|QM20|w0.25|n2|beat_best|corrnone|rd5,full 5bp Sharpe direction positive,-0.03045913476822304,False
+P60_TOP5|QM20|w0.25|n2|beat_best|corrnone|rd5,full maxDD deterioration <= 3pp,0.0125247118097227,True
+P60_TOP5|QM20|w0.25|n2|beat_best|corrnone|rd5,rolling36 lead share >= 60%,0.5765765765765766,False
+P60_TOP5|QM20|w0.25|n2|beat_best|corrnone|rd5,satellite holding days >= 200,991,True

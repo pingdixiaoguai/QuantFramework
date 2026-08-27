@@ -1,0 +1,67 @@
+strategy_id: momentum_defender_w40_loss_full_sample_v1
+status: research_candidate_not_production
+selected_on: "2026-08-25"
+evidence_status: preregistered_retrospective_dual_objective_search_not_oos
+
+factor:
+  anchor_asset: 510300.SH
+  formula: max_negative_40_day_log_return
+  window: 40
+  path_efficiency: disabled
+  volatility_adjustment: disabled
+  volatility_floor: disabled
+  winsor_clip: disabled
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+  zero_loss_percentile: 0.0
+  timing: previous_close_to_next_open
+
+state_policy:
+  defender_entry_percentile: 0.65
+  momentum_recovery_percentile: 0.40
+  defender_entry_confirmation_days: 1
+  momentum_recovery_confirmation_days: 1
+  momentum_lock_days: 30
+  defender_lock_days: 30
+  emergency_override: false
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.4902587770835525
+  annualized_volatility: 0.245574965795831
+  sharpe: 1.7469803054637003
+  max_drawdown: -0.25504107542942467
+  ordinary_annualized_return_252: 0.44828939241291144
+  ordinary_sharpe: 2.052591727265352
+  ordinary_max_drawdown: -0.15859401028404363
+  defender_entries: 19
+  defender_days: 823
+  sleeve_switches: 37
+  candidate_switches: 125
+  daily_return_sha256_float64_le: 6c4b36ca9e03f1533fff61cad63bb8494a647a0a82646a733f8296be55eca851
+
+robustness:
+  candidate_ids: 1242
+  current_family_unique_paths: 820
+  neighborhood_count: 96
+  neighborhood_full_annualized_q25: 0.4089986033293025
+  neighborhood_full_sharpe_q25: 1.5302864364014943
+  cscv_pbo_full: 0.5173160173160173
+  current_family_reality_p_value_full: 1.0
+  exhaustive_candidate_ids: 73386
+  exhaustive_unique_paths: 42816
+  exhaustive_reality_p_value_full: 0.9966
+  bootstrap_annualized_delta_ci: [-0.12605642120048388, 0.08119214431452067]
+  bootstrap_sharpe_delta_ci: [-0.23028749540629287, 0.3312222067121065]
+  leave_one_event_min_annualized_return_252: 0.48006257744140335
+  three_x_cost_annualized_return_252: 0.4796230745478143
+
+decision:
+  beats_weighted_formal_on_annualized_return: false
+  beats_weighted_formal_on_sharpe: true
+  parameter_neighborhood_is_broadly_stable: false
+  statistically_superior_after_global_multiple_testing: false
+  automatic_production_promotion: false
+  requires_explicit_user_promotion: true

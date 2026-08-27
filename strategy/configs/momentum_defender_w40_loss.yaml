@@ -1,0 +1,110 @@
+strategy_name: momentum_defender_w40_loss_excluding_extremes_v1
+strategy_mode: w40_loss
+formal_status: superseded_rollback_checkpoint
+superseded_by: momentum_defender_w40_reversal_full_equity_v1
+formal_promotion_date: "2026-08-25"
+promotion_authority: explicit_user_instruction
+evidence_status: retrospective_excluding_extremes_candidate_promoted_by_explicit_user_instruction
+
+base_strategy:
+  momentum_config_path: strategy/configs/quality_momentum_top1.yaml
+  defender_strategy_id: relative_defender_rotation_2013_listing_aware
+  defender_upstream_commit: b5e34191a7d445521de330e998bfe0804d6ebd43
+
+momentum_factor:
+  name: quality_momentum
+  version: "2.0.0"
+  window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  rebalance_days: 5
+
+regime_gate:
+  anchor_asset: 510300.SH
+  formula: max_negative_40_day_log_return
+  window: 40
+  path_efficiency: disabled
+  volatility_adjustment: disabled
+  volatility_floor: disabled
+  winsor_clip: disabled
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+  zero_loss_percentile: 0.0
+  defender_entry_percentile: 0.55
+  momentum_recovery_percentile: 0.40
+
+state_policy:
+  momentum_lock_days: 30
+  defender_lock_days: 30
+  defender_entry_confirmation_days: 1
+  momentum_recovery_confirmation_days: 1
+  emergency_override: false
+
+overlays:
+  gold: disabled
+  rapid_reversal: disabled
+  held_asset_emergency: disabled
+
+selection:
+  source_experiment: momentum_defender_w40_loss_occam_v1
+  objective: candidate_independent_extreme_block_trim
+  shock_assets: [510300.SH, 518880.SH]
+  shock_return_window: 5
+  block_length_sessions: 20
+  excluded_block_fraction_for_selection: 0.10
+  final_checkpoint_includes_all_dates: true
+
+asset_pool:
+  - 510300.SH
+  - 159915.SZ
+  - 513100.SH
+  - 518880.SH
+  - 512890.SH
+  - 159545.SZ
+  - 513530.SH
+  - 515080.SH
+  - 510880.SH
+  - 563020.SH
+  - 511260.SH
+
+execution:
+  signal_timing: previous_close_to_next_open
+  momentum_etf_one_way_cost: 0.0001
+  defender_equity_etf_one_way_cost: 0.0001
+  defender_bond_etf_one_way_cost: 0.00001
+  untradable_switch: retain_previous_candidate
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  total_return: 17.704179509688153
+  cagr_calendar: 0.4707265596197827
+  annualized_return_252: 0.4931576798797761
+  annualized_volatility: 0.24894040508841608
+  sharpe: 1.734495846849511
+  max_drawdown: -0.2550410754294248
+  defender_entries: 20
+  defender_days: 870
+  sleeve_switches: 39
+  candidate_switches: 125
+  daily_return_sha256_float64_le: 1ec2fcef5d4646e62af8a98a5377184e92845620b47193d7737423e2c9a9fc39
+
+validation:
+  candidate_ids: 1242
+  unique_paths: 820
+  ordinary_annualized_return_252: 0.42443206406823153
+  ordinary_sharpe: 1.967144449345798
+  neighborhood_count: 96
+  neighborhood_ordinary_annualized_q25: 0.3660757854194676
+  neighborhood_ordinary_sharpe_q25: 1.7502941586877903
+  current_family_reality_p_value_ordinary: 0.8814
+  exhaustive_reality_p_value_ordinary: 0.9932
+  three_x_cost_annualized_return_252: 0.4825167982160552
+  historical_defender_episodes_reviewed: 20
+  historical_badcases_over_1pp: 6
+  evidence_limit: retrospective_selection_not_independent_oos
+  promotion_decision: explicit_user_instruction
+
+enable_dingtalk: true
+prospective_ledger_path: state/momentum_defender_w40_loss_excluding_extremes_v1_forward.jsonl

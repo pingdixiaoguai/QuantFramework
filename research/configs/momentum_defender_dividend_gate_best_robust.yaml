@@ -1,0 +1,43 @@
+strategy:
+  id: momentum_defender_dividend_gate_best_robust_20260822
+  status: research_checkpoint_not_promoted
+  selected_on: "2026-08-22"
+  source_experiment: momentum_defender_dividend_primary_gate_search
+  evidence_status: retrospective_parameter_search_not_oos
+
+entry_gate:
+  anchor_asset: 510300.SH
+  lookback: 30
+  trailing_return_operator: "<"
+  trailing_return_threshold: 0.025
+  defender_dividend_primary_operator: ">="
+  defender_dividend_primary_minimum: 0.40
+
+execution:
+  min_hold_days: 60
+  exit_mode: entry_only
+  emergency_may_bypass_entry_gate: false
+  signal_timing: previous_close_to_next_open
+
+selection:
+  grid_candidates: 2450
+  minimum_defender_entries: 5
+  primary_metric: worst_split_sharpe
+  tie_breakers: [full_sharpe, full_annualized_return_252]
+
+measured_checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.3977334695607102
+  sharpe: 1.7118233275062091
+  max_drawdown: -0.21564721770699224
+  development_sharpe: 1.6594722434781723
+  validation_sharpe: 1.8102622609380528
+  recent_sharpe: 1.7937881489500376
+  defender_entries: 12
+  defender_days: 853
+
+decision:
+  production_replacement: false
+  reason: current_integrated_c2_has_higher_sharpe_and_shallower_drawdown

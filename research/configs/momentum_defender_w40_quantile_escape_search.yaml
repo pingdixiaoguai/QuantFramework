@@ -1,0 +1,97 @@
+experiment:
+  id: momentum_defender_w40_rolling500_quantile_escape_v1
+  created_on: "2026-08-25"
+  evidence_status: staged_retrospective_dynamic_threshold_search_not_oos
+  hypothesis: >-
+    Rolling-500 strict-lag quantile anchors can replace fixed X/Y with a more
+    interpretable adaptive rule while matching or improving the Gold-only fixed
+    threshold candidate under parameter and event stress.
+
+frozen_layers:
+  formal_strategy_id: momentum_defender_w40_reversal_full_equity_v1
+  momentum_factor: quality_momentum
+  momentum_factor_version: "2.0.0"
+  metric_window: 20
+  metric_convention: log_return_times_log_path_efficiency
+  quantile_history_window: 500
+  quantile_min_history: 252
+  defender_eligibility_days: 5
+  top1_hard_hold_days: 5
+  base_w40_gate_refit: false
+
+quantile_grid:
+  momentum_entry_a: [0.50, 0.60, 0.70, 0.80, 0.90]
+  momentum_exit_b: [0.10, 0.20, 0.30, 0.40, 0.50]
+  common_defender_c: [0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80]
+  require_b_not_above_a: true
+
+staged_selection:
+  minimum_single_asset_entries: 2
+  minimum_single_asset_lock_break_entries: 1
+  minimum_single_asset_days: 10
+  policies_per_asset_per_c: 3
+  include_disabled_option: true
+  minimum_joint_entries: 5
+  minimum_joint_lock_break_entries: 3
+  minimum_joint_days: 40
+  maximum_full_drawdown: -0.30
+  minimum_full_segment_sharpe: 1.20
+  minimum_ordinary_segment_sharpe: 1.35
+
+extreme_block_trim:
+  shock_assets: [510300.SH, 518880.SH]
+  shock_return_window: 5
+  block_length_sessions: 20
+  excluded_block_fraction: 0.10
+  normalization_mode: raw_absolute_log_return
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+selection:
+  ranking_fields_full:
+    - full_annualized_return_252
+    - full_sharpe
+    - neighborhood_full_annualized_q25
+    - neighborhood_full_sharpe_q25
+    - neighborhood_full_dual_pass_rate
+    - full_minimum_segment_sharpe
+  ranking_fields_ordinary:
+    - ordinary_annualized_return_252
+    - ordinary_sharpe
+    - neighborhood_ordinary_annualized_q25
+    - neighborhood_ordinary_sharpe_q25
+    - ordinary_minimum_segment_sharpe
+    - full_sharpe
+  ranking_fields_joint:
+    - full_annualized_return_252
+    - full_sharpe
+    - ordinary_annualized_return_252
+    - ordinary_sharpe
+    - neighborhood_full_dual_pass_rate
+    - neighborhood_full_sharpe_q25
+    - neighborhood_ordinary_sharpe_q25
+
+comparison_target:
+  fixed_gold_candidate_config: research/configs/momentum_defender_w40_gold_qm20_escape_candidate.yaml
+  require_point_annualized_not_below: 0.5494050665025538
+  require_point_sharpe_not_below: 1.7985360551074376
+
+overfit_checks:
+  cscv_blocks: 12
+  paired_block_bootstrap_block: 20
+  paired_block_bootstrap_repetitions: 5000
+  yearly_reality_check_repetitions: 5000
+  random_seed: 20260825
+  top_positive_event_deletions: [1, 2, 3]
+  friction_cost_multipliers: [1.0, 2.0, 3.0]
+  include_all_prior_current_strategy_paths: true
+
+decision:
+  no_automatic_production_replacement: true
+  require_explicit_user_promotion: true
+  do_not_move_grid_after_results: true
+

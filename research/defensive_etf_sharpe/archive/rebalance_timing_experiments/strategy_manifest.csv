@@ -1,0 +1,17 @@
+strategy,description
+fixed_baseline_buy_only,固定35/40/15/10；月初入金当日开盘只买不卖，不主动再平衡
+fixed_baseline_monthly_rebalanced,固定35/40/15/10；入金当日买入，月初收盘后完整再平衡
+monthly_first_close,月初收盘计算目标，次日开盘再平衡；入金当日按旧目标买入
+monthly_last_close,月末收盘计算目标，下一交易日开盘再平衡，通常与次月入金同步
+monthly_day_05_close,每月第5个交易日收盘计算，下一交易日开盘再平衡
+monthly_day_10_close,每月第10个交易日收盘计算，下一交易日开盘再平衡
+monthly_day_15_close,每月第15个交易日收盘计算，下一交易日开盘再平衡
+monthly_day_20_close,每月第20个交易日收盘计算，下一交易日开盘再平衡；不足20日则该月不调
+weekly_last_close,每周最后交易日收盘计算，下一交易日开盘再平衡
+every_10_trading_days,每10个交易日收盘计算，下一交易日开盘再平衡
+quarterly_last_close,每季最后交易日收盘计算，下一交易日开盘再平衡
+daily_close,每日收盘计算，下一交易日开盘再平衡
+target_change_05pct,每日观察；目标组合单边变化达到5%才再平衡
+target_change_10pct,每日观察；目标组合单边变化达到10%才再平衡
+target_change_20pct,每日观察；目标组合单边变化达到20%才再平衡
+monthly_plus_target_change_10pct,月初必调；月内目标组合单边变化达到10%追加再平衡

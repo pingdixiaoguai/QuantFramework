@@ -1,0 +1,156 @@
+strategy_name: momentum_defender_w40_qm40_threshold_v5
+strategy_mode: w40_qm40_threshold
+backtest_start: "2013-01-01"
+formal_status: production_signal_frozen
+formal_promotion_date: "2026-08-27"
+promotion_authority: explicit_user_instruction
+evidence_status: retrospective_qm40_threshold_0075_promoted_by_explicit_user_instruction
+
+base_strategy:
+  rollback_config_path: experiments/20260826_momentum_defender_w40_qm40_signed_exit_v4_formal/strategy_config.yaml
+  momentum_config_path: strategy/configs/quality_momentum_top1.yaml
+  defender_strategy_id: dividend_w40_qm_reversal_full_equity_v3
+
+momentum_factor:
+  name: quality_momentum
+  version: "2.0.0"
+  window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  rebalance_days: 5
+
+regime_gate:
+  anchor_asset: 510300.SH
+  formula: max_negative_40_day_log_return
+  window: 40
+  percentile_history: rolling_756_strict_lag
+  percentile_min_history: 252
+  defender_entry_percentile: 0.60
+  momentum_recovery_percentile: 0.35
+
+state_policy:
+  momentum_lock_days: 30
+  defender_fallback_lock_days: 30
+  defender_minimum_days_for_qm40_recovery: 5
+  qm40_recovery_confirmation_days: 10
+  qm40_recovery_threshold: 0.0075
+  defender_entry_confirmation_days: 1
+  momentum_recovery_confirmation_days: 1
+
+defender_selector:
+  frequency: monthly
+  score: quality_momentum
+  score_version: "2.0.0"
+  score_formula: signed_log_return_times_log_path_efficiency
+  lookback_sessions: 40
+  direction: lowest
+  listing_and_execution_aware: true
+  unavailable_switch: retain_previous_asset
+  candidate_assets:
+    - 512890.SH
+    - 513530.SH
+    - 515080.SH
+    - 510880.SH
+    - 515450.SH
+    - 513630.SH
+
+defender_position:
+  selected_dividend_equity_weight: 1.00
+  government_bond_511260_weight: 0.00
+  dynamic_grid: disabled
+  volatility_cap: disabled
+  champion_override: disabled
+
+defender_recovery:
+  anchor_asset: 510300.SH
+  metric: quality_momentum
+  metric_version: "2.0.0"
+  window: 40
+  threshold: 0.0075
+  comparison: strictly_greater
+  confirmation_days: 10
+  minimum_base_defender_days: 5
+  fallback_day: 30
+  fallback_w40_percentile: 0.35
+  counting_scope: base_w40_defender_state_continues_under_gold_overlay
+
+gold_escape:
+  enabled_assets: [518880.SH]
+  disabled_assets: [510300.SH, 159915.SZ, 513100.SH]
+  metric: quality_momentum
+  metric_version: "2.0.0"
+  metric_window: 20
+  metric_convention: log_return_times_log_path_efficiency
+  comparison: current_momentum_top1_minus_continuous_formal_defender_nav
+  defender_eligibility_days: 5
+  gold_entry_x: 0.005
+  gold_exit_y: -0.020
+  gold_hard_hold_days: 5
+  immediate_defender_entry_gold_veto: true
+  immediate_veto_scope: base_w40_defender_entry_only
+  after_hard_hold: return_if_top1_disabled_or_gold_gap_below_y_else_hold_gold
+
+asset_pool:
+  - 510300.SH
+  - 159915.SZ
+  - 513100.SH
+  - 518880.SH
+  - 512890.SH
+  - 513530.SH
+  - 515080.SH
+  - 510880.SH
+  - 515450.SH
+  - 513630.SH
+  - 511260.SH
+
+execution:
+  signal_timing: previous_close_to_next_open
+  momentum_etf_one_way_cost: 0.0001
+  defender_equity_etf_one_way_cost: 0.0001
+  untradable_switch: retain_previous_candidate
+
+checkpoint:
+  start: "2013-02-04"
+  end: "2026-08-26"
+  observations: 3293
+  total_return: 78.04583267678431
+  cagr_calendar: 0.38032397217295144
+  annualized_return_252: 0.3971306451319314
+  annualized_volatility: 0.2554296635148981
+  sharpe: 1.4373434882559284
+  max_drawdown: -0.4863081060550868
+  escape_entries: 35
+  lock_break_entries: 28
+  escape_days: 438
+  immediate_entry_veto_entries: 8
+  candidate_switches: 289
+  defender_selection_switches: 59
+  qm40_early_recoveries: 3
+  daily_return_sha256_float64_le: 6a45479ffe5da9b081e53e36c7a0b137656ed9a61cdf3c7d8044aa278700f4d3
+
+validation:
+  primary_restart_start: "2019-01-18"
+  primary_observations: 1844
+  primary_annualized_return_252: 0.5842691956185384
+  primary_sharpe: 1.8862538441327346
+  primary_max_drawdown: -0.25504107542942456
+  primary_daily_return_sha256_float64_le: 0c6039ee3e80daabe7fbadff4163d51fc772fa96bbd242bb13b22e029634d1fb
+  complete_pool_start: "2024-02-06"
+  complete_pool_annualized_return_252: 0.806047902436021
+  complete_pool_sharpe: 1.9158341652254856
+  threshold_candidate_ids: 22
+  threshold_unique_paths: 17
+  threshold_reality_check_p_value: 0.8408
+  threshold_cscv_pbo: 0.16883116883116883
+  bootstrap_annualized_delta_ci: [-0.02287962693531991, 0.03229745310031832]
+  bootstrap_sharpe_delta_ci: [-0.03235573709728226, 0.09430555641143763]
+  walk_forward_dual_win_rate: 0.20
+  leave_one_year_selection_dual_win_rate: 0.125
+  fixed_candidate_delete_year_dual_pass_rate: 1.0
+  selected_threshold: 0.0075
+  selected_threshold_plateau: [0.005, 0.010]
+  evidence_limit: retrospective_threshold_search_with_disclosed_ranking_revision_not_independent_oos
+  promotion_decision: explicit_user_instruction
+
+enable_dingtalk: true
+prospective_ledger_path: state/momentum_defender_w40_qm40_threshold_v5_forward.jsonl

@@ -1,0 +1,15 @@
+{
+  "strategy_id": "momentum_defender_confirmation_bridge_raw_gold_v4",
+  "formal_status": "superseded_rollback_checkpoint",
+  "formal_promotion_date": "2026-08-24",
+  "promotion_authority": "explicit_user_instruction",
+  "strict_prospective_after": "2026-08-24",
+  "first_unobserved_execution_date": "2026-08-25",
+  "config_path": "strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml",
+  "superseded_by": "momentum_defender_downside_raqm_weighted_v1",
+  "rollback_governance_path": "strategy/governance/momentum_defender_absolute_stability_raw_gold_v3.json",
+  "design_record": "docs/research/2026-08-24_no_lock_confirmation_bridge_design.md",
+  "validation_workflow": "research/DEVELOPMENT_VALIDATION.md",
+  "prospective_ledger_path": "state/momentum_defender_confirmation_bridge_raw_gold_v4_forward.jsonl",
+  "evidence_status": "retrospective_no_lock_mechanism_redesign_not_independent_oos"
+}

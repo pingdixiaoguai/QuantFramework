@@ -1,0 +1,22 @@
+experiment:
+  id: momentum_defender_c2_gold_override_local_refinement
+  parent_candidate: risk_adjusted_return_w10_en+0.5000_ex-0.2500_h1
+  evidence_status: retrospective_local_refinement_not_oos
+
+grid:
+  risk_adjusted_return:
+    windows: [5, 7, 10, 12, 15, 20, 30]
+    entry_thresholds: [0.30, 0.40, 0.45, 0.50, 0.55, 0.60, 0.70]
+    exit_thresholds: [0.0, -0.10, -0.15, -0.20, -0.25, -0.30, -0.40]
+    min_gold_hold_days: [1, 2, 3, 5, 7, 10]
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+selection:
+  minimum_gold_override_entries: 5
+  minimum_gold_override_days: 40
+  primary_sort: [worst_split_sharpe, full_sharpe, full_annualized_return_252]

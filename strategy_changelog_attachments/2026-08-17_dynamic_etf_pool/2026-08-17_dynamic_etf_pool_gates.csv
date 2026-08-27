@@ -1,0 +1,6 @@
+selected_by_is,gate,value,passed
+D1_positive_top5,OOS Sharpe delta >= 0.10,-0.26972047887154316,False
+D1_positive_top5,5bp OOS Sharpe direction positive,-0.2789918421724187,False
+D1_positive_top5,maxDD deterioration <= 3pp,-0.1786186458098854,False
+D1_positive_top5,rolling36 lead share >= 60%,0.3783783783783784,False
+D1_positive_top5,single satellite concentration <= 60%,0.15065502183406113,True

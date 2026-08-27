@@ -1,0 +1,122 @@
+strategy_id: momentum_defender_occam_defender_reversal_w40_v1
+status: superseded_research_baseline_not_production
+superseded_by: momentum_defender_w40_reversal_fixed_full_equity_v1
+superseded_reason: used_retired_weighted_draqm_top_gate
+selected_on: "2026-08-25"
+evidence_status: retrospective_followup_after_exploratory_ablation_not_oos
+
+frozen_layers:
+  momentum_factor: quality_momentum
+  momentum_factor_version: "2.0.0"
+  momentum_window: 20
+  defender_core: relative_defender_champion_frozen
+  defender_core_parameters_changed: false
+  gold_override: disabled
+  emergency_override: disabled
+
+defender_selector:
+  frequency: monthly
+  candidate_assets:
+    - 512890.SH
+    - 159545.SZ
+    - 513530.SH
+    - 515080.SH
+    - 510880.SH
+    - 563020.SH
+  score: trailing_log_return
+  lookback_sessions: 40
+  direction: lowest
+  unavailable_switch: retain_previous_asset
+  selected_asset_weight: frozen_core_primary_target
+  residual_asset: 511260.SH
+  removed_branches:
+    - range_location_scene_switch
+    - weak_regime_test
+    - warmup_reversal_exception
+    - long_term_trend_ranking
+
+regime_gate:
+  anchor_asset: 510300.SH
+  formula: downside_regularized_raqm
+  horizons: [30, 40]
+  weights: [0.25, 0.75]
+  volatility_floor_annual: 0.08
+  winsor_limit: 3.0
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+  defender_entry_percentile: 0.45
+  momentum_recovery_percentile: 0.20
+
+state_policy:
+  defender_entry_confirmation_days: 3
+  momentum_recovery_confirmation_days: 1
+  momentum_lock_days: 30
+  defender_lock_days: 30
+
+complexity:
+  formal_rotation_policy_fields: 7
+  candidate_rotation_policy_fields: 1
+  removed_rotation_policy_fields: 6
+  frozen_core_policy_fields: 18
+  estimated_total_defender_policy_fields_before: 25
+  estimated_total_defender_policy_fields_after: 19
+  note: >-
+    Counts describe configurable policy fields, not executable constants or
+    asset identifiers. More aggressive one- to three-parameter whole-Defender
+    ablations failed to improve annualized return and Sharpe together.
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.5170444820873479
+  annualized_volatility: 0.25036306650930756
+  sharpe: 1.7894911382691268
+  max_drawdown: -0.25504107542942467
+  defender_entries: 18
+  defender_days: 823
+  sleeve_switches: 35
+  daily_return_sha256_float64_le: 8402a60370b185290eaf93756429c47312305a0141dbf1be6a83c7a8767e988d
+
+ordinary_selection_checkpoint:
+  observations: 1641
+  annualized_return_252: 0.45497695236305713
+  sharpe: 2.051963414284426
+  max_drawdown: -0.15513666352497613
+
+formal_baseline:
+  strategy_id: momentum_defender_downside_raqm_weighted_v1
+  annualized_return_252: 0.5088174407913155
+  sharpe: 1.721256857272472
+  max_drawdown: -0.25504107542942467
+
+robustness:
+  candidate_ids: 7452
+  unique_return_paths: 6228
+  full_reality_check_p_value: 0.9972
+  ordinary_reality_check_p_value: 0.9746
+  cscv_full_pbo: 0.1471861471861472
+  cscv_ordinary_pbo: 0.10606060606060606
+  walk_forward_return_win_rate: 0.40
+  walk_forward_sharpe_win_rate: 0.40
+  leave_one_year_return_win_rate: 0.50
+  leave_one_year_sharpe_win_rate: 0.375
+  bootstrap_annualized_delta_95pct: [-0.061244185414144184, 0.08637273313817705]
+  bootstrap_sharpe_delta_95pct: [-0.12025814041481346, 0.3207259432275733]
+  local_numeric_neighborhood_count: 8
+  local_numeric_neighborhood_full_annualized_q25: 0.48714425097882075
+  local_numeric_neighborhood_full_sharpe_q25: 1.6868585562387657
+  event_count_vs_formal: 9
+  top_two_positive_event_share: 0.8992849359109328
+  leave_one_event_min_annualized_return_252: 0.4967601094848302
+  leave_one_event_min_sharpe: 1.707270131904703
+  three_x_cost_annualized_return_252: 0.5055103688746327
+  three_x_cost_sharpe: 1.7592073154660688
+
+decision:
+  production_replacement: false
+  reason: >-
+    The candidate is simpler and improves the historical point estimates, but
+    its excess is concentrated in two events and is not supported after
+    multiple-testing correction. Keep as a frozen shadow candidate pending
+    explicit user promotion or prospective evidence.

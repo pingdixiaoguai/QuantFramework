@@ -1,9 +1,15 @@
 # 腾讯云 09:00 早盘信号部署
 
 适用于一台长期运行的 Linux CVM。任务在周一至周五 09:00（`Asia/Shanghai`）
-启动，以最新完整交易日行情计算正式的`momentum_defender_c2_gold_raqm_w5_v1`，在钉钉
-提示当天目标持仓、基础C2状态和Gold覆盖诊断。
+启动，以最新完整交易日行情计算正式的`momentum_defender_w40_qm40_threshold_v5`，
+在钉钉提示当天目标持仓、510300 W40严格滞后756日分位、60%/35%迟滞、QM40连续恢复进度、
+QM40月度Defender和黄金QM20逃生状态。
 代码还会查询上交所交易日历，法定休市日成功跳过且不发送信号。
+
+整个生产链路是确定性的Python程序，不依赖大模型、Agent、Codex、ChatGPT或任何自然语言
+推理服务。服务器只需本仓库锁定的Python依赖、Tushare凭据和钉钉Webhook；策略状态、条件
+判断、阈值差距和消息文案均由固定公式及模板生成。模型服务不可用不会影响每日任务，因为
+生产环境根本不会调用模型服务。
 
 ## 运行语义
 
@@ -38,19 +44,19 @@ cd /opt/QuantFramework
 
 ## 3. 迁移实盘状态
 
-从当前电脑复制以下内容：
+从当前电脑复制行情；旧策略持仓文件只作为人工核对参考，不得重命名为新策略状态：
 
 ```text
 data/db/
-state/momentum_defender_c2_gold_raqm_w5_v1_position.json
+state/momentum_defender_w40_qm40_signed_exit_v4_position.json（仅核对，不复制为新ID）
 ```
 
-行情目录可以重新同步，但持仓 JSON 必须迁移，否则服务器会把策略视为首次建仓，
-并丢失现有 YTD 实盘账本。复制完成后确认文件位于：
+行情目录可以重新同步。新策略使用独立ID，首次执行前必须先运行`--dry-run`，以券商真实持仓
+和旧策略状态人工核对调仓差异；不得静默继承或改名旧JSON。确认后首次正式运行会创建新文件：
 
 ```text
 /opt/QuantFramework/data/db/
-/opt/QuantFramework/state/momentum_defender_c2_gold_raqm_w5_v1_position.json
+/opt/QuantFramework/state/momentum_defender_w40_qm40_threshold_v5_position.json
 ```
 
 ## 4. 安装
@@ -103,4 +109,6 @@ sudo journalctl -u quant-daily.service -b --no-pager
 ```
 
 腾讯云侧建议开启自动续费、磁盘使用率/实例不可达告警，并给系统盘配置自动快照。
-其中 `state/quality_momentum_top1_position.json` 是最需要备份的数据。
+其中`state/momentum_defender_w40_qm40_threshold_v5_position.json`和对应forward
+ledger是最需要备份的数据。新策略ID不继承旧正式持仓文件；首次正式执行前必须人工核对新目标并完成
+状态迁移。

@@ -40,16 +40,27 @@ class TestOutputShape:
 
 
 class TestEfficiencyRatio:
+    def test_uses_log_momentum_and_log_path_er(self):
+        """Momentum and ER should both be calculated in log-price space."""
+        prices = [100.0, 200.0, 100.0, 150.0]
+        result = compute(_make_df(prices), {"window": 3})
+
+        log_returns = np.diff(np.log(prices))
+        expected_er = abs(np.log(prices[-1] / prices[0])) / np.abs(log_returns).sum()
+        expected_momentum = np.log(prices[-1] / prices[0])
+
+        assert np.isclose(result.iloc[-1], expected_momentum * expected_er)
+
     def test_straight_line_has_high_er(self):
         """A straight-line move should produce ER close to 1."""
         # Monotonically increasing: 100, 101, 102, ..., 130
         prices = [100.0 + i for i in range(31)]
         df = _make_df(prices)
         result = compute(df)
-        # QMom = momentum * ER; for a straight line ER ≈ 1
+        # A monotonic path has ER = 1.
         # so QMom ≈ momentum
         last_qmom = result.iloc[-1]
-        last_momentum = (prices[-1] / prices[-21]) - 1
+        last_momentum = np.log(prices[-1] / prices[-21])
         # ER should be very close to 1, so QMom ≈ momentum
         assert abs(last_qmom - last_momentum) < 0.01
 

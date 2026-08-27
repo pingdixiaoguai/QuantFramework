@@ -1,0 +1,121 @@
+strategy_name: momentum_defender_w40_reversal_full_equity_v2
+strategy_mode: w40_reversal_full_equity
+backtest_start: "2013-01-01"
+formal_status: superseded_rollback_checkpoint
+superseded_by: momentum_defender_w40_gold_qm20_escape_v2
+formal_promotion_date: "2026-08-26"
+promotion_authority: explicit_user_instruction
+evidence_status: retrospective_dividend_universe_candidate_promoted_by_explicit_user_instruction
+
+base_strategy:
+  momentum_config_path: strategy/configs/quality_momentum_top1.yaml
+  defender_strategy_id: dividend_w40_reversal_full_equity_v2
+  rollback_config_path: strategy/configs/momentum_defender_w40_loss.yaml
+
+momentum_factor:
+  name: quality_momentum
+  version: "2.0.0"
+  window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  rebalance_days: 5
+
+regime_gate:
+  anchor_asset: 510300.SH
+  formula: max_negative_40_day_log_return
+  window: 40
+  path_efficiency: disabled
+  volatility_adjustment: disabled
+  volatility_floor: disabled
+  winsor_clip: disabled
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+  zero_loss_percentile: 0.0
+  defender_entry_percentile: 0.55
+  momentum_recovery_percentile: 0.40
+
+state_policy:
+  momentum_lock_days: 30
+  defender_lock_days: 30
+  defender_entry_confirmation_days: 1
+  momentum_recovery_confirmation_days: 1
+  emergency_override: false
+
+defender_selector:
+  frequency: monthly
+  score: trailing_log_return
+  lookback_sessions: 40
+  direction: lowest
+  listing_and_execution_aware: true
+  unavailable_switch: retain_previous_asset
+  candidate_assets:
+    - 512890.SH
+    - 513530.SH
+    - 515080.SH
+    - 510880.SH
+    - 515450.SH
+    - 513630.SH
+
+defender_position:
+  selected_dividend_equity_weight: 1.00
+  government_bond_511260_weight: 0.00
+  dynamic_grid: disabled
+  volatility_cap: disabled
+  champion_override: disabled
+
+overlays:
+  gold: disabled
+  rapid_reversal: disabled
+  held_asset_emergency: disabled
+
+asset_pool:
+  - 510300.SH
+  - 159915.SZ
+  - 513100.SH
+  - 518880.SH
+  - 512890.SH
+  - 513530.SH
+  - 515080.SH
+  - 510880.SH
+  - 515450.SH
+  - 513630.SH
+  - 511260.SH
+
+execution:
+  signal_timing: previous_close_to_next_open
+  momentum_etf_one_way_cost: 0.0001
+  defender_equity_etf_one_way_cost: 0.0001
+  defender_bond_etf_one_way_cost: 0.00001
+  untradable_switch: retain_previous_candidate
+
+checkpoint:
+  start: "2013-02-04"
+  end: "2026-08-26"
+  observations: 3293
+  total_return: 43.86976471115764
+  cagr_calendar: 0.3238611390147741
+  annualized_return_252: 0.33788060132212494
+  annualized_volatility: 0.2681924451157792
+  sharpe: 1.2197368901170056
+  max_drawdown: -0.6280714867079082
+  defender_entries: 31
+  defender_days: 1326
+  sleeve_switches: 61
+  candidate_switches: 237
+  defender_selection_switches: 58
+  daily_return_sha256_float64_le: d977b9707ba7ee004390e255220a4e9aea3b392bb0a52f2ab71227690599bda8
+
+validation:
+  dividend_universe_candidate_paths: 40
+  fixed_candidate_development_rank: 4
+  standalone_2007_2025_annualized_return_252: 0.09139476820443626
+  original_universe_2007_2025_annualized_return_252: 0.08993271072587583
+  standalone_2026_total_return: 0.10332751678056584
+  original_universe_2026_total_return: 0.049912854001950446
+  development_reality_check_p_value: 0.758
+  development_cscv_pbo: 0.551048951048951
+  evidence_limit: retrospective_selection_and_2026_already_observed_not_independent_oos
+  promotion_decision: explicit_user_instruction
+
+enable_dingtalk: true
+prospective_ledger_path: state/momentum_defender_w40_reversal_full_equity_v2_forward.jsonl

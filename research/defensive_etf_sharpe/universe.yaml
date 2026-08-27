@@ -1,0 +1,35 @@
+# Confirmed defensive ETF pool. Assets enter only from their first local
+# trading date; no pre-listing index proxy is permitted.
+assets:
+  510880.SH:
+    name: 华泰柏瑞上证红利ETF
+    short_name: 上证红利ETF
+    sleeve: dividend_equity
+  512890.SH:
+    name: 华泰柏瑞中证红利低波动ETF
+    short_name: 红利低波ETF
+    sleeve: dividend_low_vol_equity
+  515450.SH:
+    name: 南方标普中国A股大盘红利低波50ETF
+    short_name: 红利低波50ETF
+    sleeve: dividend_low_vol_equity
+  511010.SH:
+    name: 国泰上证5年期国债ETF
+    short_name: 5年国债ETF
+    sleeve: sovereign_bond
+  511260.SH:
+    name: 国泰上证10年期国债ETF
+    short_name: 10年国债ETF
+    sleeve: sovereign_bond
+  511090.SH:
+    name: 鹏扬中债-30年期国债ETF
+    short_name: 30年国债ETF
+    sleeve: sovereign_bond
+  511360.SH:
+    name: 海富通中证短融ETF
+    short_name: 短融ETF
+    sleeve: short_credit_bond
+  511880.SH:
+    name: 银华日利ETF
+    short_name: 银华日利
+    sleeve: money_market_cash

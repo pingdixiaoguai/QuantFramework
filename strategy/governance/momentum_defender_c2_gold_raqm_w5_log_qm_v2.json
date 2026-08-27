@@ -1,0 +1,13 @@
+{
+  "strategy_id": "momentum_defender_c2_gold_raqm_w5_log_qm_v2",
+  "formal_status": "production_signal_frozen",
+  "formal_promotion_date": "2026-08-24",
+  "promotion_authority": "explicit_user_instruction",
+  "strict_prospective_after": "2026-08-24",
+  "first_unobserved_execution_date": "2026-08-25",
+  "config_path": "strategy/configs/momentum_defender_c2_gold_raqm_w5.yaml",
+  "switch_research": "experiments/20260824_momentum_defender_log_qm_switch_robust/research_report.md",
+  "validation_workflow": "research/DEVELOPMENT_VALIDATION.md",
+  "prospective_ledger_path": "state/momentum_defender_c2_gold_raqm_w5_log_qm_v2_forward.jsonl",
+  "evidence_status": "user_fixed_log_qm_switch_reoptimization_rejected"
+}

@@ -1,0 +1,18 @@
+experiment_type,name,kind,parameter,description
+factor,momentum_20,momentum,20.0,20日简单收益率
+factor,momentum_60,momentum,60.0,60日简单收益率
+factor,momentum_120,momentum,120.0,120日简单收益率
+factor,reversal_5,reversal,5.0,负的5日简单收益率
+factor,reversal_20,reversal,20.0,负的20日简单收益率
+factor,low_vol_20,low_vol,20.0,负的20日日收益年化波动率
+factor,low_vol_60,low_vol,60.0,负的60日日收益年化波动率
+factor,quality_momentum_20,quality_momentum,20.0,20日动量×Kaufman ER
+factor,quality_momentum_60,quality_momentum,60.0,60日动量×Kaufman ER
+factor,momentum_low_vol_60,momentum_low_vol,60.0,60日动量排名与低波排名等权复合
+mechanism,sleeve_tilt_050,sleeve_tilt,0.5,保持四类预算，仅在红利和国债类内做50%排名倾斜
+mechanism,sleeve_tilt_100,sleeve_tilt,1.0,保持四类预算，仅在红利和国债类内做100%排名倾斜
+mechanism,global_tilt_025,global_tilt,0.25,基线权重乘以全池25%排名倾斜后归一化
+mechanism,global_tilt_050,global_tilt,0.5,基线权重乘以全池50%排名倾斜后归一化
+mechanism,global_tilt_075,global_tilt,0.75,基线权重乘以全池75%排名倾斜后归一化
+mechanism,global_blend_025,global_blend,0.25,基线与全池排名组合按75%/25%混合
+mechanism,global_blend_050,global_blend,0.5,基线与全池排名组合按50%/50%混合

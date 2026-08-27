@@ -1,0 +1,7 @@
+arm,mean_eligible_satellites,median_eligible_satellites,max_eligible_satellites,days_with_any_satellite,share_days_with_any_satellite
+B0_core4,0.0,0.0,0,0,0.0
+S0_static_current,10.660039113428944,8.0,22,3045,0.992503259452412
+D0_size_only,5.908083441981747,2.0,22,2820,0.9191655801825294
+D1_positive_top5,1.6538461538461537,1.0,5,1821,0.5935462842242504
+D2_median_core_top3,1.1333116036505868,1.0,3,1655,0.5394393741851369
+D3_best_core_top2,0.5159713168187744,0.0,2,1033,0.3367014341590613

@@ -1,0 +1,55 @@
+strategy_id: gold_raqm_raw_stability_focused_v1
+status: research_candidate_not_production
+selected_on: "2026-08-24"
+base_state: momentum_defender_log_qm_absolute_stability_v1
+
+factor:
+  family: raw
+  window: 5
+  volatility_floor_annual: null
+  winsor_limit: null
+  return_convention: log_return
+  efficiency_ratio_convention: log_path
+
+state_rule:
+  entry_difference: 2.0
+  exit_difference: 0.75
+  hard_min_hold_days: 5
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  gold_entries: 31
+  annualized_return_252: 0.47445648346760616
+  annualized_volatility: 0.18405918926776557
+  sharpe: 2.20338143242261
+  max_drawdown: -0.16767473118279563
+
+window_comparison:
+  window_5: {candidate_ids: 86, robust_eligible: 37, best_annualized_return_252: 0.47445648346760616, best_sharpe: 2.2147552932278995}
+  window_10: {candidate_ids: 86, robust_eligible: 0, best_annualized_return_252: 0.4319804899721589, best_sharpe: 2.065008448710995}
+  window_20: {candidate_ids: 86, robust_eligible: 4, best_annualized_return_252: 0.44235738676769265, best_sharpe: 2.1030312718863993}
+
+robustness:
+  candidate_ids: 258
+  unique_paths: 183
+  cscv_pbo: 0.1645021645021645
+  walk_forward_return_win_rate: 0.80
+  walk_forward_sharpe_win_rate: 0.60
+  yearly_reality_check_p_value: 0.5864
+  bootstrap_annualized_delta_positive_probability: 0.979
+  bootstrap_sharpe_delta_positive_probability: 0.9294
+  deflated_sharpe_excess_probability: 0.6920405808403308
+  leave_one_event_min_annualized_return_252: 0.4644331564259121
+  leave_one_event_min_sharpe: 2.17115562697814
+  remove_top_three_positive_events_annualized_return_252: 0.4462850225981494
+  remove_top_three_positive_events_sharpe: 2.113062642984263
+  three_x_cost_annualized_return_252: 0.4627950000846326
+  three_x_cost_sharpe: 2.159806743330891
+
+decision:
+  automatic_production_promotion: false
+  reason: >-
+    The focused raw W5 candidate is robust and improves the no-Gold base, but
+    the 258-path yearly Reality Check is not statistically significant.

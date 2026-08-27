@@ -1,0 +1,78 @@
+strategy_id: momentum_defender_log_qm_absolute_stability_v1
+status: research_candidate_not_production
+selected_on: "2026-08-24"
+selection_goal: maximize_absolute_stability_not_retrospective_peak
+
+frozen_layers:
+  momentum_factor: quality_momentum
+  momentum_factor_version: "2.0.0"
+  momentum_window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  defender: relative_defender_rotation_2013_listing_aware
+  gold_override: risk_adjusted_quality_momentum_w5_entry_2.20_exit_0.60_hard_hold_5
+
+regime_gate:
+  rule: anchor_and_held
+  anchor_asset: 510300.SH
+  held_asset: momentum_asset_at_previous_close
+  return_convention: log_return
+  lookback: 120
+  threshold: 0.0
+  risk_on_condition: anchor_positive_and_held_asset_positive
+
+state_policy:
+  min_momentum_days: 20
+  min_defender_days: 40
+  risk_off_confirmation: 1
+  risk_on_confirmation: 1
+
+emergency:
+  mode: downside_volatility
+  held_asset_only: true
+  negative_trend_confirmation_window: 5
+  volatility_window: 20
+  annualization: 252
+  quantile: 0.95
+  quantile_history: expanding_all_available_strict_lag
+  override_momentum_hold: true
+
+execution:
+  signal_timing: previous_close_to_next_open
+  costs: inherited_exact_asset_interfaces
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  annualized_return_252: 0.4732295818743901
+  annualized_volatility: 0.1826283633546471
+  sharpe: 2.21467341080646
+  max_drawdown: -0.16767473118279574
+
+absolute_stability:
+  leave_one_year_min_annualized_return_252: 0.409301629763998
+  leave_one_year_min_sharpe: 2.027564903656895
+  leave_one_year_worst_max_drawdown: -0.16767473118279586
+  leave_one_event_min_annualized_return_252: 0.44850179262295176
+  leave_one_event_min_sharpe: 2.078326959620882
+  remove_top_three_positive_events_annualized_return_252: 0.4181125284554874
+  remove_top_three_positive_events_sharpe: 2.0998804260302175
+  three_x_cost_annualized_return_252: 0.46320750267787325
+  three_x_cost_sharpe: 2.177251884243968
+
+global_multiple_testing:
+  candidate_paths: 3641
+  cscv_pbo: 0.01948051948051948
+  yearly_reality_check_p_value_vs_formal_baseline: 0.824
+  deflated_sharpe_probability_absolute: 0.999999858345511
+  deflated_sharpe_probability_excess_vs_baseline: 0.1982738707331394
+
+decision:
+  recommended_role: low_volatility_absolute_stability_research_candidate
+  statistically_superior_to_formal_baseline: false
+  automatic_production_promotion: false
+  rationale: >-
+    The candidate remains strong after deleting years, events, and increasing
+    costs, but global multiple-testing correction does not support a claim of
+    superiority over the current formal baseline.

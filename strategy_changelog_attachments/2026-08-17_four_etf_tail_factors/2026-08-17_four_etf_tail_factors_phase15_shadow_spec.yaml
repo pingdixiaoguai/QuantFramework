@@ -1,0 +1,50 @@
+status: paper_shadow_only
+production_enabled: false
+name: fitted_risk_delay_plus_safe_pos_two_sleeve
+asset_pool:
+  - 510300.SH
+  - 159915.SZ
+  - 513100.SH
+  - 518880.SH
+execution:
+  rebalance_days: 5
+  trade_time: next_trading_day_open
+  one_side_fee_main: 0.0001
+  one_side_fee_stress: 0.0005
+risk_field_weights:
+  downside_lpm20: 0.144242
+  cvar20: 0.147646
+  range20: 0.229821
+  gap_tail20: 0.120721
+  amihud20: 0.094715
+  amount_shock20: 0.091593
+  share_flow20: 0.080291
+  premium_crowding: 0.090971
+sleeves:
+  risk_delay_top1:
+    initial_capital_weight: 0.70
+    signal: QM20_top1
+    delay_switch_when:
+      proposed_winner_is_highest_risk: true
+      proposed_winner_risk_at_least: 0.75
+      incumbent_momentum20_at_least: 0.05
+      qm_standardized_confidence_at_most: 1.0
+    delay_trading_days: 3
+  safe_positive_momentum:
+    initial_capital_weight: 0.30
+    signal: QM20_top1
+    intervene_when:
+      winner_is_highest_risk: true
+      winner_risk_at_least: 0.70
+    diversifier:
+      require_momentum20_positive: true
+      select: lowest_fitted_risk
+    allocation_when_triggered:
+      qm_winner: 0.80
+      diversifier: 0.20
+sleeve_capital_rebalancing: none
+forward_validation:
+  minimum_calendar_months: 24
+  minimum_risk_delay_events: 3
+  change_parameters_during_validation: false
+

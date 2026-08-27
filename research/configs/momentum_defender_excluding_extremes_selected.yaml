@@ -1,0 +1,114 @@
+strategy_id: momentum_defender_dual_regime_excluding_extremes_v1
+status: research_candidate_not_production
+selected_on: "2026-08-25"
+selection_objective: excluding_extremes
+converged_with_including_extremes_selection: true
+
+frozen_layers:
+  momentum_factor: quality_momentum
+  momentum_factor_version: "2.0.0"
+  momentum_assets: [510300.SH, 159915.SZ, 513100.SH, 518880.SH]
+  gated_assets: [510300.SH, 518880.SH]
+  ungated_assets: [159915.SZ, 513100.SH]
+  defender: relative_defender_rotation_2013_listing_aware
+  gold_override: disabled
+  emergency_override: disabled
+
+score_definition:
+  formula: downside_regularized_raqm
+  volatility_floor_annual: 0.08
+  winsor_limit: 3.0
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+
+asset_policies:
+  510300.SH:
+    horizons: [40]
+    weights: [1.0]
+    defender_entry_percentile: 0.30
+    momentum_recovery_percentile: 0.20
+    defender_entry_confirmation_days: 1
+    momentum_recovery_confirmation_days: 1
+  518880.SH:
+    horizons: [30, 40]
+    weights: [0.25, 0.75]
+    defender_entry_percentile: 0.20
+    momentum_recovery_percentile: 0.05
+    defender_entry_confirmation_days: 5
+    momentum_recovery_confirmation_days: 1
+  159915.SZ: disabled
+  513100.SH: disabled
+
+state_policy:
+  momentum_lock_days: 25
+  defender_lock_days: 25
+  recovery_mode: sticky_entry_asset
+  all_locks_are_multiples_of_five: true
+
+selection_trim:
+  candidate_independent: true
+  shock_score: maximum_cross_asset_raw_absolute_5d_log_return
+  fixed_block_length_sessions: 20
+  excluded_block_fraction: 0.10
+  blocks: 93
+  excluded_blocks: 10
+  excluded_sessions: 200
+  final_checkpoint_includes_all_dates: true
+
+execution:
+  signal_timing: previous_close_to_next_open
+  costs: inherited_exact_asset_interfaces
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  total_return: 15.67469962387716
+  cagr_calendar: 0.44864497397267344
+  annualized_return_252: 0.46986654013575224
+  annualized_volatility: 0.2593190815517677
+  sharpe: 1.614602754320286
+  max_drawdown: -0.25504107542942467
+  defender_entries: 13
+  defender_days: 582
+  sleeve_switches: 26
+  candidate_switches: 128
+  daily_return_sha256_float64_le: a1de7b645277b9b7c5a6f3a7c165e05c14df17c3f843dce92d7bafe7f5f9cb0f
+
+ordinary_regime_metrics:
+  observations: 1641
+  annualized_return_252: 0.41167865093119516
+  sharpe: 1.8023779381170608
+  max_drawdown: -0.1621112158341187
+
+parameter_stability:
+  one_at_a_time_neighbors: 37
+  exact_path_equivalent_variants: 12
+  full_annualized_q25: 0.42915787226076585
+  full_sharpe_q25: 1.5106518317212696
+  ordinary_annualized_q25: 0.3704123627248843
+  ordinary_sharpe_q25: 1.6771841580796871
+
+stress:
+  fixed_leave_year_min_annualized_return_252: 0.41041113090591774
+  fixed_leave_year_min_sharpe: 1.553223071117041
+  three_x_cost_annualized_return_252: 0.4592949596653424
+  three_x_cost_sharpe: 1.5868475602758576
+  leave_one_event_min_annualized_return_252: 0.44430711402994194
+  leave_one_event_min_sharpe: 1.534222052645659
+
+global_overfit_audit:
+  candidate_ids: 55355
+  global_unique_paths: 12619
+  full_cscv_pbo: 0.2987012987012987
+  ordinary_cscv_pbo: 0.19047619047619047
+  full_reality_check_p: 0.1602
+  ordinary_reality_check_p: 0.109
+  walk_forward_return_win_rate_vs_momentum: 0.8
+  walk_forward_sharpe_win_rate_vs_momentum: 0.8
+  reality_check_p_vs_universal_anchor: 0.9944
+
+decision:
+  beats_log_qm_momentum: true
+  beats_universal_510300_draqm: false
+  automatic_production_promotion: false

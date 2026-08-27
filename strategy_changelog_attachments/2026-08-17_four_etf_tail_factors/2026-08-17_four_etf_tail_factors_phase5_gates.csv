@@ -1,0 +1,23 @@
+gate,value,passed
+D sharpe nonnegative,0.14751342479207308,True
+D annual_return nonnegative,0.010028009860802323,True
+D top10_mean_depth nonnegative,0.008720144594144982,True
+V sharpe nonnegative,0.11007906720678273,True
+V annual_return nonnegative,0.01365840419330877,True
+V top10_mean_depth nonnegative,0.013639079073607188,True
+T_pseudo_oos sharpe nonnegative,0.06669217868420096,True
+T_pseudo_oos annual_return nonnegative,-0.05169555262770453,False
+T_pseudo_oos top10_mean_depth nonnegative,0.029782124936893056,True
+FULL sharpe nonnegative,0.11471977605016082,True
+FULL annual_return nonnegative,-0.0057075234709977885,False
+FULL top10_mean_depth nonnegative,0.02324035118998663,True
+FULL Sharpe improves >=0.05,0.11471977605016082,True
+FULL annual improves >=1pp,-0.0057075234709977885,False
+FULL Top10 improves >=1pp,0.02324035118998663,True
+FULL maxDD no worse than -1pp,0.03252631138393158,True
+FULL 5bp Sharpe nonnegative,0.10752367034687471,True
+FULL 5bp annual nonnegative,-0.004828967496797398,False
+rolling36 Sharpe lead >=60%,0.7477477477477478,True
+baseline Top10 same-window wins >=7,8,True
+official baseline diff <=1e-12,0.0,True
+fixed-core target/simulation invariant,True,True

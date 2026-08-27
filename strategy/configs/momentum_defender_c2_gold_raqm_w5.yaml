@@ -1,29 +1,80 @@
-strategy_name: momentum_defender_c2_gold_raqm_w5_v1
-strategy_mode: gold_raqm_w5
-formal_status: production_signal_frozen
-formal_promotion_date: "2026-08-23"
+strategy_name: momentum_defender_confirmation_bridge_raw_gold_v4
+strategy_mode: confirmation_bridge_raw_gold
+formal_status: superseded_rollback_checkpoint
+superseded_by: momentum_defender_downside_raqm_weighted_v1
+formal_promotion_date: "2026-08-24"
 promotion_authority: explicit_user_instruction
-evidence_status: retrospective_research_with_forward_validation_required
+evidence_status: user_requested_no_lock_redesign_with_retrospective_badcase_review
 
 base_strategy:
-  id: momentum_defender_c2_defender_main_b5e3419
+  id: momentum_defender_dual_trend_confirmation_v2
   momentum_config_path: strategy/configs/quality_momentum_top1.yaml
   defender_strategy_id: relative_defender_rotation_2013_listing_aware
   defender_upstream_commit: b5e34191a7d445521de330e998bfe0804d6ebd43
 
-gold_override:
-  asset: 518880.SH
-  factor: risk_adjusted_quality_momentum
+momentum_factor:
+  name: quality_momentum
+  version: "2.0.0"
+  window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  searchable_in_switch_research: false
+
+regime_gate:
+  rule: anchor_and_held
+  anchor_asset: 510300.SH
+  held_asset: momentum_asset_at_previous_close
+  return_convention: log_return
+  lookback: 120
+  threshold: 0.0
+  risk_on_condition: anchor_positive_and_held_asset_positive
+
+state_policy:
+  min_momentum_days: 0
+  min_defender_days: 0
+  risk_off_confirmation: 20
+  risk_on_confirmation: 10
+  confirmation_resets_on_opposite_signal: true
+  emergency_bypasses_confirmation: true
+
+rapid_reversal_bridge:
+  enabled: true
+  asset: momentum_top1_at_open
+  factor: raw_risk_adjusted_quality_momentum
   window: 5
-  vol_floor_annual: 0.08
   defender_curve: whole_continuous_hold_net_nav
   entry_difference_operator: ">"
-  entry_difference: 2.20
+  entry_difference: 2.0
   exit_difference_operator: "<="
-  exit_difference: 0.60
+  exit_difference: 0.75
+  hard_min_hold_days: 0
+  mutates_base_confirmation_state: false
+  blocked_by_emergency: true
+
+emergency:
+  mode: downside_volatility
+  held_asset_only: true
+  negative_trend_confirmation_window: 5
+  volatility_window: 20
+  annualization: 252
+  quantile: 0.95
+  quantile_history: expanding_all_available_strict_lag
+  override_momentum_hold: true
+
+gold_override:
+  asset: 518880.SH
+  factor: raw_risk_adjusted_quality_momentum
+  window: 5
+  vol_floor_annual: null
+  winsor_limit: null
+  defender_curve: whole_continuous_hold_net_nav
+  entry_difference_operator: ">"
+  entry_difference: 2.0
+  exit_difference_operator: "<="
+  exit_difference: 0.75
   hard_min_hold_days: 5
-  first_five_days_ignore_base_c2_momentum: true
-  after_five_days_base_c2_momentum_takes_precedence: true
+  first_five_days_ignore_effective_momentum: true
+  after_five_days_effective_momentum_takes_precedence: true
 
 asset_pool:
   - 510300.SH
@@ -41,36 +92,43 @@ asset_pool:
 execution:
   signal_timing: previous_close_to_next_open
   etf_one_way_cost: 0.0001
-  sleeve_min_hold_days: 30
+  momentum_min_hold_days: 0
+  defender_min_hold_days: 0
   emergency_override: true
 
 checkpoint:
   start: "2019-01-18"
   end: "2026-08-21"
   observations: 1841
-  total_return: 25.819543733172846
-  annualized_return_252: 0.5686623288517123
-  annualized_volatility: 0.20059353224797208
-  sharpe: 2.343230933446946
-  max_drawdown: -0.12965860415132147
-  gold_entries: 20
-  gold_days: 111
-  switches: 142
-  daily_return_sha256_float64_le: d0411fc76dd80f5e897368c6e2fbd479839d791dc1ed73b6841711ab11f071c0
+  total_return: 9.901806583247968
+  annualized_return_252: 0.38680372672714025
+  annualized_volatility: 0.2048897104643934
+  sharpe: 1.6997761688675834
+  max_drawdown: -0.19314014472524876
+  base_defender_entries: 14
+  base_defender_days: 918
+  base_switches: 28
+  rapid_reversal_entries: 32
+  rapid_reversal_days: 105
+  effective_defender_days: 813
+  gold_entries: 13
+  gold_days: 69
+  switches: 197
+  daily_return_sha256_float64_le: 3228aa3f63e63c9741fc1397ad3927715910145f72bf4cd4e0d7352b906ce7a8
 
 validation:
-  candidate_grid_size: 2714
-  pbo: 0.14654234654234655
-  walk_forward_return_win_rate: 0.60
-  walk_forward_sharpe_win_rate: 0.40
-  block_bootstrap_return_positive_probability: 0.9942
-  block_bootstrap_sharpe_positive_probability: 0.9824
-  year_block_reality_check_p_value: 0.6572
-  parameter_neighborhood_annual_improvement_rate: 0.96
-  parameter_neighborhood_annual_and_sharpe_improvement_rate: 0.60
-  leave_one_event_min_annualized_return_252: 0.5579360568795431
-  leave_one_event_min_sharpe: 2.3156135092528602
-  overfit_risk: moderate
+  historical_badcases_reviewed: 17
+  historical_badcases_improved_vs_v3: 13
+  historical_badcases_remaining_gap_over_1pp: 8
+  v3_annualized_return_252: 0.47445648346760616
+  v3_sharpe: 2.20338143242261
+  v3_max_drawdown: -0.16767473118279563
+  change_annualized_return_252: -0.08765275674046591
+  change_sharpe: -0.5036052635550268
+  change_max_drawdown: -0.02546553954362313
+  promotion_decision: explicit_user_instruction_prioritizing_no_lock_and_fast_reversal
+  evidence_limit: retrospective_mechanism_comparison_not_independent_oos
+  overfit_risk: high_requiring_new_forward_ledger
 
 enable_dingtalk: true
-prospective_ledger_path: state/momentum_defender_c2_gold_raqm_w5_v1_forward.jsonl
+prospective_ledger_path: state/momentum_defender_confirmation_bridge_raw_gold_v4_forward.jsonl

@@ -1,0 +1,16 @@
+# Confirmed research protocol, not a production trading instruction.
+strategy_name: defensive_etf_sharpe_momentum_er_top1_v2_1
+start: "2013-01-01"
+end: latest_local_data
+monthly_deposit: 20000
+transaction_cost_rate: 0.0005
+lot_size: 100
+rebalance: monthly_first_a_share_trading_day
+signal_execution: close_signal_next_open_execution
+selection:
+  frequency: monthly_then_daily_until_positive
+  asset_count: 1
+  score: 20_trading_day_momentum_times_kaufman_efficiency_ratio
+  eligible_score: strictly_greater_than_zero
+  fallback: 511880.SH_then_daily_check_until_positive_score
+benchmark_profile: {equity: 0.35, sovereign_bond: 0.40, short_credit: 0.15, money_market: 0.10}

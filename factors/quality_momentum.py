@@ -1,8 +1,8 @@
-"""质量动量因子 (Quality Momentum) — 动量 × Kaufman 效率比率。
+"""质量动量因子 (Quality Momentum) — 对数收益动量 × 对数路径Kaufman效率比率。
 
 结合两个维度:
-1. 原始动量: (close_t / close_{t-N}) - 1
-2. 效率比率 (Kaufman Efficiency Ratio): |总位移| / 路径总长度
+1. 对数动量: ln(close_t / close_{t-N})
+2. 效率比率 (Kaufman Efficiency Ratio): |对数价格总位移| / 对数路径总长度
 
 效率比率取值 [0, 1]:
 - 接近 1.0: 路径平滑，像一条直线（温水煮青蛙）
@@ -19,11 +19,11 @@ import pandas as pd
 METADATA = {
     "name": "quality_momentum",
     "author": "quantframework",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "params": {"window": 20},
     "min_history": 21,
     "direction": "higher_better",
-    "description": "动量 × Kaufman效率比率，偏好路径平滑的趋势",
+    "description": "对数收益动量 × 对数路径Kaufman效率比率，偏好百分比路径平滑的趋势",
 }
 
 
@@ -31,15 +31,16 @@ def compute(df: pd.DataFrame, params: dict | None = None) -> pd.Series:
     p = {**METADATA["params"], **(params or {})}
     w = p["window"]
     close = df["close"]
+    log_close = np.log(close.astype(float))
 
-    # 1. 原始动量
-    momentum = close.pct_change(w)
+    # 1. 对数收益动量
+    momentum = log_close - log_close.shift(w)
 
-    # 2. 效率比率 (Efficiency Ratio)
-    #    分子: 窗口内总位移（绝对值）
-    #    分母: 窗口内每日变动绝对值之和（路径总长度）
-    displacement = (close - close.shift(w)).abs()
-    path_length = close.diff().abs().rolling(w).sum()
+    # 2. 对数路径效率比率 (Efficiency Ratio)
+    #    分子: 窗口内对数价格总位移（绝对值）
+    #    分母: 窗口内每日对数收益绝对值之和（百分比路径总长度）
+    displacement = (log_close - log_close.shift(w)).abs()
+    path_length = log_close.diff().abs().rolling(w).sum()
     er = displacement / path_length.replace(0, np.nan)
 
     # 3. 质量动量 = 动量 × 路径效率

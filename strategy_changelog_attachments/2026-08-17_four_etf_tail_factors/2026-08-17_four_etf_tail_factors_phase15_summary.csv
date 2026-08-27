@@ -1,0 +1,2 @@
+candidate,all_gates_passed,platform_rate,full_sharpe_delta,full_annual_delta,full_top10_delta,full_maxdd_delta,rolling36_lead,same_window_wins,delay_event_days,defensive_trigger_days
+TWO_SLEEVE_SHADOW,True,0.625,0.0832011882996413,0.01720240323948974,0.003525169093860081,0.010653526575865935,0.8468468468468469,7,19,550

@@ -1,0 +1,2 @@
+selected,eligible_DV_count,total_candidates,selected_all_segments_triple,any_all_segments_triple,full_sharpe_delta,full_annual_delta,full_top10_delta,rolling36_lead,same_window_wins
+P10_13,10,27,False,True,0.038361692360400435,0.012427234700930212,0.004992753194686533,0.5495495495495496,4

@@ -1,0 +1,85 @@
+experiment:
+  id: momentum_defender_peak_escape_occam_v1
+  created_on: "2026-08-25"
+  evidence_status: exploratory_retrospective_after_top_drawdown_review_not_oos
+  baseline_strategy: momentum_defender_w40_loss_excluding_extremes_v1
+  hypothesis: >-
+    A small, asset-local overheat rule using price extension, ETF trading
+    activity, and split-adjusted fund-share growth can temporarily replace a
+    Momentum holding with the existing Defender sleeve and improve the mean
+    depth of the strategy's own 20 deepest drawdowns without excessive return
+    or Sharpe sacrifice.
+
+data:
+  start: "2019-01-18"
+  end: "2026-08-14"
+  price_source: local_hfq_ohlcv
+  fund_share_source: data/db/four_etf_tushare_fields.parquet
+  fund_share_adjustment: fd_share_divided_by_fund_adj_factor
+  timing: signal_close_t_executes_open_t_plus_1
+
+objective:
+  primary: candidate_own_top20_mean_drawdown_depth
+  top_n: 20
+  secondary:
+    - maximum_drawdown
+    - annualized_return_252
+    - sharpe
+    - baseline_top20_same_window_return
+
+signal:
+  price_breakout: close_above_strict_prior_200_session_high
+  price_return_window: 20
+  volume_ratio: current_volume_over_strict_prior_20_session_median
+  fund_scale_change: split_adjusted_fund_share_20_session_return
+  escape_target: DEFENDER
+  exit_rule: minimum_hold_then_exit_when_entry_condition_is_false
+  policies:
+    - price_volume
+    - price_crowding
+  policy_formulas:
+    price_volume: price_flag_and_volume_flag
+    price_crowding: price_flag_and_either_volume_or_fund_scale_flag
+
+grid:
+  policy: [price_volume, price_crowding]
+  price_return_threshold: [0.15, 0.20, 0.25]
+  volume_ratio_threshold: [1.50, 2.00]
+  fund_share_flow_threshold: [0.05]
+  min_escape_hold_days: [5, 10]
+
+periods:
+  development: ["2019-01-18", "2021-12-31"]
+  validation: ["2022-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-14"]
+  full: ["2019-01-18", "2026-08-14"]
+
+selection:
+  uses_periods: [development, validation]
+  minimum_escape_entries: 3
+  annualized_return_delta_floor: -0.03
+  sharpe_delta_floor: -0.05
+  top20_mean_drawdown_delta_floor: 0.0
+  ordering:
+    - development_validation_top20_mean_improvement
+    - worst_development_validation_top20_improvement
+    - worst_development_validation_sharpe_delta
+    - fewer_escape_days
+    - simpler_price_volume_policy
+    - candidate_id
+
+final_gates:
+  full_top20_mean_drawdown_improvement_minimum: 0.005
+  full_max_drawdown_delta_minimum: 0.0
+  full_annualized_return_delta_minimum: -0.03
+  full_sharpe_delta_minimum: -0.05
+  recent_top20_mean_drawdown_delta_minimum: 0.0
+  baseline_top20_same_window_wins_minimum: 12
+  bootstrap_top20_positive_probability_minimum: 0.80
+
+validation:
+  cscv_blocks: 12
+  bootstrap_block_size: 20
+  bootstrap_repetitions: 5000
+  reality_check_repetitions: 5000
+  seed: 20260825

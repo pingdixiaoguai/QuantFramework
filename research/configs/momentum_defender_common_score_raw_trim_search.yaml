@@ -1,0 +1,113 @@
+experiment:
+  id: momentum_defender_common_score_raw_trim_v2
+  created_on: "2026-08-24"
+  evidence_status: post_v1_revised_candidate_independent_raw_shock_trim_not_oos
+  predecessor: momentum_defender_common_score_trimmed_v1
+  reason: >-
+    Volatility normalization can downweight an actual crash after realized
+    volatility rises. This separately versioned round defines extreme periods
+    directly by raw absolute 5-day log returns and re-searches the full common
+    score profile family without using candidate returns to form the mask.
+
+frozen_layers:
+  momentum_factor: quality_momentum
+  momentum_factor_version: "2.0.0"
+  momentum_window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  momentum_assets: [510300.SH, 159915.SZ, 513100.SH, 518880.SH]
+  gated_assets: [510300.SH, 518880.SH]
+  ungated_assets: [159915.SZ, 513100.SH]
+  defender: relative_defender_rotation_2013_listing_aware
+  gold_override: disabled
+  emergency_override: disabled
+
+extreme_block_trim:
+  assets: [510300.SH, 518880.SH]
+  shock_return_window: 5
+  shock_volatility_window: 20
+  volatility_floor_annual: 0.08
+  normalization_mode: raw_absolute_log_return
+  block_length_sessions: 20
+  excluded_block_fraction: 0.10
+  block_anchor: first_execution_session
+  block_score: maximum_cross_asset_raw_absolute_5d_log_return
+  selection_only: true
+  final_metrics_include_all_dates: true
+
+common_score:
+  formula: downside_regularized_raqm
+  volatility_floor_annual: 0.08
+  winsor_limit: 3.0
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+  profiles:
+    w20: {horizons: [20], weights: [1.0]}
+    w30: {horizons: [30], weights: [1.0]}
+    w40: {horizons: [40], weights: [1.0]}
+    w60: {horizons: [60], weights: [1.0]}
+    w20_40_25_75: {horizons: [20, 40], weights: [0.25, 0.75]}
+    w20_40_equal: {horizons: [20, 40], weights: [0.50, 0.50]}
+    w30_40_25_75: {horizons: [30, 40], weights: [0.25, 0.75]}
+    w30_40_equal: {horizons: [30, 40], weights: [0.50, 0.50]}
+    w30_60_25_75: {horizons: [30, 60], weights: [0.25, 0.75]}
+    w30_60_equal: {horizons: [30, 60], weights: [0.50, 0.50]}
+
+single_asset_stage:
+  defender_entry_percentiles: [0.30, 0.40, 0.50, 0.60, 0.70, 0.80]
+  momentum_recovery_percentiles: [0.00, 0.10, 0.20, 0.30, 0.40]
+  minimum_hysteresis_gap: 0.10
+  defender_entry_confirmation_days: [1, 3, 5]
+  momentum_recovery_confirmation_days: [1, 3]
+  fixed_momentum_lock_days: 20
+  fixed_defender_lock_days: 25
+  fixed_recovery_reference: sticky_entry_asset
+  minimum_defender_entries: 3
+  minimum_defender_days: 40
+  policies_per_asset_per_profile_for_joint_stage: 4
+  selection_metrics:
+    - trimmed_annualized_return_252
+    - trimmed_sharpe
+    - trimmed_minimum_segment_sharpe
+    - threshold_neighborhood_trimmed_annualized_q25
+    - threshold_neighborhood_trimmed_sharpe_q25
+
+joint_stage:
+  both_asset_policies_required: true
+  common_profile_required: true
+  momentum_lock_days: [20, 25, 30]
+  defender_lock_days: [20, 25, 30]
+  recovery_reference_modes: [sticky_entry_asset]
+  minimum_defender_entries: 3
+  minimum_defender_days: 60
+  full_annualized_return_floor: 0.45
+  validation_sharpe_floor: 1.0
+  recent_sharpe_floor: 1.0
+  lock_neighborhood_full_annualized_pass_rate_floor: 0.50
+  selection_priority:
+    - trimmed_annualized_return_252
+    - trimmed_sharpe
+    - trimmed_minimum_segment_sharpe
+    - lock_neighborhood_trimmed_annualized_q25
+    - lock_neighborhood_trimmed_sharpe_q25
+    - full_annualized_return_252
+    - full_sharpe
+
+periods:
+  development: ["2019-01-18", "2022-12-30"]
+  validation: ["2023-01-01", "2024-12-31"]
+  recent: ["2025-01-01", "2026-08-21"]
+  full: ["2019-01-18", "2026-08-21"]
+
+overfit_checks:
+  cscv_blocks: 12
+  paired_block_bootstrap_block: 20
+  paired_block_bootstrap_repetitions: 5000
+  yearly_reality_check_repetitions: 5000
+  random_seed: 20260824
+  top_positive_event_deletions: [1, 2, 3]
+  friction_cost_multipliers: [1.0, 2.0, 3.0]
+
+decision:
+  no_automatic_production_replacement: true
+  require_explicit_user_promotion: true

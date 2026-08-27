@@ -1,0 +1,17 @@
+{
+  "strategy_id": "momentum_defender_w40_gold_qm20_escape_v1",
+  "formal_status": "superseded_rollback_checkpoint",
+  "superseded_by": "momentum_defender_w40_gold_qm20_escape_v2",
+  "formal_promotion_date": "2026-08-25",
+  "promotion_authority": "explicit_user_instruction",
+  "strict_prospective_after": "2026-08-25",
+  "first_unobserved_execution_date": "2026-08-26",
+  "config_path": "experiments/20260825_momentum_defender_w40_gold_qm20_escape_v1_formal/strategy_config.yaml",
+  "rollback_config_path": "strategy/configs/momentum_defender_w40_full_equity.yaml",
+  "research_config_path": "research/configs/momentum_defender_w40_gold_qm20_escape_candidate.yaml",
+  "research_report": "docs/research/2026-08-25_w40_asset_specific_qm20_escape_search.md",
+  "formal_promotion_report": "docs/research/2026-08-25_w40_gold_escape_formal_promotion.md",
+  "validation_workflow": "research/DEVELOPMENT_VALIDATION.md",
+  "prospective_ledger_path": "state/momentum_defender_w40_gold_qm20_escape_v1_forward.jsonl",
+  "evidence_status": "staged_retrospective_candidate_promoted_by_explicit_user_instruction"
+}

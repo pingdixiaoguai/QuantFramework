@@ -1,0 +1,19 @@
+gate,value,passed
+D sharpe positive,0.06712695692648807,True
+D annual positive,0.023989439176127947,True
+D top10 positive,0.010129187191388556,True
+V sharpe positive,0.11684521963226346,True
+V annual positive,0.03230712662554702,True
+V top10 positive,0.008897367004996257,True
+T sharpe positive,-0.02610950915210486,False
+T annual positive,-0.0162166811783222,False
+T top10 positive,0.0044177252140316925,True
+FULL sharpe positive,0.052057611127994896,True
+FULL annual positive,0.01583628310305385,True
+FULL top10 positive,0.0067764608588407604,True
+FULL 5bp Sharpe positive,0.05293072091828743,True
+FULL 5bp annual positive,0.016109211934103085,True
+FULL maxDD no worse -1pp,-0.005417495382427084,True
+rolling36 Sharpe lead >=60%,0.6936936936936937,True
+baseline Top10 windows wins >=7,6,False
+target invariants,True,True

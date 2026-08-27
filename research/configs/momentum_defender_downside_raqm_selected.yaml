@@ -1,0 +1,89 @@
+strategy_id: momentum_defender_downside_raqm_weighted_v1
+status: research_candidate_not_production
+selected_on: "2026-08-24"
+selection_status: post_v3_near_tie_governance_selection
+
+frozen_layers:
+  momentum_factor: quality_momentum
+  momentum_factor_version: "2.0.0"
+  momentum_window: 20
+  momentum_convention: log_return
+  efficiency_ratio_convention: log_price_path
+  defender: relative_defender_rotation_2013_listing_aware
+  gold_override: disabled
+  emergency_override: disabled
+
+factor:
+  anchor_asset: 510300.SH
+  formula: downside_regularized_raqm
+  horizons: [30, 40]
+  weights: [0.25, 0.75]
+  volatility_floor_annual: 0.08
+  winsor_limit: 3.0
+  percentile_history: rolling_504_strict_lag
+  percentile_min_history: 252
+
+state_policy:
+  defender_entry_percentile: 0.55
+  defender_exit_percentile: 0.20
+  momentum_lock_days: 30
+  defender_lock_days: 30
+  defender_entry_confirmation_days: 3
+  momentum_recovery_confirmation_days: 1
+  emergency_override: false
+
+execution:
+  signal_timing: previous_close_to_next_open
+  costs: inherited_exact_asset_interfaces
+  untradable_switch: retain_previous_candidate
+
+checkpoint:
+  start: "2019-01-18"
+  end: "2026-08-21"
+  observations: 1841
+  total_return: 19.185536813814853
+  cagr_calendar: 0.48556575625620324
+  annualized_return_252: 0.5088174407913155
+  annualized_volatility: 0.2582994989170446
+  sharpe: 1.721256857272472
+  max_drawdown: -0.25504107542942467
+  defender_entries: 17
+  defender_days: 739
+  sleeve_switches: 33
+  candidate_switches: 134
+  daily_return_sha256_float64_le: f83166623f8749c77404a35f6559839ed3c59f60f6438501ab5c28b59ae6e687
+
+parameter_stability:
+  neighborhood_count: 16
+  annualized_45pct_pass_rate: 1.0
+  annualized_q25: 0.4973916973866922
+  annualized_median: 0.4986746029274249
+  sharpe_q25: 1.690499916259064
+  sharpe_median: 1.6947938152190625
+
+overfit_audit:
+  candidate_ids: 72144
+  global_unique_paths: 42010
+  cscv_pbo: 0.37012987012987014
+  reality_check_p_value: 0.1742
+  walk_forward_return_win_rate: 0.60
+  walk_forward_sharpe_win_rate: 0.60
+  paired_bootstrap_annualized_delta_ci: [0.040587569870185594, 0.3107361337209658]
+  paired_bootstrap_sharpe_delta_ci: [0.18661480890779752, 0.9568532457022564]
+  leave_one_event_min_annualized_return_252: 0.46973718432006906
+  fixed_leave_year_min_annualized_return_252: 0.4597744766603271
+  three_x_cost_annualized_return_252: 0.49748586912677917
+  top_two_positive_event_share: 0.36941336806229225
+  remove_top_two_positive_events_annualized_return_252: 0.4384372203880731
+
+latest_checkpoint_state:
+  date: "2026-08-21"
+  risk_on: false
+  target: DEFENDER
+  downside_raqm_percentile_at_open: 0.9107142857142857
+
+decision:
+  annualized_45pct_requirement_met: true
+  statistically_superior_after_global_multiple_testing: false
+  automatic_production_promotion: false
+  requires_explicit_user_promotion: true
