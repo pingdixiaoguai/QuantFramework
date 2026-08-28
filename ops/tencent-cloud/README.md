@@ -9,6 +9,7 @@
 - `quant-daily.timer` 只负责 09:00 调度，不启用错过后的延迟补跑。服务器若在开盘后
   才恢复，不应再把早盘指令当作准时信号发送。
 - `scripts/run_daily_job.py` 最多运行 3 次，失败后等待 10 分钟再试。
+- 生产任务只传入 `quality_momentum_top1.yaml`，通知不加载或展示影子策略。
 - 三次全部失败后，只发送一次独立的钉钉 `@所有人` 故障告警，并让 systemd
   保持失败状态以便排查。
 - `/usr/bin/flock` 防止同一个任务并发写行情和持仓状态。
@@ -86,6 +87,23 @@ sudo journalctl -u quant-daily.service -n 200 --no-pager
 ```bash
 systemctl list-timers quant-daily.timer --no-pager
 ```
+
+## 更新已有部署
+
+服务器拉取本次改动后，重新安装服务文件并让 systemd 读取新配置：
+
+```bash
+cd /opt/QuantFramework
+git pull
+sudo install -m 0644 ops/tencent-cloud/quant-daily.service /etc/systemd/system/quant-daily.service
+sudo systemctl daemon-reload
+sudo systemctl cat quant-daily.service
+```
+
+确认输出的 `ExecStart` 中只有
+`--config strategy/configs/quality_momentum_top1.yaml`，没有 `--shadow-config`。
+定时器不需要重启，下一次运行即会使用新配置；如需立即验证，可手动启动一次服务，
+但会发送一条真实的钉钉通知。
 
 ## 运维命令
 
